@@ -8,7 +8,6 @@
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
     mode: "0755"
-  become: true
 
 # Check whether rclone has already mounted the remote at that path.
 # rc == 0 means mounted; rc != 0 means not yet mounted (not a failure).

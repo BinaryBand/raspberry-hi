@@ -31,6 +31,7 @@
 
     - role: jellyfin
       tags: [jellyfin]
+      become: true
 
     - role: minio
       tags: [minio]
