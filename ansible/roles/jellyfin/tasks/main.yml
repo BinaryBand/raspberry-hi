@@ -45,6 +45,15 @@
     group: "{{ brew_user }}"
     mode: "0755"
 
+# Pull the image before the quadlet is installed so service start/restart
+# is fast and never races against a slow download.
+- name: Pull Jellyfin container image
+  ansible.builtin.command: podman pull {{ jellyfin_image }}
+  become: false
+  register: _jellyfin_pull
+  changed_when: "'Copying' in _jellyfin_pull.stdout"
+  timeout: 600
+
 - name: Install Jellyfin Podman quadlet
   ansible.builtin.template:
     src: jellyfin.container.j2

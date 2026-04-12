@@ -4,7 +4,7 @@
 media_mount_path: /mnt/media
 
 # Container image to use for Jellyfin.
-jellyfin_image: jellyfin/jellyfin:latest
+jellyfin_image: docker.io/jellyfin/jellyfin:latest
 
 # Port Jellyfin listens on inside the container (and exposed on the host).
 jellyfin_port: 8096
