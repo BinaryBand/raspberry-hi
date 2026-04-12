@@ -27,26 +27,16 @@ To manage multiple Pis, add more lines under `[raspberry_pi]`.
 ### 2. Set up secrets
 
 Secrets (MinIO credentials) are stored in an Ansible Vault encrypted file that travels
-with the repo. You need a vault password file (never committed) and an encrypted secrets
-file (committed in encrypted form).
+with the repo. Run the interactive bootstrap script to set everything up:
 
 ```bash
-# Create the vault password file (do this once per machine)
-echo 'yourpassword' > ansible/.vault-password
-chmod 600 ansible/.vault-password
-
-# Create the encrypted secrets file (opens $EDITOR)
-make vault-create
+make bootstrap
 ```
 
-In the editor, enter your MinIO credentials and save:
+This will prompt you for a vault password (saved locally, never committed) and your
+MinIO credentials, then write the encrypted vault file.
 
-```yaml
-minio_root_user: myuser
-minio_root_password: mysecret
-```
-
-To edit secrets later: `make vault-edit`
+To update secrets later: `make vault-edit`
 
 ### 3. Validate prerequisites
 
@@ -73,9 +63,9 @@ the vault password file handles decryption automatically.
 | --- | --- |
 | `make check` | Validate all prerequisites before provisioning |
 | `make ping` | Check Pi is reachable |
-| `make bw-login` | Authenticate Bitwarden CLI and refresh session |
-| `make bootstrap` | Ensure required secrets exist in Bitwarden |
-| `make site` | Full provision: secrets → base → Homebrew → Podman → Rclone → MinIO |
+| `make bootstrap` | First-time setup: create vault password and encrypt secrets |
+| `make vault-edit` | Edit existing encrypted secrets |
+| `make site` | Full provision: base → Homebrew → Podman → Rclone → MinIO |
 | `make mount` | Interactively mount external storage |
 | `make rclone [args]` | Forward rclone commands to the Pi over SSH |
 

@@ -218,3 +218,4 @@ __marimo__/
 # Ansible secrets
 ansible/.vault-password
 ansible/.bw-session
+ansible/group_vars/all/vault.yml
