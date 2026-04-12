@@ -1,0 +1,10 @@
+---
+- name: restart jellyfin
+  ansible.builtin.systemd:
+    name: jellyfin
+    scope: user
+    state: restarted
+    daemon_reload: true
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"

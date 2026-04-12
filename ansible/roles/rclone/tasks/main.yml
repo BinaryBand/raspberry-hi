@@ -10,3 +10,84 @@
   ansible.builtin.apt:
     name: fuse3
     state: present
+
+- name: Assert rclone remote is configured
+  ansible.builtin.assert:
+    that: rclone_remote | length > 0
+    fail_msg: "rclone remote is not set. Run 'make rclone-setup' first."
+
+- name: Get UID of {{ brew_user }}
+  ansible.builtin.command: "id -u {{ brew_user }}"
+  register: _brew_user_uid_out
+  changed_when: false
+
+- name: Set brew_user_uid fact
+  ansible.builtin.set_fact:
+    brew_user_uid: "{{ _brew_user_uid_out.stdout }}"
+
+# root cannot stat a FUSE mount created without --allow-root, so
+# ansible.builtin.file fails if rclone-media is already running.
+# Stop the service first (if active), chown the bare directory, then
+# the "enable and start" task at the end of this role brings it back.
+- name: Check if rclone-media service is active
+  ansible.builtin.command: >
+    systemctl --user is-active rclone-media
+  register: _rclone_svc_active
+  failed_when: false
+  changed_when: false
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"
+
+- name: Stop rclone-media if running so mount point can be managed
+  ansible.builtin.systemd:
+    name: rclone-media
+    scope: user
+    state: stopped
+  when: _rclone_svc_active.stdout == "active"
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"
+
+- name: Ensure media mount point exists and is owned by brew_user
+  ansible.builtin.file:
+    path: "{{ media_mount_path }}"
+    state: directory
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0755"
+
+- name: Ensure systemd user service directory exists
+  ansible.builtin.file:
+    path: "/home/{{ brew_user }}/.config/systemd/user"
+    state: directory
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0755"
+  become: true
+
+- name: Install rclone media mount service
+  ansible.builtin.template:
+    src: rclone-media.service.j2
+    dest: "/home/{{ brew_user }}/.config/systemd/user/rclone-media.service"
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0644"
+  become: true
+  notify: restart rclone-media
+
+- name: Enable linger for {{ brew_user }}
+  ansible.builtin.command: "loginctl enable-linger {{ brew_user }}"
+  become: true
+  changed_when: false
+
+- name: Enable and start rclone-media service
+  ansible.builtin.systemd:
+    name: rclone-media
+    scope: user
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"

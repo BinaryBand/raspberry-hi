@@ -1,0 +1,20 @@
+[Unit]
+Description=Jellyfin Media Server
+After=network.target
+
+[Container]
+Image={{ jellyfin_image }}
+PublishPort={{ jellyfin_port }}:8096
+Volume={{ jellyfin_config_path }}:/config
+Volume={{ jellyfin_cache_path }}:/cache
+{% if jellyfin_media_dir is defined %}
+Volume={{ jellyfin_media_dir }}:/media:ro
+{% endif %}
+UserNS=keep-id
+
+[Service]
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

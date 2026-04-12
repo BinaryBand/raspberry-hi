@@ -1,0 +1,17 @@
+[Unit]
+Description=rclone media mount ({{ rclone_remote }}:{{ rclone_remote_path }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/rclone mount {{ rclone_remote }}:{{ rclone_remote_path }} {{ media_mount_path }} \
+  --vfs-cache-mode full \
+  --read-only \
+  --allow-non-empty
+ExecStop=/bin/fusermount3 -uz {{ media_mount_path }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

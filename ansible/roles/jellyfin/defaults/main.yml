@@ -8,3 +8,7 @@ jellyfin_image: jellyfin/jellyfin:latest
 
 # Port Jellyfin listens on inside the container (and exposed on the host).
 jellyfin_port: 8096
+
+# Persistent storage for Jellyfin's library database and transcoding cache.
+jellyfin_config_path: /srv/jellyfin/config
+jellyfin_cache_path: /srv/jellyfin/cache
