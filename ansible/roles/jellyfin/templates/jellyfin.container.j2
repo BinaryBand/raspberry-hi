@@ -14,9 +14,11 @@ UserNS=keep-id
 
 [Service]
 Restart=on-failure
-RestartSec=5
-# Image pulls on a Pi can take several minutes; give systemd enough runway.
-TimeoutStartSec=300
+# Rootless Podman storage init (storage-chown-by-maps) can take 10+ minutes
+# on a Pi SD card the first time. RestartSec is long enough that a restart
+# won't interrupt an in-progress chown.
+RestartSec=60
+TimeoutStartSec=1800
 
 [Install]
 WantedBy=default.target
