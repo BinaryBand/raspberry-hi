@@ -1,0 +1,27 @@
+---
+# Prerequisite: mount point must exist and be owned by brew_user so that
+# rclone (running as brew_user) can create the FUSE mount.
+- name: Ensure media mount point exists and is owned by brew_user
+  ansible.builtin.file:
+    path: "{{ media_mount_path }}"
+    state: directory
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0755"
+  become: true
+
+# Check whether rclone has already mounted the remote at that path.
+# rc == 0 means mounted; rc != 0 means not yet mounted (not a failure).
+- name: Check if media mount is active
+  ansible.builtin.command: mountpoint -q {{ media_mount_path }}
+  register: media_mounted
+  failed_when: false
+  changed_when: false
+
+# Wire up the Jellyfin media directory only when the mount is live.
+# Tasks that reference jellyfin_media_dir should guard with:
+#   when: jellyfin_media_dir is defined
+- name: Set jellyfin_media_dir fact when mount is active
+  ansible.builtin.set_fact:
+    jellyfin_media_dir: "{{ media_mount_path }}"
+  when: media_mounted.rc == 0

@@ -1,0 +1,6 @@
+---
+bw_secrets:
+  - name: minio_root_user
+    description: "MinIO root username (access key)"
+  - name: minio_root_password
+    description: "MinIO root password (secret key)"

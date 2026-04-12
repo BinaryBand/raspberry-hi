@@ -1,0 +1,28 @@
+---
+# Usage: ansible-playbook mount_storage.yml -e "device=/dev/sda1 label=storage"
+# Optional: -e "mount_point=/mnt/storage fstype=ext4"
+
+- name: Mount external storage
+  hosts: raspberry_pi
+  become: true
+
+  vars:
+    mount_point: "/mnt/{{ label | default('storage') }}"
+    fstype: auto
+
+  tasks:
+    - name: Ensure mount point directory exists
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Mount device and persist in fstab
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: "{{ device }}"
+        fstype: "{{ fstype }}"
+        opts: defaults,nofail
+        state: mounted

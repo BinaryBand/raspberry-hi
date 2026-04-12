@@ -1,0 +1,12 @@
+---
+- name: Install Rclone
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure fuse3 is installed (required by rclone mount)
+  ansible.builtin.apt:
+    name: fuse3
+    state: present

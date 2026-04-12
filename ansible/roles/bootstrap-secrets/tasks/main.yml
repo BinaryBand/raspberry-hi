@@ -1,0 +1,38 @@
+---
+- name: Verify bw CLI is available
+  ansible.builtin.command: which bw
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  failed_when: bw_which.rc != 0
+  register: bw_which
+
+- name: Read Bitwarden session token
+  ansible.builtin.set_fact:
+    _bw_session: "{{ lookup('file', playbook_dir + '/.bw-session', errors='ignore') | default('', true) }}"
+  delegate_to: localhost
+  run_once: true
+  no_log: true
+
+- name: Check Bitwarden vault status
+  ansible.builtin.command: bw status
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  register: _bw_status
+  environment:
+    BW_SESSION: "{{ _bw_session }}"
+
+- name: Assert vault is unlocked
+  ansible.builtin.assert:
+    that: (_bw_status.stdout | from_json).status == 'unlocked'
+    fail_msg: "Bitwarden vault is locked. Run 'make bw-login' first."
+  delegate_to: localhost
+  run_once: true
+
+- name: Provision required secrets
+  ansible.builtin.include_tasks: provision_secret.yml
+  loop: "{{ bw_secrets }}"
+  loop_control:
+    loop_var: secret_item
+  run_once: true

@@ -1,0 +1,36 @@
+---
+- name: Provision Raspberry Pi
+  hosts: raspberry_pi
+  gather_facts: true
+
+  pre_tasks:
+    - name: Bootstrap secrets
+      ansible.builtin.include_role:
+        name: bootstrap-secrets
+      run_once: true
+
+  roles:
+    - role: auto-updates
+      tags: [base]
+      become: true
+
+    - role: homebrew
+      tags: [homebrew]
+
+    - role: podman
+      tags: [podman]
+      become: true
+
+    - role: rclone
+      tags: [rclone]
+      become: true
+
+    - role: storage
+      tags: [storage]
+      become: true
+
+    - role: jellyfin
+      tags: [jellyfin]
+
+    - role: minio
+      tags: [minio]
