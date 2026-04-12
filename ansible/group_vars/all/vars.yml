@@ -5,7 +5,5 @@ ansible_python_interpreter: /usr/bin/python3
 brew_user: erron
 brew_prefix: /home/linuxbrew/.linuxbrew
 
-# MinIO config
+# Shared MinIO/storage config — used by both the storage and minio roles
 minio_data_path: /srv/minio/data
-minio_port: 9000
-minio_console_port: 9001

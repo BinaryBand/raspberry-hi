@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """Validate prerequisites before running make site."""
 
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 ANSIBLE_DIR = Path(__file__).parent.parent / "ansible"
-SESSION_FILE = ANSIBLE_DIR / ".bw-session"
+VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 
 
 def check(label: str, ok: bool, fix: str = "") -> bool:
@@ -23,29 +21,16 @@ def main() -> None:
     print("Checking prerequisites...\n")
     all_ok = True
 
-    # bw CLI installed
-    bw_ok = subprocess.run(["which", "bw"], capture_output=True).returncode == 0
-    all_ok &= check("bw CLI installed", bw_ok, "brew install bitwarden-cli")
-
-    # Session file exists
-    session = SESSION_FILE.read_text().strip() if SESSION_FILE.exists() else ""
-    all_ok &= check("Bitwarden session file exists", bool(session), "make bw-login")
-
-    # Vault unlocked
-    if bw_ok and session:
-        result = subprocess.run(
-            ["bw", "status"],
-            capture_output=True,
-            text=True,
-            env={**os.environ, "BW_SESSION": session},
-        )
-        try:
-            unlocked = json.loads(result.stdout).get("status") == "unlocked"
-        except (json.JSONDecodeError, AttributeError):
-            unlocked = False
-        all_ok &= check("Bitwarden vault unlocked", unlocked, "make bw-login")
-    else:
-        all_ok &= check("Bitwarden vault unlocked", False, "make bw-login")
+    # Vault password file exists and is private
+    vault_ok = (
+        VAULT_PASSWORD_FILE.exists()
+        and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600
+    )
+    all_ok &= check(
+        "Vault password file exists (ansible/.vault-password, mode 600)",
+        vault_ok,
+        "echo 'yourpassword' > ansible/.vault-password && chmod 600 ansible/.vault-password",
+    )
 
     # Pi reachable
     ping = subprocess.run(

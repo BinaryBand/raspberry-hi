@@ -3,12 +3,6 @@
   hosts: raspberry_pi
   gather_facts: true
 
-  pre_tasks:
-    - name: Bootstrap secrets
-      ansible.builtin.include_role:
-        name: bootstrap-secrets
-      run_once: true
-
   roles:
     - role: auto-updates
       tags: [base]

@@ -6,7 +6,6 @@ Ansible + Python tools for managing a Raspberry Pi.
 
 - Ansible (`brew install ansible`)
 - Poetry (`brew install poetry`)
-- Bitwarden CLI (`brew install bitwarden-cli`)
 - SSH key already on the Pi
 
 ## First-time setup
@@ -25,22 +24,29 @@ ansible_user=youruser
 
 To manage multiple Pis, add more lines under `[raspberry_pi]`.
 
-### 2. Set up Bitwarden
+### 2. Set up secrets
 
-Secrets (MinIO credentials) are stored in your personal Bitwarden vault.
+Secrets (MinIO credentials) are stored in an Ansible Vault encrypted file that travels
+with the repo. You need a vault password file (never committed) and an encrypted secrets
+file (committed in encrypted form).
 
-1. Log into Bitwarden → **Account Settings → Security → API Key**
-2. Export the credentials in your shell (add to `~/.bashrc` to persist):
-   ```bash
-   export BW_CLIENTID="user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-   export BW_CLIENTSECRET="xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-   ```
-3. Unlock your vault:
-   ```bash
-   make bw-login
-   ```
-   This authenticates the `bw` CLI and saves a session token to `ansible/.bw-session`.
-   Re-run whenever your session expires (typically after a few hours).
+```bash
+# Create the vault password file (do this once per machine)
+echo 'yourpassword' > ansible/.vault-password
+chmod 600 ansible/.vault-password
+
+# Create the encrypted secrets file (opens $EDITOR)
+make vault-create
+```
+
+In the editor, enter your MinIO credentials and save:
+
+```yaml
+minio_root_user: myuser
+minio_root_password: mysecret
+```
+
+To edit secrets later: `make vault-edit`
 
 ### 3. Validate prerequisites
 
@@ -48,7 +54,7 @@ Secrets (MinIO credentials) are stored in your personal Bitwarden vault.
 make check
 ```
 
-Verifies that the `bw` CLI is installed, the vault is unlocked, and the Pi is reachable.
+Verifies that the vault password file exists and the Pi is reachable.
 
 ### 4. Provision
 
@@ -56,15 +62,15 @@ Verifies that the `bw` CLI is installed, the vault is unlocked, and the Pi is re
 make site
 ```
 
-On first run this will prompt for MinIO credentials, store them in your Bitwarden vault,
-then install and configure everything on the Pi.
+Installs and configures everything on the Pi. Subsequent runs need no extra steps —
+the vault password file handles decryption automatically.
 
 ---
 
 ## Commands
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `make check` | Validate all prerequisites before provisioning |
 | `make ping` | Check Pi is reachable |
 | `make bw-login` | Authenticate Bitwarden CLI and refresh session |
@@ -97,8 +103,8 @@ A Makefile defines named shortcuts (`targets`) you run with `make <target>` from
 
 ```makefile
 target:          # name of the command
-	shell command  # must be indented with a TAB (not spaces)
-	shell command  # multiple lines run in sequence
+  shell command  # must be indented with a TAB (not spaces)
+  shell command  # multiple lines run in sequence
 ```
 
 The `.PHONY` line tells Make these are commands, not filenames — without it, Make would skip

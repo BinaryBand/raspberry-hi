@@ -9,12 +9,6 @@
     HOME: "/home/{{ brew_user }}"
     PATH: "{{ brew_prefix }}/bin:/usr/bin:/bin"
 
-- name: Fetch MinIO credentials from Bitwarden
-  ansible.builtin.set_fact:
-    minio_root_user: "{{ lookup('bitwarden', 'minio_root_user') }}"
-    minio_root_password: "{{ lookup('bitwarden', 'minio_root_password') }}"
-  no_log: true
-
 - name: Write MinIO environment file
   ansible.builtin.template:
     src: minio.env.j2

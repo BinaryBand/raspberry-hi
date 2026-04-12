@@ -10,7 +10,7 @@ PI_HOST := $(shell cd $(ANSIBLE_DIR) && ansible-inventory --host $(HOST) 2>/dev/
 PI_USER := $(shell cd $(ANSIBLE_DIR) && ansible-inventory --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('ansible_user',''))" 2>/dev/null)
 
-.PHONY: check ping bw-login bootstrap site mount rclone
+.PHONY: check ping site mount rclone vault-create vault-edit
 
 check:
 	poetry run python scripts/check.py
@@ -18,13 +18,13 @@ check:
 ping:
 	cd $(ANSIBLE_DIR) && ansible raspberry_pi -m ping
 
-bw-login:
-	poetry run python scripts/bw-session-refresh.py
+vault-create:
+	cd $(ANSIBLE_DIR) && ansible-vault create group_vars/all/vault.yml
 
-bootstrap:
-	cd $(ANSIBLE_DIR) && ansible-playbook bootstrap.yml
+vault-edit:
+	cd $(ANSIBLE_DIR) && ansible-vault edit group_vars/all/vault.yml
 
-site: bootstrap
+site:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml
 
 mount:

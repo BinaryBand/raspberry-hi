@@ -1,7 +1,0 @@
----
-- name: Bootstrap secrets
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  roles:
-    - bootstrap-secrets
