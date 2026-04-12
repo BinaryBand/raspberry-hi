@@ -1,9 +1,0 @@
----
-- name: restart rclone-media
-  ansible.builtin.systemd:
-    name: rclone-media
-    scope: user
-    state: restarted
-  become: false
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"

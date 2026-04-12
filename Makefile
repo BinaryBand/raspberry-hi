@@ -10,7 +10,7 @@ PI_HOST := $(shell cd $(ANSIBLE_DIR) && ansible-inventory --host $(HOST) 2>/dev/
 PI_USER := $(shell cd $(ANSIBLE_DIR) && ansible-inventory --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('ansible_user',''))" 2>/dev/null)
 
-.PHONY: check ping bootstrap rclone-setup site mount rclone vault-edit
+.PHONY: check ping bootstrap site mount vault-edit
 
 check:
 	poetry run python scripts/check.py
@@ -21,8 +21,6 @@ ping:
 bootstrap:
 	poetry run python scripts/bootstrap.py
 
-rclone-setup:
-	poetry run python scripts/rclone_setup.py
 
 vault-edit:
 	cd $(ANSIBLE_DIR) && ansible-vault edit group_vars/all/vault.yml
@@ -33,8 +31,6 @@ site:
 mount:
 	poetry run python scripts/pick_storage.py
 
-rclone:
-	ssh -t $(PI_USER)@$(PI_HOST) rclone $(filter-out rclone,$(MAKECMDGOALS))
 
 %:
 	@:

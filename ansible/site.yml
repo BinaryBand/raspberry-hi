@@ -15,17 +15,11 @@
       tags: [podman]
       become: true
 
-    - role: rclone
-      tags: [rclone]
-      become: true
 
     - role: storage
       tags: [storage]
       become: true
 
-    - role: jellyfin
-      tags: [jellyfin]
-      become: true
 
     - role: minio
       tags: [minio]

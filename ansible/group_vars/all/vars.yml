@@ -2,5 +2,3 @@ ansible_python_interpreter: /usr/bin/python3
 brew_prefix: /home/linuxbrew/.linuxbrew
 brew_user: erron
 minio_data_path: /srv/minio/data
-rclone_remote: pcloud
-rclone_remote_path: Media

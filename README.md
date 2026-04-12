@@ -38,22 +38,7 @@ MinIO credentials, then write the encrypted vault file.
 
 To update secrets later: `make vault-edit`
 
-### 3. Configure the rclone media mount
-
-Declare which cloud remote and path to mount read-only at `/mnt/media`:
-
-```bash
-make rclone-setup
-```
-
-This prompts for the remote name (e.g. `pcloud`) and remote path (e.g. `Media`),
-then saves them to `ansible/group_vars/all/vars.yml`.
-
-If you haven't set up the remote on the Pi yet, SSH in and run `rclone config`
-to complete the OAuth flow — that step requires browser interaction and can't be
-automated.
-
-### 4. Validate prerequisites
+### 3. Validate prerequisites
 
 ```bash
 make check
