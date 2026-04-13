@@ -22,10 +22,7 @@ def main() -> None:
     all_ok = True
 
     # Vault password file exists and is private
-    vault_ok = (
-        VAULT_PASSWORD_FILE.exists()
-        and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600
-    )
+    vault_ok = VAULT_PASSWORD_FILE.exists() and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600
     all_ok &= check(
         "Vault password file exists (ansible/.vault-password, mode 600)",
         vault_ok,
@@ -35,14 +32,7 @@ def main() -> None:
     # Pi reachable
     inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
     ping = subprocess.run(
-        [
-            "ansible",
-            "raspberry_pi",
-            "-m",
-            "ping",
-            "-i",
-            str(inventory_path)
-        ],
+        ["ansible", "raspberry_pi", "-m", "ping", "-i", str(inventory_path)],
         capture_output=True,
         text=True,
     )

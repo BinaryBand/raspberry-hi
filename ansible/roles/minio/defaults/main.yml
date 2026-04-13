@@ -15,3 +15,6 @@ mc_binary_path: /usr/local/bin/mc
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
+# Optional pin for the mc binary (leave empty to skip checksum verification)
+mc_version: ""
+mc_checksum: ""
