@@ -18,11 +18,13 @@ ANSIBLE_DIR = Path(__file__).parent.parent / "ansible"
 
 def _inventory_host_vars(host: str = "rpi") -> dict:
     """Read host vars from ansible-inventory so HOST/USER stay in one place."""
+    # Run from project root so ansible.cfg paths resolve correctly
+    PROJECT_ROOT = ANSIBLE_DIR.parent
     result = subprocess.run(
         ["ansible-inventory", "--host", host],
         capture_output=True,
         text=True,
-        cwd=ANSIBLE_DIR,
+        cwd=PROJECT_ROOT,
     )
     if result.returncode != 0:
         raise RuntimeError(f"ansible-inventory failed: {result.stderr.strip()}")

@@ -33,11 +33,18 @@ def main() -> None:
     )
 
     # Pi reachable
+    inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
     ping = subprocess.run(
-        ["ansible", "raspberry_pi", "-m", "ping", "-o"],
+        [
+            "ansible",
+            "raspberry_pi",
+            "-m",
+            "ping",
+            "-i",
+            str(inventory_path)
+        ],
         capture_output=True,
         text=True,
-        cwd=ANSIBLE_DIR,
     )
     pi_ok = "SUCCESS" in ping.stdout
     all_ok &= check(

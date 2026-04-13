@@ -12,24 +12,29 @@ PI_USER := $(shell cd $(ANSIBLE_DIR) && ansible-inventory --host $(HOST) 2>/dev/
 
 .PHONY: check ping bootstrap site mount vault-edit
 
+
 check:
-	poetry run python scripts/check.py
+	poetry run python ./scripts/check.py
+
 
 ping:
-	cd $(ANSIBLE_DIR) && ansible raspberry_pi -m ping
+	ansible raspberry_pi -m ping -i ansible/inventory/hosts.ini
 
-bootstrap:
-	poetry run python scripts/bootstrap.py
+	poetry run python ./scripts/bootstrap.py
+
+
+ssh:
+	ssh -i config/.ed25519 $$(awk '/^rpi / {for(i=1;i<=NF;i++) if($$i ~ /^ansible_host=/) {split($$i,a,"="); host=a[2]}} /^ansible_user=/ {split($$0,a,"="); user=a[2]} END {print user "@" host}' ansible/inventory/hosts.ini) -p 22
 
 
 vault-edit:
-	cd $(ANSIBLE_DIR) && ansible-vault edit group_vars/all/vault.yml
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file ansible/.vault-password
 
-site:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml
 
-mount:
-	poetry run python scripts/pick_storage.py
+	sleep 1
+	ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini --vault-password-file ansible/.vault-password
+
+	poetry run python ./scripts/pick_storage.py
 
 
 %:

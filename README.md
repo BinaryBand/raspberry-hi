@@ -5,8 +5,12 @@ Ansible + Python tools for managing a Raspberry Pi.
 ## Requirements
 
 - Ansible (`brew install ansible`)
-- Poetry (`brew install poetry`)
+- Poetry (`pipx install poetry`)
 - SSH key already on the Pi
+
+## Project Root
+
+All commands below should be run from the project root (`./`).
 
 ## First-time setup
 
@@ -105,7 +109,7 @@ the target if a file with that name happened to exist.
 
 ## Ad-hoc Ansible
 
-Playbooks live in `ansible/` and must be run from there (so `ansible.cfg` is picked up):
+Playbooks live in `ansible/`. If running Ansible commands directly, first `cd ansible` so `ansible.cfg` is picked up:
 
 ```bash
 cd ansible
