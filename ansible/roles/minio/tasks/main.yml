@@ -70,6 +70,7 @@
   ansible.builtin.command: "loginctl enable-linger {{ brew_user }}"
   become: true
   changed_when: false
+  when: not (minio_skip_linger | default(false))
 
 # Run as the play user (erron) with explicit XDG_RUNTIME_DIR so Ansible can
 # reach the user's systemd socket without an interactive login session.
@@ -82,3 +83,8 @@
     daemon_reload: true
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"
+ 
+# After the service is started, set up buckets and policies using mc
+- name: Setup MinIO buckets and public policy
+  ansible.builtin.include_tasks: setup_mc_bucket.yml
+  when: not (minio_skip_bucket_setup | default(false))

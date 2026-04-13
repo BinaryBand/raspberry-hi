@@ -4,3 +4,14 @@ minio_data_path: /srv/minio/data
 minio_port: 9000
 minio_console_port: 9001
 minio_service_name: minio
+
+# MinIO client (mc) defaults for bucket setup and policy management
+# These can be overridden in role vars or inventory host_vars as needed.
+mc_alias: myminio
+mc_bucket: media
+mc_url: "http://127.0.0.1:{{ minio_port }}"
+mc_install_method: binary
+mc_binary_path: /usr/local/bin/mc
+mc_wait_retries: 30
+mc_wait_delay: 5
+mc_policy: download

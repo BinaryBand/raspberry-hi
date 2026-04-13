@@ -37,5 +37,9 @@ vault-edit:
 	poetry run python ./scripts/pick_storage.py
 
 
+site:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini --vault-password-file ansible/.vault-password
+
+
 %:
 	@:

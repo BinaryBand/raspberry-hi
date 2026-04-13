@@ -1,0 +1,139 @@
+---
+# Ensure MinIO client (`mc`) is present, wait for service, configure alias,
+# create bucket if missing, and ensure anonymous download policy.
+
+- name: Install mc via package (optional)
+  ansible.builtin.package:
+    name: mc
+    state: present
+  become: true
+  when: mc_install_method == 'package'
+
+- name: Determine mc download architecture
+  ansible.builtin.set_fact:
+    mc_dl_arch: >-
+      {% if ansible_architecture == 'aarch64' %}arm64{% elif ansible_architecture.startswith('arm') %}arm{% elif ansible_architecture == 'x86_64' %}amd64{% else %}{{ ansible_architecture }}{% endif %}
+  when: mc_install_method == 'binary'
+
+- name: Download MinIO client binary to {{ mc_binary_path }}
+  ansible.builtin.get_url:
+    url: "https://dl.min.io/client/mc/release/linux-{{ mc_dl_arch }}/mc"
+    dest: "{{ mc_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+  become: true
+  when: mc_install_method == 'binary'
+
+- name: Wait for MinIO TCP port {{ minio_port }} to be available
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ minio_port }}"
+    state: started
+    timeout: "{{ (mc_wait_retries | int) * (mc_wait_delay | int) }}"
+
+- name: Wait until MinIO health endpoint responds HTTP 200
+  ansible.builtin.uri:
+    url: "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port|string)) }}/minio/health/ready"
+    method: GET
+    status_code: 200
+    validate_certs: no
+  register: minio_health
+  retries: "{{ mc_wait_retries }}"
+  delay: "{{ mc_wait_delay }}"
+  until: minio_health.status == 200
+  failed_when: false
+
+- name: Ensure mc config directory exists
+  ansible.builtin.file:
+    path: "/home/{{ brew_user }}/.mc"
+    state: directory
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0700"
+  become: true
+
+- name: Write mc `config.json` with MinIO alias (no_log)
+  ansible.builtin.copy:
+    dest: "/home/{{ brew_user }}/.mc/config.json"
+    content: |
+      {
+        "version": "10",
+        "hosts": {
+          "{{ mc_alias }}": {
+            "url": "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port|string)) }}",
+            "accessKey": "{{ minio_root_user }}",
+            "secretKey": "{{ minio_root_password }}",
+            "api": "S3v4",
+            "lookup": "auto"
+          }
+        }
+      }
+    owner: "{{ brew_user }}"
+    group: "{{ brew_user }}"
+    mode: "0600"
+  become: true
+  no_log: true
+  when:
+    - minio_root_user is defined
+    - minio_root_password is defined
+
+- name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
+  ansible.builtin.command: "mc ls {{ mc_alias }}/{{ mc_bucket }}"
+  become: true
+  become_user: "{{ brew_user }}"
+  environment:
+    HOME: "/home/{{ brew_user }}"
+    TERM: "xterm"
+  register: mc_bucket_check
+  failed_when: false
+  changed_when: false
+  when:
+    - minio_root_user is defined
+    - minio_root_password is defined
+
+- name: Create bucket {{ mc_bucket }} if missing
+  ansible.builtin.command: "mc mb {{ mc_alias }}/{{ mc_bucket }}"
+  become: true
+  become_user: "{{ brew_user }}"
+  environment:
+    HOME: "/home/{{ brew_user }}"
+    TERM: "xterm"
+  when:
+    - mc_bucket_check is defined
+    - mc_bucket_check.rc != 0
+  register: mc_bucket_mb
+  failed_when: mc_bucket_mb.rc != 0
+  changed_when: mc_bucket_mb.rc == 0
+
+- name: Ensure anonymous/download policy on {{ mc_alias }}/{{ mc_bucket }}
+  ansible.builtin.command: "mc policy set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
+  become: true
+  become_user: "{{ brew_user }}"
+  environment:
+    HOME: "/home/{{ brew_user }}"
+    TERM: "xterm"
+  register: mc_policy_set
+  failed_when: false
+  changed_when: mc_policy_set.rc == 0
+  when:
+    - minio_root_user is defined
+    - minio_root_password is defined
+
+- name: Apply JSON policy fallback (if needed)
+  ansible.builtin.command: "mc policy set-json /tmp/minio_anon_policy_{{ mc_bucket }}.json {{ mc_alias }}/{{ mc_bucket }}"
+  become: true
+  become_user: "{{ brew_user }}"
+  environment:
+    HOME: "/home/{{ brew_user }}"
+    TERM: "xterm"
+  when: mc_policy_set is defined and mc_policy_set.rc != 0
+  register: mc_policy_json_set
+  failed_when: mc_policy_json_set.rc != 0
+  changed_when: mc_policy_json_set.rc == 0
+
+- name: Cleanup temporary policy file
+  ansible.builtin.file:
+    path: "/tmp/minio_anon_policy_{{ mc_bucket }}.json"
+    state: absent
+  when: mc_policy_set is defined and mc_policy_set.rc != 0
