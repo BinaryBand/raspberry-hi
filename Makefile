@@ -40,6 +40,9 @@ vault-edit:
 site:
 	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini --vault-password-file ansible/.vault-password
 
+site-local:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts-local.ini --vault-password-file ansible/.vault-password
+
 
 %:
 	@:

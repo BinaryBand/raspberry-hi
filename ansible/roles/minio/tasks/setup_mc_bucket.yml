@@ -2,11 +2,16 @@
 # Ensure MinIO client (`mc`) is present, wait for service, configure alias,
 # create bucket if missing, and ensure anonymous download policy.
 
+- name: Detect local connection for minio tasks
+  ansible.builtin.set_fact:
+    minio_local_run: "{{ (ansible_connection == 'local') | default(false) }}"
+
+
 - name: Install mc via package (optional)
   ansible.builtin.package:
     name: mc
     state: present
-  become: true
+  become: "{{ not minio_local_run }}"
   when: mc_install_method == 'package'
 
 - name: Determine mc download architecture
@@ -22,7 +27,7 @@
     mode: '0755'
     owner: root
     group: root
-  become: true
+  become: "{{ not minio_local_run }}"
   when: mc_install_method == 'binary'
 
 - name: Wait for MinIO TCP port {{ minio_port }} to be available
@@ -51,7 +56,7 @@
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
     mode: "0700"
-  become: true
+  become: "{{ not minio_local_run }}"
 
 - name: Write mc `config.json` with MinIO alias (no_log)
   ansible.builtin.copy:
@@ -72,7 +77,7 @@
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
     mode: "0600"
-  become: true
+  become: "{{ not minio_local_run }}"
   no_log: true
   when:
     - minio_root_user is defined
@@ -80,7 +85,7 @@
 
 - name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
   ansible.builtin.command: "mc ls {{ mc_alias }}/{{ mc_bucket }}"
-  become: true
+  become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
     HOME: "/home/{{ brew_user }}"
@@ -94,7 +99,7 @@
 
 - name: Create bucket {{ mc_bucket }} if missing
   ansible.builtin.command: "mc mb {{ mc_alias }}/{{ mc_bucket }}"
-  become: true
+  become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
     HOME: "/home/{{ brew_user }}"
@@ -108,7 +113,7 @@
 
 - name: Ensure anonymous/download policy on {{ mc_alias }}/{{ mc_bucket }}
   ansible.builtin.command: "mc policy set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
-  become: true
+  become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
     HOME: "/home/{{ brew_user }}"
@@ -122,7 +127,7 @@
 
 - name: Apply JSON policy fallback (if needed)
   ansible.builtin.command: "mc policy set-json /tmp/minio_anon_policy_{{ mc_bucket }}.json {{ mc_alias }}/{{ mc_bucket }}"
-  become: true
+  become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
     HOME: "/home/{{ brew_user }}"
