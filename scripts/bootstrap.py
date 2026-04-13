@@ -8,12 +8,13 @@ Safe to re-run — only prompts for credentials that are missing.
 Run via: make bootstrap
 """
 
+from __future__ import annotations
+
 import getpass
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
 
 import yaml
 
@@ -22,14 +23,22 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from models import VaultSecrets
+if TYPE_CHECKING:
+    from models import VaultSecrets
 
 ANSIBLE_DIR = Path(__file__).resolve().parent.parent / "ansible"
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
 
+
 # Add new secrets here as the project grows.
-SECRETS = [
+class SecretSpec(TypedDict):
+    key: str
+    label: str
+    hidden: bool
+
+
+SECRETS: List[SecretSpec] = [
     {"key": "minio_root_user", "label": "MinIO root username", "hidden": False},
     {"key": "minio_root_password", "label": "MinIO root password", "hidden": True},
 ]
@@ -59,7 +68,10 @@ def setup_vault_password() -> None:
 
 def decrypt_vault() -> VaultSecrets:
     """Decrypt the vault file and return its contents as a VaultSecrets model."""
-    result = subprocess.run(
+    # Resolve executable to absolute path and run
+    from exec_utils import run_resolved
+
+    result = run_resolved(
         [
             "ansible-vault",
             "decrypt",
@@ -75,6 +87,9 @@ def decrypt_vault() -> VaultSecrets:
     if result.returncode != 0:
         abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
     raw = yaml.safe_load(result.stdout) or {}
+    # Local import to avoid module-level import after sys.path mutation
+    from models import VaultSecrets
+
     return VaultSecrets.model_validate(raw)
 
 
@@ -92,7 +107,9 @@ def encrypt_vault(secrets: Any) -> None:
         tmp_path = Path(tmp.name)
 
     try:
-        result = subprocess.run(
+        from exec_utils import run_resolved
+
+        result = run_resolved(
             [
                 "ansible-vault",
                 "encrypt",
@@ -111,14 +128,19 @@ def encrypt_vault(secrets: Any) -> None:
         tmp_path.unlink(missing_ok=True)
 
 
-def prompt_missing(secrets: VaultSecrets) -> dict:
-    """Prompt for any secrets not already present. Returns only the new entries."""
+def prompt_missing(secrets: VaultSecrets) -> VaultSecrets:
+    """Prompt for any secrets not already present. Returns a VaultSecrets model
+    populated only with the newly-provided values (other fields None).
+    """
+    # Local import for runtime use
+    from models import VaultSecrets
+
     missing = [s for s in SECRETS if not getattr(secrets, s["key"], None)]
     if not missing:
-        return {}
+        return VaultSecrets()
 
     print("Enter the following credentials (they will be encrypted in the vault):\n")
-    new_entries = {}
+    new_entries: Dict[str, str] = {}
     for s in missing:
         while True:
             value = (
@@ -130,7 +152,11 @@ def prompt_missing(secrets: VaultSecrets) -> dict:
                 break
             print("  Value cannot be empty — try again.")
         new_entries[s["key"]] = value
-    return new_entries
+
+    # Local import to avoid module-level import after sys.path mutation
+    from models import VaultSecrets
+
+    return VaultSecrets.model_validate(new_entries)
 
 
 def main() -> None:
@@ -138,18 +164,25 @@ def main() -> None:
 
     setup_vault_password()
 
-    existing = decrypt_vault() if VAULT_FILE.exists() else VaultSecrets()
-    new_entries = prompt_missing(existing)
+    if VAULT_FILE.exists():
+        existing = decrypt_vault()
+    else:
+        from models import VaultSecrets
 
-    if not new_entries:
+        existing = VaultSecrets()
+
+    new_entries = prompt_missing(existing)
+    new_entries_dict = new_entries.model_dump(exclude_none=True)
+
+    if not new_entries_dict:
         print("All secrets are present — nothing to do.")
         print("To update a value, run: make vault-edit")
         return
 
-    updated = {**existing.model_dump(), **new_entries}
+    updated = {**existing.model_dump(), **new_entries_dict}
     encrypt_vault(updated)
 
-    added = ", ".join(new_entries)
+    added = ", ".join(new_entries_dict.keys())
     print(f"\nVault updated ({added}).")
     print("Run 'make check' then 'make site' to provision.\n")
 

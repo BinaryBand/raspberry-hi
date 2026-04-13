@@ -5,9 +5,9 @@ prompts the user to pick one, then runs the mount_storage playbook.
 """
 
 import json
-import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import questionary
 from fabric import Connection
@@ -18,43 +18,48 @@ from rich.table import Table
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from models import BlockDevice, HostVars
+if TYPE_CHECKING:
+    from models import BlockDevice, HostVars
 
 ANSIBLE_DIR = Path(__file__).parent.parent / "ansible"
+PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
 
 
 def _inventory_host_vars(host: str = "rpi") -> HostVars:
     """Read host vars from ansible-inventory so HOST/USER stay in one place."""
     # Run from project root so ansible.cfg paths resolve correctly
-    PROJECT_ROOT = ANSIBLE_DIR.parent
-    result = subprocess.run(
+    project_root = ANSIBLE_DIR.parent
+    from exec_utils import run_resolved
+    from models import HostVars
+
+    result = run_resolved(
         ["ansible-inventory", "--host", host],
         capture_output=True,
         text=True,
-        cwd=PROJECT_ROOT,
+        cwd=str(project_root),
     )
     if result.returncode != 0:
         raise RuntimeError(f"ansible-inventory failed: {result.stderr.strip()}")
     return HostVars.model_validate(json.loads(result.stdout))
 
 
-_hvars = _inventory_host_vars()
-HOST = _hvars.ansible_host
-USER = _hvars.ansible_user
-PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
-
 SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "[SWAP]"}
 
 console = Console()
 
 
-def get_block_devices() -> list[BlockDevice]:
-    conn = Connection(host=HOST, user=USER)
+def get_block_devices(host: str, user: str | None, key_file: str | None = None) -> list[BlockDevice]:
+    connect_kwargs: dict = {}
+    if key_file:
+        connect_kwargs["key_filename"] = key_file
+    conn = Connection(host=host, user=user, connect_kwargs=connect_kwargs)
     result = conn.run(
         "lsblk -J -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL,FSTYPE",
         hide=True,
     )
     raw = json.loads(result.stdout)["blockdevices"]
+    from models import BlockDevice
+
     return [BlockDevice.model_validate(d) for d in raw]
 
 
@@ -107,7 +112,9 @@ def display_devices(devices: list[BlockDevice]) -> None:
 
 
 def run_playbook(device: str, label: str) -> None:
-    subprocess.run(
+    from exec_utils import run_resolved
+
+    run_resolved(
         [
             "ansible-playbook",
             str(PLAYBOOK),
@@ -116,7 +123,7 @@ def run_playbook(device: str, label: str) -> None:
             "-e",
             f"label={label}",
         ],
-        cwd=ANSIBLE_DIR,
+        cwd=str(ANSIBLE_DIR),
         check=True,
     )
 
@@ -124,7 +131,15 @@ def run_playbook(device: str, label: str) -> None:
 def main() -> None:
     console.print("[bold]Fetching block devices from Raspberry Pi...[/bold]")
 
-    devices = get_external_devices(get_block_devices())
+    hvars = _inventory_host_vars()
+    key_file: str | None = None
+    if hvars.ansible_ssh_private_key_file:
+        key_path = Path(hvars.ansible_ssh_private_key_file)
+        if not key_path.is_absolute():
+            key_path = ROOT / key_path
+        key_file = str(key_path)
+
+    devices = get_external_devices(get_block_devices(hvars.ansible_host, hvars.ansible_user, key_file))
 
     if not devices:
         console.print("[yellow]No external storage devices found.[/yellow]")

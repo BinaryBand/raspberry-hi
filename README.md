@@ -68,26 +68,24 @@ the vault password file handles decryption automatically.
 | `make check` | Validate all prerequisites before provisioning |
 | `make ping` | Check Pi is reachable |
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
-| `make rclone-setup` | Declare the cloud remote and path for the media mount |
 | `make vault-edit` | Edit existing encrypted secrets |
-| `make site` | Full provision: base → Homebrew → Podman → rclone → MinIO → Jellyfin |
+| `make site` | Full provision: base → Homebrew → Podman → storage → MinIO → Jellyfin |
 | `make mount` | Interactively mount external storage |
-| `make rclone [args]` | Forward rclone commands to the Pi over SSH |
 
 ### Tags — run a subset of roles
 
 ```bash
 cd ansible && ansible-playbook site.yml --tags homebrew
 cd ansible && ansible-playbook site.yml --tags minio
-cd ansible && ansible-playbook site.yml --tags "podman,rclone"
+cd ansible && ansible-playbook site.yml --tags "podman,storage"
 ```
 
 ### Multiple Pis
 
-Add hosts to `ansible/inventory/hosts.ini`, then target a specific one for rclone:
+Add hosts to `ansible/inventory/hosts.ini`, then target a specific one:
 
 ```bash
-HOST=rpi2 make rclone config
+HOST=rpi2 make site
 ```
 
 ---
