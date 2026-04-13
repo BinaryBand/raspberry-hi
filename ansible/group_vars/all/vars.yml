@@ -1,4 +1,4 @@
-ansible_python_interpreter: /usr/bin/python3
+# brew_user follows ansible_user so the username only needs to be set in hosts.ini.
+brew_user: "{{ ansible_user }}"
 brew_prefix: /home/linuxbrew/.linuxbrew
-brew_user: erron
 minio_data_path: /srv/minio/data

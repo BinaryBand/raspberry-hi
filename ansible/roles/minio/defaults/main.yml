@@ -1,4 +1,7 @@
 ---
+# Pin to a specific release tag for reproducibility.
+# Browse tags at: https://hub.docker.com/r/minio/minio/tags
+# e.g. docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
 minio_image: docker.io/minio/minio:latest
 minio_data_path: /srv/minio/data
 minio_port: 9000
@@ -15,6 +18,8 @@ mc_binary_path: /usr/local/bin/mc
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
-# Optional pin for the mc binary (leave empty to skip checksum verification)
+# Pin mc to a specific version and provide its sha256 checksum for integrity verification.
+# Find checksums at: https://dl.min.io/client/mc/release/linux-<arch>/mc.sha256sum
+# Leave empty to always fetch latest (not recommended for production).
 mc_version: ""
 mc_checksum: ""
