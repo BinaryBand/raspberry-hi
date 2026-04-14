@@ -16,6 +16,7 @@ SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+from models import MinioConfig  # noqa: E402
 from utils.ansible_utils import (  # noqa: E402
     ANSIBLE_DIR,
     inventory_host_vars,
@@ -97,7 +98,7 @@ def _flow_mount_new_device(conn, label_hint: str | None = None) -> str | None:
     return f"/mnt/{label}"
 
 
-def _flow_use_existing_mount(mounts: list[dict]) -> str | None:
+def _flow_use_existing_mount(mounts) -> str | None:
     """Let the user pick from already-mounted external filesystems."""
     ext = external_mounts(mounts)
     if not ext:
@@ -107,8 +108,8 @@ def _flow_use_existing_mount(mounts: list[dict]) -> str | None:
         "Select the mount point to use for MinIO data:",
         choices=[
             questionary.Choice(
-                title=f"{fs['target']}  ({fs.get('source', '?')}, {fs.get('fstype', '?')}, {fs.get('size', '?')})",
-                value=fs["target"],
+                title=f"{fs.target}  ({fs.source or '?'}, {fs.fstype or '?'}, {fs.size or '?'})",
+                value=fs.target,
             )
             for fs in ext
         ],
@@ -121,16 +122,9 @@ def _flow_use_existing_mount(mounts: list[dict]) -> str | None:
 
 
 def main() -> None:
-    defaults = read_role_defaults("minio")
-    host_vars = read_host_vars(HOST)
+    config = MinioConfig.model_validate({**read_role_defaults("minio"), **read_host_vars(HOST)})
 
-    minio_data_path: str = host_vars.get("minio_data_path", defaults.get("minio_data_path", "/srv/minio/data"))
-    require_external: bool = host_vars.get(
-        "minio_require_external_mount",
-        defaults.get("minio_require_external_mount", True),
-    )
-
-    if not require_external:
+    if not config.minio_require_external_mount:
         console.print("[dim]MinIO external-mount check skipped (minio_require_external_mount: false).[/dim]")
         return
 
@@ -139,11 +133,11 @@ def main() -> None:
     hvars = inventory_host_vars(HOST)
     conn = make_connection(hvars)
     mounts = get_real_mounts(conn)
-    covering = mount_covering(mounts, minio_data_path)
+    covering = mount_covering(mounts, config.minio_data_path)
 
     if covering != "/":
         console.print(
-            f"[green]MinIO data path [bold]{minio_data_path}[/bold] "
+            f"[green]MinIO data path [bold]{config.minio_data_path}[/bold] "
             f"is on external mount [bold]{covering}[/bold].[/green]"
         )
         return
@@ -152,7 +146,7 @@ def main() -> None:
     ext = external_mounts(mounts)
 
     console.print(
-        f"\n[yellow]MinIO data path [bold]{minio_data_path}[/bold] is not on an external mount.[/yellow]\n"
+        f"\n[yellow]MinIO data path [bold]{config.minio_data_path}[/bold] is not on an external mount.[/yellow]\n"
         "Storing MinIO data on an external drive protects against root-fs wear\n"
         "and keeps data separate from the OS.\n"
     )
@@ -175,7 +169,7 @@ def main() -> None:
         console.print("[dim]Wrote minio_require_external_mount: false to host_vars. Continuing...[/dim]")
         return
 
-    label_hint, subdir_hint = _parse_path_hints(minio_data_path)
+    label_hint, subdir_hint = _parse_path_hints(config.minio_data_path)
 
     base = (
         _flow_mount_new_device(conn, label_hint=label_hint)

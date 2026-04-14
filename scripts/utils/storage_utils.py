@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from models import BlockDevice
+    from models import BlockDevice, MountInfo
 
 SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "[SWAP]"}
 
@@ -89,8 +89,10 @@ def display_devices(devices: list[BlockDevice]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_real_mounts(conn) -> list[dict]:
+def get_real_mounts(conn) -> list[MountInfo]:
     """Return all real (non-virtual) mount points on the remote host."""
+    from models import MountInfo
+
     result = conn.run(
         "findmnt -J -o TARGET,SOURCE,FSTYPE,SIZE --real 2>/dev/null",
         hide=True,
@@ -98,10 +100,10 @@ def get_real_mounts(conn) -> list[dict]:
     )
     if not result.ok or not result.stdout.strip():
         return []
-    return json.loads(result.stdout).get("filesystems", [])
+    return [MountInfo.model_validate(fs) for fs in json.loads(result.stdout).get("filesystems", [])]
 
 
-def mount_covering(mounts: list[dict], path: str) -> str:
+def mount_covering(mounts: list[MountInfo], path: str) -> str:
     """Return the most-specific mount point that covers *path*.
 
     Works purely on the in-memory mount list — no SSH required. Safe to call
@@ -109,22 +111,19 @@ def mount_covering(mounts: list[dict], path: str) -> str:
     """
     covering = "/"
     for fs in mounts:
-        target = fs.get("target", "")
-        normalised = target.rstrip("/")
+        normalised = fs.target.rstrip("/")
         if path == normalised or path.startswith(normalised + "/"):
-            if len(target) > len(covering):
-                covering = target
+            if len(fs.target) > len(covering):
+                covering = fs.target
     return covering
 
 
-def external_mounts(mounts: list[dict]) -> list[dict]:
+def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
     skip_exact = {"/", "/boot", "/boot/firmware"}
     skip_prefixes = ("/sys", "/proc", "/dev", "/run")
     return [
-        fs
-        for fs in mounts
-        if (t := fs.get("target", ""))
-        and t not in skip_exact
-        and not any(t.startswith(p) for p in skip_prefixes)
+        fs for fs in mounts
+        if fs.target not in skip_exact
+        and not any(fs.target.startswith(p) for p in skip_prefixes)
     ]
