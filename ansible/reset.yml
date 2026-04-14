@@ -1,0 +1,9 @@
+---
+- name: Reset Raspberry Pi to Raspberry OS Lite default state
+  hosts: raspberry_pi
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: system-reset
+      tags: [reset]

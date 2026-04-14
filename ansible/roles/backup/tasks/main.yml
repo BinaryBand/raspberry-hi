@@ -1,0 +1,229 @@
+---
+- name: Ensure backup directories exist on control machine
+  delegate_to: localhost
+  become: false
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ backup_base_dir }}"
+    - "{{ backup_dir }}"
+    - "{{ backup_remote_access_dir }}"
+    - "{{ backup_user_account_dir }}"
+    - "{{ backup_network_dir }}"
+    - "{{ backup_localization_dir }}"
+  when: not backup_dry_run
+
+- name: Detect main user account (non-system user)
+  set_fact:
+    backup_user: >-
+      {{ (ansible_facts['passwd'] | dict2items | selectattr('value.uid', 'match', '^[1-9][0-9]*$') | map(attribute='key') | list | sort | first) | default(ansible_user) }}
+  when: backup_user_account | bool
+
+- name: Backup SSH server configuration
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/ssh/sshd_config
+    dest: "{{ backup_remote_access_dir }}/sshd_config"
+    flat: true
+  when:
+    - backup_remote_access | bool
+    - not backup_dry_run
+  register: sshd_config_backup
+  failed_when: sshd_config_backup is failed and sshd_config_backup.msg.find('No such file') == -1
+
+- name: Backup SSH authorized keys for main user
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: "/home/{{ backup_user }}/.ssh/authorized_keys"
+    dest: "{{ backup_remote_access_dir }}/authorized_keys"
+    flat: true
+  when:
+    - backup_remote_access | bool
+    - backup_user is defined
+    - not backup_dry_run
+  register: authorized_keys_backup
+  failed_when: authorized_keys_backup is failed and authorized_keys_backup.msg.find('No such file') == -1
+
+- name: Backup SSH client configuration for main user
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: "/home/{{ backup_user }}/.ssh/config"
+    dest: "{{ backup_remote_access_dir }}/ssh_config"
+    flat: true
+  when:
+    - backup_remote_access | bool
+    - backup_user is defined
+    - not backup_dry_run
+  register: ssh_config_backup
+  failed_when: ssh_config_backup is failed and ssh_config_backup.msg.find('No such file') == -1
+
+- name: Backup user account information
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/passwd
+    dest: "{{ backup_user_account_dir }}/passwd.txt"
+    flat: true
+  when:
+    - backup_user_account | bool
+    - not backup_dry_run
+  register: passwd_backup
+  failed_when: passwd_backup is failed and passwd_backup.msg.find('No such file') == -1
+
+- name: Backup user password hashes (requires root)
+  delegate_to: localhost
+  fetch:
+    src: /etc/shadow
+    dest: "{{ backup_user_account_dir }}/shadow.txt"
+    flat: true
+  become: true
+  when:
+    - backup_user_account | bool
+    - not backup_dry_run
+  register: shadow_backup
+  failed_when: shadow_backup is failed and shadow_backup.msg.find('No such file') == -1
+
+- name: Backup user group information
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/group
+    dest: "{{ backup_user_account_dir }}/group.txt"
+    flat: true
+  when:
+    - backup_user_account | bool
+    - not backup_dry_run
+  register: group_backup
+  failed_when: group_backup is failed and group_backup.msg.find('No such file') == -1
+
+- name: Backup Wi-Fi configuration
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/wpa_supplicant/wpa_supplicant.conf
+    dest: "{{ backup_network_dir }}/wpa_supplicant.conf"
+    flat: true
+  when:
+    - backup_network | bool
+    - not backup_dry_run
+  register: wpa_supplicant_backup
+  failed_when: wpa_supplicant_backup is failed and wpa_supplicant_backup.msg.find('No such file') == -1
+
+- name: Backup hostname
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/hostname
+    dest: "{{ backup_network_dir }}/hostname"
+    flat: true
+  when:
+    - backup_network | bool
+    - not backup_dry_run
+  register: hostname_backup
+  failed_when: hostname_backup is failed and hostname_backup.msg.find('No such file') == -1
+
+- name: Backup hosts file
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/hosts
+    dest: "{{ backup_network_dir }}/hosts"
+    flat: true
+  when:
+    - backup_network | bool
+    - not backup_dry_run
+  register: hosts_backup
+  failed_when: hosts_backup is failed and hosts_backup.msg.find('No such file') == -1
+
+- name: Backup locale configuration
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/locale.conf
+    dest: "{{ backup_localization_dir }}/locale.conf"
+    flat: true
+  when:
+    - backup_localization | bool
+    - not backup_dry_run
+  register: locale_backup
+  failed_when: locale_backup is failed and locale_backup.msg.find('No such file') == -1
+
+- name: Backup timezone configuration
+  delegate_to: localhost
+  become: false
+  fetch:
+    src: /etc/timezone
+    dest: "{{ backup_localization_dir }}/timezone"
+    flat: true
+  when:
+    - backup_localization | bool
+    - not backup_dry_run
+  register: timezone_backup
+  failed_when: timezone_backup is failed and timezone_backup.msg.find('No such file') == -1
+
+- name: Create backup manifest
+  delegate_to: localhost
+  become: false
+  copy:
+    dest: "{{ backup_dir }}/manifest.json"
+    content: |
+      {
+        "backup_date": "{{ ansible_date_time.iso8601 }}",
+        "hostname": "{{ inventory_hostname }}",
+        "ansible_version": "{{ ansible_version.full }}",
+        "backup_components": {
+          "remote_access": {{ backup_remote_access | bool }},
+          "user_account": {{ backup_user_account | bool }},
+          "network": {{ backup_network | bool }},
+          "localization": {{ backup_localization | bool }}
+        },
+        "main_user": "{{ backup_user | default('not_detected') }}",
+        "backup_path": "{{ backup_dir }}",
+        "dry_run": {{ backup_dry_run | bool }}
+      }
+  when:
+    - backup_create_manifest | bool
+    - not backup_dry_run
+
+- name: Display backup summary
+  delegate_to: localhost
+  become: false
+  debug:
+    msg: |
+      Backup completed successfully!
+      
+      Backup location: {{ backup_dir }}
+      Main user detected: {{ backup_user | default('not_detected') }}
+      
+      Components backed up:
+      - Remote access: {{ backup_remote_access | bool }}
+      - User account: {{ backup_user_account | bool }}
+      - Network: {{ backup_network | bool }}
+      - Localization: {{ backup_localization | bool }}
+      
+      Dry run mode: {{ backup_dry_run | bool }}
+  when: not backup_dry_run
+
+- name: Display dry run summary
+  delegate_to: localhost
+  become: false
+  debug:
+    msg: |
+      Dry run completed! The following components would be backed up:
+      
+      Backup location: {{ backup_dir }}
+      Main user detected: {{ backup_user | default('not_detected') }}
+      
+      Components to backup:
+      - Remote access: {{ backup_remote_access | bool }}
+      - User account: {{ backup_user_account | bool }}
+      - Network: {{ backup_network | bool }}
+      - Localization: {{ backup_localization | bool }}
+      
+      Run without --extra-vars "backup_dry_run=true" to perform actual backup.
+  when: backup_dry_run

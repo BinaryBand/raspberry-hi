@@ -1,0 +1,24 @@
+---
+# Backup source directory on the control machine
+restore_backup_dir: "{{ playbook_dir }}/backups"
+
+# Specific backup directory to restore from (will auto-detect latest if not set)
+# restore_from_dir: ""
+
+# Enable/disable specific restore components
+restore_remote_access: true
+restore_user_account: true
+restore_network: true
+restore_localization: true
+
+# Dry run mode - show what would be restored without actually restoring
+restore_dry_run: false
+
+# Skip confirmation prompts (useful for automation)
+restore_skip_confirm: false
+
+# Reboot after restore
+restore_reboot: true
+
+# Timeout for reboot (seconds)
+restore_reboot_timeout: 300

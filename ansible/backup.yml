@@ -1,0 +1,9 @@
+---
+- name: Backup Raspberry Pi Imager customizations
+  hosts: raspberry_pi
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: backup
+      tags: [backup]

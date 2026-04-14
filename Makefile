@@ -16,7 +16,7 @@ PI_HOST := $(word 1,$(_INV))
 PI_USER := $(word 2,$(_INV))
 PI_KEY  := $(word 3,$(_INV))
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey backup reset restore
 
 
 help:
@@ -31,6 +31,12 @@ help:
 	@echo "  ssh           Open a shell on the Pi"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the Pi's SSH host key (run before first site)"
+	@echo "  backup        Backup Raspberry Pi Imager customizations"
+	@echo "  backup-dryrun Preview what would be backed up"
+	@echo "  reset         Reset to Raspberry OS Lite default state"
+	@echo "  reset-dryrun  Preview what would be removed"
+	@echo "  restore       Restore configurations from backup"
+	@echo "  restore-dryrun Preview what would be restored"
 	@echo ""
 	@echo "  HOST defaults to 'rpi'; override with: HOST=rpi2 make site"
 
@@ -61,6 +67,24 @@ site:
 
 site-local:
 	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts-local.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+
+backup:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/backup.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+
+backup-dryrun:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/backup.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password --extra-vars "backup_dry_run=true"
+
+reset:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/reset.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+
+reset-dryrun:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/reset.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password --extra-vars "reset_dry_run=true"
+
+restore:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/restore.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+
+restore-dryrun:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/restore.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password --extra-vars "restore_dry_run=true"
 
 %:
 	@:

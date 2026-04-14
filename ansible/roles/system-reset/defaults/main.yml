@@ -1,0 +1,42 @@
+---
+# Dry run mode - show what would be removed without actually removing
+reset_dry_run: false
+
+# Skip confirmation prompts (useful for automation)
+reset_skip_confirm: false
+
+# Remove user-installed packages
+reset_remove_packages: true
+
+# Remove user accounts (except the main user specified)
+reset_remove_users: true
+
+# Clean up custom configurations
+reset_clean_configs: true
+
+# Remove podman containers and images
+reset_remove_podman: true
+
+# Remove MinIO data and configuration
+reset_remove_minio: true
+
+# Remove Homebrew installation
+reset_remove_homebrew: true
+
+# Remove custom mount points
+reset_clean_mounts: true
+
+# Remove cron jobs
+reset_clean_cron: true
+
+# Remove custom systemd services
+reset_clean_systemd: true
+
+# The main user to keep (will be auto-detected if not set)
+# reset_keep_user: ""
+
+# Reboot after reset
+reset_reboot: true
+
+# Timeout for reboot (seconds)
+reset_reboot_timeout: 300

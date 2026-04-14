@@ -1,0 +1,9 @@
+---
+- name: Restore Raspberry Pi configurations from backup
+  hosts: raspberry_pi
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: restore
+      tags: [restore]

@@ -82,6 +82,12 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make vault-edit` | Edit existing encrypted secrets |
 | `make site` | Full provision: base → Homebrew → Podman → storage → MinIO |
 | `make mount` | Interactively mount external storage |
+| `make backup` | Backup Raspberry Pi Imager customizations |
+| `make backup-dryrun` | Preview what would be backed up |
+| `make reset` | Reset to Raspberry OS Lite default state |
+| `make reset-dryrun` | Preview what would be removed |
+| `make restore` | Restore configurations from backup |
+| `make restore-dryrun` | Preview what would be restored |
 
 ### Tags — run a subset of roles
 
@@ -124,4 +130,58 @@ Playbooks live in `ansible/`. If running Ansible commands directly, first `cd an
 cd ansible
 ansible-playbook site.yml
 ansible raspberry_pi -m ping
+ansible-playbook backup.yml
+ansible-playbook reset.yml
+ansible-playbook restore.yml
+```
+
+## Backup and Reset Operations
+
+### Backup Customizations
+Before making major changes, backup your Raspberry Pi's Imager customizations:
+
+```bash
+make backup
+```
+
+This backs up:
+- SSH configurations (server and client)
+- User accounts and keys
+- Wi-Fi credentials
+- Network settings (hostname, hosts file)
+- Localization settings (locale, timezone)
+
+### Reset to Factory Defaults
+Reset your Raspberry Pi to a clean Raspberry OS Lite state:
+
+```bash
+make reset
+```
+
+This removes:
+- All user-installed packages
+- Podman containers and images
+- MinIO data and configuration
+- Homebrew installation
+- Custom systemd services
+- User cron jobs
+- Custom mount points
+- Non-system configuration files
+
+### Restore from Backup
+After a reset, restore your customizations:
+
+```bash
+make restore
+```
+
+This restores the configurations you backed up, getting your Pi back to its customized state.
+
+### Dry Run Mode
+Test operations without making changes:
+
+```bash
+make backup-dryrun    # See what would be backed up
+make reset-dryrun     # See what would be removed
+make restore-dryrun   # See what would be restored
 ```

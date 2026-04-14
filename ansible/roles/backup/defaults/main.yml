@@ -1,0 +1,27 @@
+---
+# Backup destination on the control machine
+backup_base_dir: "{{ playbook_dir }}/backups"
+
+# Create a timestamped backup directory
+backup_dir: "{{ backup_base_dir }}/{{ inventory_hostname }}_{{ ansible_date_time.iso8601_basic_short | default('backup') }}"
+
+# Backup subdirectories
+backup_remote_access_dir: "{{ backup_dir }}/remote_access"
+backup_user_account_dir: "{{ backup_dir }}/user_account"
+backup_network_dir: "{{ backup_dir }}/network"
+backup_localization_dir: "{{ backup_dir }}/localization"
+
+# The main user account to backup (will be auto-detected if not set)
+# backup_user: ""
+
+# Enable/disable specific backup components
+backup_remote_access: true
+backup_user_account: true
+backup_network: true
+backup_localization: true
+
+# Dry run mode - show what would be backed up without actually copying
+backup_dry_run: false
+
+# Create a manifest file with backup metadata
+backup_create_manifest: true

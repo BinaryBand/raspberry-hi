@@ -1,0 +1,315 @@
+---
+- name: Detect main user account (non-system user)
+  set_fact:
+    reset_keep_user: >-
+      {{ (ansible_facts['passwd'] | dict2items | selectattr('value.uid', 'match', '^[1-9][0-9]*$') | map(attribute='key') | list | sort | first) | default(ansible_user) }}
+  when: reset_keep_user is not defined
+
+- name: Confirm reset operation
+  pause:
+    prompt: "WARNING: This will reset the system to Raspberry OS Lite defaults. All user data will be lost. Continue? (yes/no)"
+  register: reset_confirm
+  when:
+    - not reset_skip_confirm | bool
+    - not reset_dry_run | bool
+
+- name: Fail if user did not confirm
+  fail:
+    msg: "Reset cancelled by user."
+  when:
+    - reset_confirm is defined
+    - reset_confirm.user_input != 'yes'
+
+- name: Stop and disable MinIO service if present
+  systemd:
+    name: minio
+    state: stopped
+    enabled: false
+    scope: user
+  become: true
+  failed_when: false
+  when:
+    - reset_remove_minio | bool
+    - not reset_dry_run | bool
+
+- name: Stop and disable legacy MinIO system service if present
+  systemd:
+    name: minio
+    state: stopped
+    enabled: false
+  become: true
+  failed_when: false
+  when:
+    - reset_remove_minio | bool
+    - not reset_dry_run | bool
+
+- name: Remove MinIO system service unit file
+  file:
+    path: /etc/systemd/system/minio.service
+    state: absent
+  become: true
+  when:
+    - reset_remove_minio | bool
+    - not reset_dry_run | bool
+
+- name: Remove MinIO config directory
+  file:
+    path: "/home/{{ reset_keep_user }}/.config/minio"
+    state: absent
+  become: true
+  when:
+    - reset_remove_minio | bool
+    - not reset_dry_run | bool
+
+- name: Remove MinIO data directory
+  file:
+    path: "{{ minio_data_path | default('/srv/minio/data') }}"
+    state: absent
+  become: true
+  when:
+    - reset_remove_minio | bool
+    - not reset_dry_run | bool
+
+- name: Remove Podman quadlet directory
+  file:
+    path: "/home/{{ reset_keep_user }}/.config/containers/systemd"
+    state: absent
+  become: true
+  when:
+    - reset_remove_podman | bool
+    - not reset_dry_run | bool
+
+- name: Remove all Podman containers
+  command: podman rm -f {{ item }}
+  become: true
+  become_user: "{{ reset_keep_user }}"
+  loop: "{{ podman_containers.stdout_lines | default([]) }}"
+  register: podman_rm_result
+  failed_when: false
+  changed_when: podman_rm_result.rc == 0
+  when:
+    - reset_remove_podman | bool
+    - not reset_dry_run | bool
+
+- name: Get list of Podman images
+  command: podman images -q
+  become: true
+  become_user: "{{ reset_keep_user }}"
+  register: podman_images
+  changed_when: false
+  when:
+    - reset_remove_podman | bool
+    - not reset_dry_run | bool
+
+- name: Remove all Podman images
+  command: podman rmi -f {{ item }}
+  become: true
+  become_user: "{{ reset_keep_user }}"
+  loop: "{{ podman_images.stdout_lines | default([]) }}"
+  register: podman_rmi_result
+  failed_when: false
+  changed_when: podman_rmi_result.rc == 0
+  when:
+    - reset_remove_podman | bool
+    - not reset_dry_run | bool
+
+- name: Remove Homebrew installation
+  file:
+    path: /home/linuxbrew
+    state: absent
+  become: true
+  when:
+    - reset_remove_homebrew | bool
+    - not reset_dry_run | bool
+
+- name: Remove Homebrew from PATH in shell configs
+  lineinfile:
+    path: "{{ item }}"
+    line: 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+    state: absent
+  become: true
+  become_user: "{{ reset_keep_user }}"
+  loop:
+    - "/home/{{ reset_keep_user }}/.bashrc"
+    - "/home/{{ reset_keep_user }}/.profile"
+    - "/home/{{ reset_keep_user }}/.zshrc"
+  failed_when: false
+  when:
+    - reset_remove_homebrew | bool
+    - not reset_dry_run | bool
+
+- name: Remove custom systemd services (non-system)
+  find:
+    paths: /etc/systemd/system
+    patterns: "*.service"
+  register: custom_services
+  when:
+    - reset_clean_systemd | bool
+    - not reset_dry_run | bool
+
+- name: Stop and disable custom systemd services
+  systemd:
+    name: "{{ item.path | basename | regex_replace('.service$', '') }}"
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  become: true
+  loop: "{{ custom_services.files | default([]) }}"
+  failed_when: false
+  when:
+    - reset_clean_systemd | bool
+    - not reset_dry_run | bool
+    - item.path | basename | regex_replace('.service$', '') not in ['sshd.service', 'ssh.service', 'systemd-journald.service', 'systemd-networkd.service', 'systemd-resolved.service', 'dbus.service', 'cron.service', 'rsyslog.service']
+
+- name: Remove custom systemd service files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  become: true
+  loop: "{{ custom_services.files | default([]) }}"
+  when:
+    - reset_clean_systemd | bool
+    - not reset_dry_run | bool
+    - item.path | basename | regex_replace('.service$', '') not in ['sshd.service', 'ssh.service', 'systemd-journald.service', 'systemd-networkd.service', 'systemd-resolved.service', 'dbus.service', 'cron.service', 'rsyslog.service']
+
+- name: Remove user cron jobs
+  cron:
+    name: "{{ item.name }}"
+    state: absent
+  become: true
+  become_user: "{{ reset_keep_user }}"
+  loop: "{{ cron_jobs.stdout_lines | default([]) }}"
+  failed_when: false
+  when:
+    - reset_clean_cron | bool
+    - not reset_dry_run | bool
+
+- name: Remove custom mount points from fstab
+  mount:
+    path: "{{ item.mount }}"
+    state: absent
+    fstype: "{{ item.fstype }}"
+  become: true
+  loop: "{{ custom_mounts.stdout_lines | default([]) }}"
+  failed_when: false
+  when:
+    - reset_clean_mounts | bool
+    - not reset_dry_run | bool
+
+- name: Unmount custom mount points
+  mount:
+    path: "{{ item.mount }}"
+    state: unmounted
+  become: true
+  loop: "{{ custom_mounts.stdout_lines | default([]) }}"
+  failed_when: false
+  when:
+    - reset_clean_mounts | bool
+    - not reset_dry_run | bool
+
+- name: Remove user-installed packages (keep system packages)
+  apt:
+    autoremove: true
+    purge: true
+  become: true
+  when:
+    - reset_remove_packages | bool
+    - not reset_dry_run | bool
+
+- name: Clean apt cache
+  apt:
+    autoclean: true
+  become: true
+  when:
+    - reset_remove_packages | bool
+    - not reset_dry_run | bool
+
+- name: Remove storage directory
+  file:
+    path: "{{ minio_data_path | default('/srv/minio/data') }}"
+    state: absent
+  become: true
+  when:
+    - not reset_dry_run | bool
+
+- name: Clean up configuration files
+  file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - "/home/{{ reset_keep_user }}/.config/containers"
+    - "/home/{{ reset_keep_user }}/.config/minio"
+    - "/home/{{ reset_keep_user }}/.config/podman"
+    - "/home/{{ reset_keep_user }}/.mc"
+    - "/home/{{ reset_keep_user }}/.local/share/containers"
+  when:
+    - reset_clean_configs | bool
+    - not reset_dry_run | bool
+  failed_when: false
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: true
+  become: true
+  when:
+    - not reset_dry_run | bool
+
+- name: Display reset summary
+  debug:
+    msg: |
+      System reset completed successfully!
+      
+      The system has been reset to Raspberry OS Lite defaults.
+      Main user kept: {{ reset_keep_user }}
+      
+      Components removed:
+      - Packages: {{ reset_remove_packages | bool }}
+      - Podman: {{ reset_remove_podman | bool }}
+      - MinIO: {{ reset_remove_minio | bool }}
+      - Homebrew: {{ reset_remove_homebrew | bool }}
+      - Custom configs: {{ reset_clean_configs | bool }}
+      - Custom mounts: {{ reset_clean_mounts | bool }}
+      - Cron jobs: {{ reset_clean_cron | bool }}
+      - Custom services: {{ reset_clean_systemd | bool }}
+      
+      Dry run mode: {{ reset_dry_run | bool }}
+      
+      {{ 'System will reboot in ' ~ reset_reboot_timeout ~ ' seconds.' if reset_reboot and not reset_dry_run else '' }}
+  when: not reset_dry_run
+
+- name: Display dry run summary
+  debug:
+    msg: |
+      Dry run completed! The following components would be removed:
+      
+      Main user to keep: {{ reset_keep_user }}
+      
+      Components to remove:
+      - Packages: {{ reset_remove_packages | bool }}
+      - Podman: {{ reset_remove_podman | bool }}
+      - MinIO: {{ reset_remove_minio | bool }}
+      - Homebrew: {{ reset_remove_homebrew | bool }}
+      - Custom configs: {{ reset_clean_configs | bool }}
+      - Custom mounts: {{ reset_clean_mounts | bool }}
+      - Cron jobs: {{ reset_clean_cron | bool }}
+      - Custom services: {{ reset_clean_systemd | bool }}
+      
+      Dry run mode: {{ reset_dry_run | bool }}
+      
+      Run without --extra-vars "reset_dry_run=true" to perform actual reset.
+  when: reset_dry_run
+
+- name: Reboot system
+  reboot:
+    msg: "System is rebooting after reset..."
+    connect_timeout: 5
+    reboot_timeout: "{{ reset_reboot_timeout }}"
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  become: true
+  when:
+    - reset_reboot | bool
+    - not reset_dry_run | bool
+    - not ansible_check_mode | bool

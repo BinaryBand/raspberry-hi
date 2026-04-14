@@ -1,0 +1,23 @@
+---
+- name: restart sshd
+  service:
+    name: ssh
+    state: restarted
+  become: true
+
+- name: restart networking
+  service:
+    name: networking
+    state: restarted
+  become: true
+  failed_when: false
+
+- name: restart hostname
+  command: systemctl restart systemd-hostnamed
+  become: true
+  failed_when: false
+
+- name: reconfigure tzdata
+  command: dpkg-reconfigure -f noninteractive tzdata
+  become: true
+  failed_when: false

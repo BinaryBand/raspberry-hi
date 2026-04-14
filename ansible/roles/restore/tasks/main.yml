@@ -1,0 +1,214 @@
+---
+- name: Find latest backup directory
+  find:
+    paths: "{{ restore_backup_dir }}"
+    file_type: directory
+    pattern: "{{ inventory_hostname }}_*"
+  register: backup_dirs
+  delegate_to: localhost
+  become: false
+  when: restore_from_dir is not defined
+
+- name: Set restore_from_dir to latest backup
+  set_fact:
+    restore_from_dir: "{{ backup_dirs.files | sort(attribute='mtime') | last | default(None) }}"
+  when:
+    - restore_from_dir is not defined
+    - backup_dirs.files | length > 0
+
+- name: Fail if no backup directory found
+  fail:
+    msg: "No backup directory found for {{ inventory_hostname }} in {{ restore_backup_dir }}"
+  when:
+    - restore_from_dir is none
+    - not restore_dry_run | bool
+
+- name: Validate backup directory exists
+  stat:
+    path: "{{ restore_from_dir }}"
+  register: backup_dir_stat
+  delegate_to: localhost
+  become: false
+  when: restore_from_dir is not none
+
+- name: Fail if backup directory doesn't exist
+  fail:
+    msg: "Backup directory {{ restore_from_dir }} does not exist"
+  when:
+    - not backup_dir_stat.stat.exists | default(false)
+    - not restore_dry_run | bool
+
+- name: Set backup subdirectory paths
+  set_fact:
+    restore_remote_access_dir: "{{ restore_from_dir }}/remote_access"
+    restore_user_account_dir: "{{ restore_from_dir }}/user_account"
+    restore_network_dir: "{{ restore_from_dir }}/network"
+    restore_localization_dir: "{{ restore_from_dir }}/localization"
+
+- name: Confirm restore operation
+  pause:
+    prompt: "WARNING: This will restore configurations from {{ restore_from_dir }}. Continue? (yes/no)"
+  register: restore_confirm
+  when:
+    - not restore_skip_confirm | bool
+    - not restore_dry_run | bool
+
+- name: Fail if user did not confirm
+  fail:
+    msg: "Restore cancelled by user."
+  when:
+    - restore_confirm is defined
+    - restore_confirm.user_input != 'yes'
+
+- name: Restore SSH server configuration
+  copy:
+    src: "{{ restore_remote_access_dir }}/sshd_config"
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - restore_remote_access | bool
+    - not restore_dry_run | bool
+  notify: restart sshd
+
+- name: Restore SSH authorized keys for main user
+  copy:
+    src: "{{ restore_remote_access_dir }}/authorized_keys"
+    dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+  become: true
+  when:
+    - restore_remote_access | bool
+    - not restore_dry_run | bool
+
+- name: Restore SSH client configuration for main user
+  copy:
+    src: "{{ restore_remote_access_dir }}/ssh_config"
+    dest: "/home/{{ ansible_user }}/.ssh/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+  become: true
+  when:
+    - restore_remote_access | bool
+    - not restore_dry_run | bool
+  failed_when: false
+
+- name: Restore Wi-Fi configuration
+  copy:
+    src: "{{ restore_network_dir }}/wpa_supplicant.conf"
+    dest: /etc/wpa_supplicant/wpa_supplicant.conf
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  when:
+    - restore_network | bool
+    - not restore_dry_run | bool
+  notify: restart networking
+  failed_when: false
+
+- name: Restore hostname
+  copy:
+    src: "{{ restore_network_dir }}/hostname"
+    dest: /etc/hostname
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - restore_network | bool
+    - not restore_dry_run | bool
+  notify: restart hostname
+
+- name: Restore hosts file
+  copy:
+    src: "{{ restore_network_dir }}/hosts"
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - restore_network | bool
+    - not restore_dry_run | bool
+  failed_when: false
+
+- name: Restore locale configuration
+  copy:
+    src: "{{ restore_localization_dir }}/locale.conf"
+    dest: /etc/locale.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - restore_localization | bool
+    - not restore_dry_run | bool
+  failed_when: false
+
+- name: Restore timezone configuration
+  copy:
+    src: "{{ restore_localization_dir }}/timezone"
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - restore_localization | bool
+    - not restore_dry_run | bool
+  notify: reconfigure tzdata
+  failed_when: false
+
+- name: Display restore summary
+  debug:
+    msg: |
+      Restore completed successfully!
+      
+      Restored from: {{ restore_from_dir }}
+      
+      Components restored:
+      - Remote access: {{ restore_remote_access | bool }}
+      - Network: {{ restore_network | bool }}
+      - Localization: {{ restore_localization | bool }}
+      
+      Dry run mode: {{ restore_dry_run | bool }}
+      
+      {{ 'System will reboot in ' ~ restore_reboot_timeout ~ ' seconds.' if restore_reboot and not restore_dry_run else '' }}
+  when: not restore_dry_run
+
+- name: Display dry run summary
+  debug:
+    msg: |
+      Dry run completed! The following components would be restored:
+      
+      Restore from: {{ restore_from_dir }}
+      
+      Components to restore:
+      - Remote access: {{ restore_remote_access | bool }}
+      - Network: {{ restore_network | bool }}
+      - Localization: {{ restore_localization | bool }}
+      
+      Dry run mode: {{ restore_dry_run | bool }}
+      
+      Run without --extra-vars "restore_dry_run=true" to perform actual restore.
+  when: restore_dry_run
+
+- name: Reboot system
+  reboot:
+    msg: "System is rebooting after restore..."
+    connect_timeout: 5
+    reboot_timeout: "{{ restore_reboot_timeout }}"
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  become: true
+  when:
+    - restore_reboot | bool
+    - not restore_dry_run | bool
+    - not ansible_check_mode | bool
