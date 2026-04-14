@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import yaml
 
 if TYPE_CHECKING:
+    from fabric import Connection
     from models import HostVars
 
 # lib/ → scripts/ → project root
@@ -46,7 +47,7 @@ def inventory_host_vars(host: str = "rpi") -> HostVars:
 # ---------------------------------------------------------------------------
 
 
-def make_connection(hvars: HostVars):
+def make_connection(hvars: HostVars) -> Connection:
     """Return a Fabric Connection for *hvars*, resolving relative key paths."""
     from fabric import Connection
 
