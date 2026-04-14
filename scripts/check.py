@@ -4,11 +4,13 @@
 import sys
 from pathlib import Path
 
-# Ensure project root is importable when running the script directly
+# Ensure project root and scripts/ are importable when running the script directly
 ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
-ANSIBLE_DIR = Path(__file__).parent.parent / "ansible"
+ANSIBLE_DIR = ROOT / "ansible"
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 
 
@@ -35,7 +37,7 @@ def main() -> None:
     # Pi reachable
     inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
 
-    from exec_utils import run_resolved
+    from utils.exec_utils import run_resolved
 
     ping = run_resolved(
         ["ansible", "raspberry_pi", "-m", "ping", "-i", str(inventory_path)],

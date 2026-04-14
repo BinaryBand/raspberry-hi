@@ -18,15 +18,16 @@ from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
 
 import yaml
 
-# Ensure project root is on sys.path so local packages import correctly
-# when the script is executed directly (e.g. `python scripts/bootstrap.py`).
+# Ensure project root and scripts/ are importable when running the script directly
 ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 if TYPE_CHECKING:
     from models import VaultSecrets
 
-ANSIBLE_DIR = Path(__file__).resolve().parent.parent / "ansible"
+ANSIBLE_DIR = ROOT / "ansible"
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
 
@@ -69,7 +70,7 @@ def setup_vault_password() -> None:
 def decrypt_vault() -> VaultSecrets:
     """Decrypt the vault file and return its contents as a VaultSecrets model."""
     # Resolve executable to absolute path and run
-    from exec_utils import run_resolved
+    from utils.exec_utils import run_resolved
 
     result = run_resolved(
         [
@@ -107,7 +108,7 @@ def encrypt_vault(secrets: Any) -> None:
         tmp_path = Path(tmp.name)
 
     try:
-        from exec_utils import run_resolved
+        from utils.exec_utils import run_resolved
 
         result = run_resolved(
             [
