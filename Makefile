@@ -56,6 +56,7 @@ mount:
 	poetry run python ./scripts/pick_storage.py
 
 site:
+	poetry run python ./scripts/setup_minio_storage.py
 	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password
 
 site-local:

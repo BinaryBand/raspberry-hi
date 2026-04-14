@@ -59,6 +59,17 @@ make site
 Installs and configures everything on the Pi. Subsequent runs need no extra steps —
 the vault password file handles decryption automatically.
 
+**MinIO external storage:** `make site` checks whether `minio_data_path` is on an
+external mount before provisioning. If not, it walks you through your options:
+
+- **Mount a new drive** — lists external block devices on the Pi, mounts the one you
+  pick, and writes the path to `host_vars` automatically.
+- **Use an already-mounted drive** — lists current non-root mounts and lets you pick one.
+- **Use the root filesystem** — sets `minio_require_external_mount: false` in `host_vars`
+  and continues. Not recommended; risks wearing the SD card.
+
+You can also run `make mount` at any time to (re-)mount external storage independently.
+
 ---
 
 ## Commands
@@ -69,7 +80,7 @@ the vault password file handles decryption automatically.
 | `make ping` | Check Pi is reachable |
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
-| `make site` | Full provision: base → Homebrew → Podman → storage → MinIO → Jellyfin |
+| `make site` | Full provision: base → Homebrew → Podman → storage → MinIO |
 | `make mount` | Interactively mount external storage |
 
 ### Tags — run a subset of roles

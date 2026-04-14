@@ -18,6 +18,11 @@ mc_binary_path: /usr/local/bin/mc
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
+
+# When true (default), provisioning fails if minio_data_path is not on an
+# external mount — encouraging you to run 'make mount' first. Set to false
+# in host_vars to store MinIO data on the root filesystem instead.
+minio_require_external_mount: true
 # Pin mc to a specific version and provide its sha256 checksum for integrity verification.
 # Find checksums at: https://dl.min.io/client/mc/release/linux-<arch>/mc.sha256sum
 # Leave empty to always fetch latest (not recommended for production).

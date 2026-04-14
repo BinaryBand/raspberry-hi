@@ -5,6 +5,7 @@ prompts the user to pick one, then runs the mount_storage playbook.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,8 +28,7 @@ PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
 
 def _inventory_host_vars(host: str = "rpi") -> HostVars:
     """Read host vars from ansible-inventory so HOST/USER stay in one place."""
-    # Run from project root so ansible.cfg paths resolve correctly
-    project_root = ANSIBLE_DIR.parent
+    # Run from ansible dir so ansible.cfg (and its relative inventory path) resolves correctly
     from exec_utils import run_resolved
     from models import HostVars
 
@@ -36,7 +36,7 @@ def _inventory_host_vars(host: str = "rpi") -> HostVars:
         ["ansible-inventory", "--host", host],
         capture_output=True,
         text=True,
-        cwd=str(project_root),
+        cwd=str(ANSIBLE_DIR),
     )
     if result.returncode != 0:
         raise RuntimeError(f"ansible-inventory failed: {result.stderr.strip()}")
@@ -123,7 +123,8 @@ def run_playbook(device: str, label: str) -> None:
             "-e",
             f"label={label}",
         ],
-        cwd=str(ANSIBLE_DIR),
+        cwd=str(PLAYBOOK.parent.parent),
+        env={**os.environ, "ANSIBLE_CONFIG": str(ANSIBLE_DIR / "ansible.cfg")},
         check=True,
     )
 

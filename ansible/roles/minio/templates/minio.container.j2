@@ -1,6 +1,7 @@
 [Unit]
 Description=MinIO Object Storage
 After=network.target
+RequiresMountsFor={{ minio_data_path }}
 
 [Container]
 Image={{ minio_image }}

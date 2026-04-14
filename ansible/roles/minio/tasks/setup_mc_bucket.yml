@@ -17,7 +17,7 @@
 - name: Determine mc download architecture
   ansible.builtin.set_fact:
     mc_dl_arch: >-
-      {% if ansible_architecture == 'aarch64' %}arm64{% elif ansible_architecture.startswith('arm') %}arm{% elif ansible_architecture == 'x86_64' %}amd64{% else %}{{ ansible_architecture }}{% endif %}
+      {% if ansible_facts['architecture'] == 'aarch64' %}arm64{% elif ansible_facts['architecture'].startswith('arm') %}arm{% elif ansible_facts['architecture'] == 'x86_64' %}amd64{% else %}{{ ansible_facts['architecture'] }}{% endif %}
   when: mc_install_method == 'binary'
 
 - name: Download MinIO client binary to {{ mc_binary_path }}
