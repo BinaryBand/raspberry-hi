@@ -29,7 +29,7 @@ def main() -> None:
     all_ok &= check(
         "Vault password file exists (ansible/.vault-password, mode 600)",
         vault_ok,
-        "echo 'yourpassword' > ansible/.vault-password && chmod 600 ansible/.vault-password",
+        "echo 'your-password' > ansible/.vault-password && chmod 600 ansible/.vault-password",
     )
 
     # Pi reachable

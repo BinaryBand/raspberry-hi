@@ -127,7 +127,22 @@ def _external_mounts(mounts: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _flow_mount_new_device(conn) -> str | None:
+def _parse_path_hints(minio_data_path: str) -> tuple[str | None, str | None]:
+    """Extract (label_hint, subdir_hint) from a previously configured minio_data_path.
+
+    /mnt/minio/minio/data  →  ("minio", "minio/data")
+    /srv/minio/data        →  (None, None)
+    """
+    p = Path(minio_data_path)
+    parts = p.parts  # e.g. ('/', 'mnt', 'minio', 'minio', 'data')
+    if len(parts) >= 3 and parts[1] == "mnt":
+        label = parts[2]
+        subdir = str(Path(*parts[3:])) if len(parts) > 3 else None
+        return label, subdir
+    return None, None
+
+
+def _flow_mount_new_device(conn, label_hint: str | None = None) -> str | None:
     """List unmounted external block devices, mount the chosen one, return its mount point."""
     from models import BlockDevice
     from pick_storage import display_devices, get_external_devices
@@ -154,7 +169,7 @@ def _flow_mount_new_device(conn) -> str | None:
 
     label = questionary.text(
         "Mount point label (will mount at /mnt/<label>):",
-        default=selected.label or selected.name,
+        default=label_hint or selected.label or selected.name,
     ).ask()
     if not label:
         return None
@@ -222,21 +237,24 @@ def main() -> None:
         return
 
     # Not on an external mount — guide the user
+    external = _external_mounts(mounts)
+    has_external_mounts = bool(external)
+
     console.print(
-        f"\n[yellow]MinIO data path [bold]{minio_data_path}[/bold] is on the root filesystem.[/yellow]\n"
+        f"\n[yellow]MinIO data path [bold]{minio_data_path}[/bold] is not on an external mount.[/yellow]\n"
         "Storing MinIO data on an external drive protects against root-fs wear\n"
         "and keeps data separate from the OS.\n"
     )
 
-    action = questionary.select(
-        "How would you like to proceed?",
-        choices=[
-            questionary.Choice("Mount external storage now", value="mount"),
-            questionary.Choice("Use a drive that's already mounted", value="existing"),
-            questionary.Choice("Use root filesystem (not recommended)", value="skip"),
-            questionary.Choice("Abort", value="abort"),
-        ],
-    ).ask()
+    choices = [questionary.Choice("Mount external storage now", value="mount")]
+    if has_external_mounts:
+        choices.append(questionary.Choice("Use a drive that's already mounted", value="existing"))
+    choices += [
+        questionary.Choice("Use root filesystem (not recommended)", value="skip"),
+        questionary.Choice("Abort", value="abort"),
+    ]
+
+    action = questionary.select("How would you like to proceed?", choices=choices).ask()
 
     if action is None or action == "abort":
         sys.exit(1)
@@ -246,7 +264,13 @@ def main() -> None:
         console.print("[dim]Wrote minio_require_external_mount: false to host_vars. Continuing...[/dim]")
         return
 
-    base = _flow_mount_new_device(conn) if action == "mount" else _flow_use_existing_mount(mounts)
+    label_hint, subdir_hint = _parse_path_hints(minio_data_path)
+
+    base = (
+        _flow_mount_new_device(conn, label_hint=label_hint)
+        if action == "mount"
+        else _flow_use_existing_mount(mounts)
+    )
 
     if not base:
         console.print("[red]No mount point selected. Aborting.[/red]")
@@ -254,7 +278,7 @@ def main() -> None:
 
     subdir = questionary.text(
         "Subdirectory for MinIO data within the mount:",
-        default="minio/data",
+        default=subdir_hint or "minio/data",
     ).ask()
     if not subdir:
         sys.exit(1)
