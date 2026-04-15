@@ -12,9 +12,9 @@
 ## Portability
 
 - [ ] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine). *
+  - [ ] Consider dropping the Homebrew role to be more platform-agnostic.
 - [ ] Non-systemd init support — service management (Podman quadlets, `loginctl enable-linger`) assumes systemd; add an init-system guard and document alternatives for OpenRC or runit targets.
 - [ ] `SYSTEM_MOUNTS` in `storage_utils.py` has Pi-specific paths baked in (`/boot/firmware`) — consider an abstract class adaptor per platform/distro.
-- [ ] Consider dropping the Homebrew role to be more platform-agnostic.
 
 ## Features -
 
@@ -24,11 +24,12 @@
 
 ## Style
 
+- [ ] Standardize typing constraints. (Pyright) *
 - [ ] Enforce complexity constraints. (Lizard) -
-- [ ] Enforce utility gating constraints. (Vulture)
-- [ ] Enforce redundancy constraints. (jscpd)
-- [ ] Plan and enforce arbitrary architectural constrains. (semgrep) *
-- [ ] Codify and gate docs/AGENTS.md:Success rubric violations.
+- [ ] Enforce utility gate constraints. (Vulture)
+- [x] Enforce redundancy constraints. (jscpd) *
+- [ ] Plan and enforce arbitrary architectural constrains. (Semgrep)
+- [ ] Codify and gate docs/AGENTS.md:'Success rubric' violations.
 
 * * *
 

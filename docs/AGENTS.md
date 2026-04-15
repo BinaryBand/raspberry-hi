@@ -78,7 +78,7 @@ tests/
     test_connectivity.py  Live Pi tests (require HOST to be reachable)
     conftest.py           e2e-specific fixtures (live_conn)
 
-stubs/fabric/             Type stubs for the fabric SSH library
+typings/fabric/             Type stubs for the fabric SSH library
 
 Makefile                  All user-facing commands — run `make help` for full list
 ```

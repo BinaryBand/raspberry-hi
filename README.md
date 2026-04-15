@@ -6,6 +6,7 @@ Ansible + Python tools for managing a Raspberry Pi.
 
 - Python 3.12+ (`pyenv install 3.12` or your distro's package manager)
 - Poetry (`pipx install poetry`)
+- Node.js 18+ / npx (for `make cpd` — ships with Node.js)
 - SSH key already on the Pi
 
 All other dependencies — Ansible, Fabric, Pydantic, etc. — are managed by Poetry:
@@ -86,6 +87,18 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 
 ## Commands
 
+### Development
+
+| Command | What it does |
+| --- | --- |
+| `make lint` | Run ruff over `scripts/`, `models/`, and `tests/` |
+| `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
+| `make test` | Run unit and stub tests (no infrastructure needed) |
+| `make test-roles` | Run Ansible role tests in Docker (requires Docker) |
+| `make test-e2e` | Run live Pi tests (requires a reachable Pi) |
+
+### Provisioning
+
 | Command | What it does |
 | --- | --- |
 | `make check` | Validate all prerequisites before provisioning |
@@ -95,8 +108,14 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make site` | Full provision: base → Homebrew → Podman → storage |
 | `make minio` | Configure MinIO storage and provision the MinIO role |
 | `make mount` | Interactively mount external storage |
+
+### Operations
+
+| Command | What it does |
+| --- | --- |
 | `make status` | Show MinIO service status on the Pi |
 | `make logs` | Tail the last 50 lines of MinIO logs from the Pi |
+| `make ssh` | Open a shell on the Pi |
 
 ### Tags — run a subset of roles
 
@@ -156,5 +175,5 @@ Playbooks live in `ansible/`. If running Ansible commands directly, first `cd an
 ```bash
 cd ansible
 ansible-playbook site.yml
-ansible raspberry_pi -m ping
+ansible [device] -m ping
 ```

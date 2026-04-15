@@ -33,16 +33,14 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "scripts"]
-markers = [
-    "e2e: requires a live Pi — run with: make test-e2e",
-]
+markers = ["e2e: requires a live Pi — run with: make test-e2e"]
 addopts = "-m 'not e2e'"
 
 [tool.poetry]
 package-mode = false
 
 [tool.pyright]
-stubPath = "stubs"
+stubPath = "typings"
 
 [tool.ruff]
 target-version = "py312"

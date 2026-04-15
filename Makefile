@@ -27,7 +27,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs baikal minio
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
 
 
 help:
@@ -36,6 +36,7 @@ help:
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
 	@echo "  lint          Run ruff linter over scripts/ and models/"
+	@echo "  cpd           Check for copy-paste duplication (jscpd, threshold 3%)"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-roles    Run Ansible role tests in Docker (requires Docker)"
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
@@ -59,6 +60,9 @@ check:
 
 lint:
 	poetry run ruff check scripts/ models/ tests/
+
+cpd:
+	npx jscpd .
 
 test:
 	poetry run pytest tests/ -v

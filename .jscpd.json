@@ -1,0 +1,7 @@
+{
+  "minTokens": 50,
+  "threshold": 3,
+  "languages": ["python"],
+  "reporters": ["console"],
+  "ignore": ["**/.venv/**", "**/typings/**"]
+}
