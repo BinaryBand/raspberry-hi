@@ -9,18 +9,11 @@ Run via: make minio
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import questionary
 from rich.console import Console
 
-ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = ROOT / "scripts"
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(SCRIPTS_DIR))
-
-from utils.ansible_utils import (  # noqa: E402
+from models import MinioConfig
+from utils.ansible_utils import (
     ANSIBLE_DIR,
     inventory_host_vars,
     make_connection,
@@ -29,14 +22,8 @@ from utils.ansible_utils import (  # noqa: E402
     run_playbook,
     update_host_vars,
 )
-from utils.storage_flows import (  # noqa: E402
-    flow_mount_new_device,
-    flow_use_existing_mount,
-    parse_path_hints,
-)
-from utils.storage_utils import external_mounts, get_real_mounts  # noqa: E402
-
-from models import MinioConfig  # noqa: E402
+from utils.storage_flows import flow_mount_new_device, flow_use_existing_mount, parse_path_hints
+from utils.storage_utils import external_mounts, get_real_mounts
 
 MOUNT_PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
 

@@ -18,15 +18,10 @@ from typing import Dict, List, TypedDict
 
 import yaml
 
-# Ensure project root and scripts/ are importable when running the script directly
-ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = ROOT / "scripts"
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(SCRIPTS_DIR))
+from models import VaultSecrets
+from utils.ansible_utils import ANSIBLE_DIR
+from utils.exec_utils import run_resolved
 
-from models import VaultSecrets  # noqa: E402
-
-ANSIBLE_DIR = ROOT / "ansible"
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
 
@@ -68,9 +63,6 @@ def setup_vault_password() -> None:
 
 def decrypt_vault() -> VaultSecrets:
     """Decrypt the vault file and return its contents as a VaultSecrets model."""
-    # Resolve executable to absolute path and run
-    from utils.exec_utils import run_resolved
-
     result = run_resolved(
         [
             "ansible-vault",
@@ -99,8 +91,6 @@ def encrypt_vault(data: dict) -> None:
         tmp_path = Path(tmp.name)
 
     try:
-        from utils.exec_utils import run_resolved
-
         result = run_resolved(
             [
                 "ansible-vault",

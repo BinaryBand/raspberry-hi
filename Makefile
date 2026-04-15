@@ -24,6 +24,9 @@ INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 
+# Make project packages importable without sys.path manipulation in scripts.
+export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
+
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs baikal minio
 
 
@@ -104,4 +107,4 @@ site-local:
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV_LOCAL) --vault-password-file $(VAULT_PASS) --skip-tags apps
 
 %:
-	@:
+	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1

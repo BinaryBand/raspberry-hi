@@ -4,9 +4,15 @@ Ansible + Python tools for managing a Raspberry Pi.
 
 ## Requirements
 
-- Ansible (`brew install ansible`)
+- Python 3.12+ (`pyenv install 3.12` or your distro's package manager)
 - Poetry (`pipx install poetry`)
 - SSH key already on the Pi
+
+All other dependencies — Ansible, Fabric, Pydantic, etc. — are managed by Poetry:
+
+```bash
+poetry install
+```
 
 ## Project Root
 
