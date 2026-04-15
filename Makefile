@@ -54,7 +54,7 @@ check:
 	poetry run python ./scripts/check.py
 
 lint:
-	poetry run ruff check scripts/ models/
+	poetry run ruff check scripts/ models/ tests/
 
 test:
 	poetry run pytest tests/ -v
@@ -94,10 +94,10 @@ logs:
 	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "journalctl --user -u minio -n 50 --no-pager"
 
 site:
-	$(ANSIBLE_PLAY) --skip-tags minio
+	$(ANSIBLE_PLAY) --skip-tags apps
 
 site-local:
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV_LOCAL) --vault-password-file $(VAULT_PASS) --skip-tags minio
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV_LOCAL) --vault-password-file $(VAULT_PASS) --skip-tags apps
 
 %:
 	@:
