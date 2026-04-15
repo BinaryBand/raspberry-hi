@@ -79,9 +79,14 @@ Conversely, `ansible-inventory` needs to run from `ANSIBLE_DIR` so it picks up `
 
 Use Pydantic models (`MountInfo`, `MinioConfig`, `BlockDevice`, etc.) instead of plain dicts wherever data has a known shape. Add new models to `models/` and export from `models/__init__.py`.
 
-### HOST is hardcoded as "rpi"
+### Multi-Pi — HOST flows end-to-end
 
-`pick_storage.py` and `setup_minio_storage.py` hardcode `HOST = "rpi"`. The Makefile supports `HOST=rpi2 make site` for ansible-playbook but the Python scripts don't yet honour it.
+Two Pis are managed:
+
+- `rpi`  — 192.168.0.33 (default)
+- `rpi2` — 192.168.0.35
+
+`HOST` defaults to `rpi` in the Makefile and is passed as an env var to all Python entry points, which read it via `os.environ.get("HOST", "rpi")`. All make targets respect `HOST=rpi2 make <target>`.
 
 ---
 

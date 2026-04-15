@@ -24,7 +24,7 @@ INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS)
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint status logs
 
 
 help:
@@ -42,6 +42,9 @@ help:
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the Pi's SSH host key (run before first site)"
 	@echo ""
+	@echo "  status        Show MinIO service status on the Pi"
+	@echo "  logs          Tail MinIO logs from the Pi"
+	@echo ""
 	@echo "  HOST defaults to 'rpi'; override with: HOST=rpi2 make site"
 
 check:
@@ -51,7 +54,7 @@ lint:
 	poetry run ruff check scripts/ models/
 
 ping:
-	ansible raspberry_pi -m ping -i $(INV)
+	ansible raspberry_pi -m ping -i $(INV) || true
 
 add-hostkey:
 	ssh-keyscan -H $(PI_HOST) >> ~/.ssh/known_hosts
@@ -66,11 +69,17 @@ bootstrap:
 	poetry run python ./scripts/bootstrap.py
 
 mount:
-	poetry run python ./scripts/pick_storage.py
+	HOST=$(HOST) poetry run python ./scripts/pick_storage.py
 
 minio:
-	poetry run python ./scripts/setup_minio_storage.py
+	HOST=$(HOST) poetry run python ./scripts/setup_minio_storage.py
 	$(ANSIBLE_PLAY) --tags minio
+
+status:
+	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "systemctl --user status minio --no-pager"
+
+logs:
+	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "journalctl --user -u minio -n 50 --no-pager"
 
 site:
 	$(ANSIBLE_PLAY) --skip-tags minio

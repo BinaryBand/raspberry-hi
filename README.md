@@ -16,17 +16,20 @@ All commands below should be run from the project root (`./`).
 
 ### 1. Configure your Pi
 
-Edit `ansible/inventory/hosts.ini` and set your Pi's IP and username:
+Add your Pi to `ansible/inventory/hosts.ini`:
 
 ```ini
 [raspberry_pi]
-rpi ansible_host=192.168.0.33
-
-[raspberry_pi:vars]
-ansible_user=youruser
+rpi ansible_host=192.168.0.x
 ```
 
-To manage multiple Pis, add more lines under `[raspberry_pi]`.
+Then create `ansible/inventory/host_vars/rpi.yml` with its connection details:
+
+```yaml
+ansible_user: youruser
+ansible_port: 22
+ansible_ssh_private_key_file: config/.your-key
+```
 
 ### 2. Set up secrets
 
@@ -80,8 +83,11 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make ping` | Check Pi is reachable |
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
-| `make site` | Full provision: base → Homebrew → Podman → storage → MinIO |
+| `make site` | Full provision: base → Homebrew → Podman → storage |
+| `make minio` | Configure MinIO storage and provision the MinIO role |
 | `make mount` | Interactively mount external storage |
+| `make status` | Show MinIO service status on the Pi |
+| `make logs` | Tail the last 50 lines of MinIO logs from the Pi |
 
 ### Tags — run a subset of roles
 
@@ -93,10 +99,27 @@ cd ansible && ansible-playbook site.yml --tags "podman,storage"
 
 ### Multiple Pis
 
-Add hosts to `ansible/inventory/hosts.ini`, then target a specific one:
+Add each host to `ansible/inventory/hosts.ini` and create a matching `host_vars/` file:
+
+```ini
+# hosts.ini
+[raspberry_pi]
+rpi  ansible_host=192.168.0.33
+rpi2 ansible_host=192.168.0.35
+```
+
+```yaml
+# host_vars/rpi2.yml
+ansible_user: youruser
+ansible_port: 22
+ansible_ssh_private_key_file: config/.your-key
+```
+
+Then target a specific Pi with `HOST`:
 
 ```bash
 HOST=rpi2 make site
+HOST=rpi2 make status
 ```
 
 ---

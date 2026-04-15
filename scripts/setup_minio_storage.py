@@ -89,4 +89,5 @@ def main(host: str = "rpi") -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import os
+    main(host=os.environ.get("HOST", "rpi"))
