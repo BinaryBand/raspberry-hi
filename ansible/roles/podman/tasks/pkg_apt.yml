@@ -1,0 +1,7 @@
+---
+- name: Install Podman (apt)
+  ansible.builtin.apt:
+    name: podman
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

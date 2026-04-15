@@ -1,4 +1,9 @@
 ---
+- name: Assert systemd is the init system
+  ansible.builtin.assert:
+    that: ansible_service_mgr == 'systemd'
+    fail_msg: "minio role requires systemd (detected: {{ ansible_service_mgr }})"
+
 # Fetch the service user's UID once — needed to address their systemd socket.
 - name: Get UID of {{ ansible_user }}
   ansible.builtin.command: "id -u {{ ansible_user }}"

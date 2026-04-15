@@ -4,9 +4,10 @@
 import sys
 
 from utils.ansible_utils import ANSIBLE_DIR
-from utils.exec_utils import run_resolved
+from utils.exec_utils import resolve_executable, run_resolved
 
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
+MIN_PYTHON = (3, 12)
 
 
 def check(label: str, ok: bool, fix: str = "") -> bool:
@@ -20,6 +21,28 @@ def check(label: str, ok: bool, fix: str = "") -> bool:
 def main() -> None:
     print("Checking prerequisites...\n")
     all_ok = True
+
+    # Python version
+    py_ok = sys.version_info >= MIN_PYTHON
+    min_str = f"{MIN_PYTHON[0]}.{MIN_PYTHON[1]}"
+    run_str = f"{sys.version_info.major}.{sys.version_info.minor}"
+    all_ok &= check(
+        f"Python >= {min_str} (running {run_str})",
+        py_ok,
+        f"pyenv install {min_str} && pyenv global {min_str}",
+    )
+
+    # Ansible reachable
+    try:
+        resolve_executable("ansible")
+        ansible_found = True
+    except FileNotFoundError:
+        ansible_found = False
+    all_ok &= check(
+        "ansible available in PATH",
+        ansible_found,
+        "poetry install  (or: pipx install ansible)",
+    )
 
     # Vault password file exists and is private
     vault_ok = VAULT_PASSWORD_FILE.exists() and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600

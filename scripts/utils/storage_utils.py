@@ -51,9 +51,6 @@ class DefaultMountPolicyAdapter(MountPolicyAdapter):
 
 DEFAULT_MOUNT_POLICY = DefaultMountPolicyAdapter()
 
-# Kept for compatibility in modules/tests that consume this symbol directly.
-SYSTEM_MOUNTS = DefaultMountPolicyAdapter._SYSTEM_MOUNTS
-
 console = Console()
 
 

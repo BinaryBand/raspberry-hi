@@ -1,9 +1,22 @@
 ---
-# Install Podman via apt on Debian/Ubuntu.
+- name: Assert supported package manager
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['pkg_mgr'] in podman_supported_managers
+    fail_msg: >-
+      podman role does not support package manager '{{ ansible_facts['pkg_mgr'] }}'.
+      Supported managers: {{ podman_supported_managers | join(', ') }}.
+  when: podman_fail_on_unsupported | bool
+
+- name: Skip unsupported package manager
+  ansible.builtin.debug:
+    msg: >-
+      podman role skipped for unsupported package manager '{{ ansible_facts['pkg_mgr'] }}'.
+      Supported managers: {{ podman_supported_managers | join(', ') }}.
+  when:
+    - not (podman_fail_on_unsupported | bool)
+    - ansible_facts['pkg_mgr'] not in podman_supported_managers
+
 - name: Install Podman (apt)
-  ansible.builtin.apt:
-    name: podman
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-  when: ansible_facts['pkg_mgr'] == "apt"
+  ansible.builtin.include_tasks: pkg_apt.yml
+  when: ansible_facts['pkg_mgr'] == 'apt'
