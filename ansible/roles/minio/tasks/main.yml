@@ -1,5 +1,5 @@
 ---
-# Fetch erron's UID once — needed to address the user's systemd socket.
+# Fetch the brew user's UID once — needed to address their systemd socket.
 - name: Get UID of {{ brew_user }}
   ansible.builtin.command: "id -u {{ brew_user }}"
   register: _brew_user_uid_out
@@ -28,7 +28,7 @@
 # Config dirs and files are root-created to set the correct ownership.
 - name: Ensure MinIO config directory exists
   ansible.builtin.file:
-    path: "/home/{{ brew_user }}/.config/minio"
+    path: "{{ brew_home }}/.config/minio"
     state: directory
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
@@ -38,7 +38,7 @@
 - name: Write MinIO environment file
   ansible.builtin.template:
     src: minio.env.j2
-    dest: "/home/{{ brew_user }}/.config/minio/minio.env"
+    dest: "{{ brew_home }}/.config/minio/minio.env"
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
     mode: "0600"
@@ -48,7 +48,7 @@
 
 - name: Ensure Podman quadlet directory exists
   ansible.builtin.file:
-    path: "/home/{{ brew_user }}/.config/containers/systemd"
+    path: "{{ brew_home }}/.config/containers/systemd"
     state: directory
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
@@ -58,7 +58,7 @@
 - name: Install MinIO Podman quadlet
   ansible.builtin.template:
     src: minio.container.j2
-    dest: "/home/{{ brew_user }}/.config/containers/systemd/minio.container"
+    dest: "{{ brew_home }}/.config/containers/systemd/minio.container"
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
     mode: "0644"
@@ -66,13 +66,23 @@
   notify: restart minio
 
 # Linger lets the user's systemd instance (and its services) survive logout.
+- name: Check linger status for {{ brew_user }}
+  ansible.builtin.command: "loginctl show-user {{ brew_user }} -p Linger --value"
+  register: _linger_status
+  become: true
+  changed_when: false
+  failed_when: false
+  when: not (minio_skip_linger | default(false))
+
 - name: Enable linger for {{ brew_user }}
   ansible.builtin.command: "loginctl enable-linger {{ brew_user }}"
   become: true
-  changed_when: false
-  when: not (minio_skip_linger | default(false))
+  changed_when: true
+  when:
+    - not (minio_skip_linger | default(false))
+    - _linger_status.stdout | default('') != 'yes'
 
-# Run as the play user (erron) with explicit XDG_RUNTIME_DIR so Ansible can
+# Run as the brew user with explicit XDG_RUNTIME_DIR so Ansible can
 # reach the user's systemd socket without an interactive login session.
 - name: Enable and start MinIO service
   ansible.builtin.systemd:
@@ -83,7 +93,7 @@
     daemon_reload: true
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"
- 
+
 # After the service is started, set up buckets and policies using mc
 - name: Setup MinIO buckets and public policy
   ansible.builtin.include_tasks: setup_mc_bucket.yml

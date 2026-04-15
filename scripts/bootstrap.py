@@ -14,7 +14,7 @@ import getpass
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
+from typing import Dict, List, TypedDict
 
 import yaml
 
@@ -24,8 +24,7 @@ SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-if TYPE_CHECKING:
-    from models import VaultSecrets
+from models import VaultSecrets  # noqa: E402
 
 ANSIBLE_DIR = ROOT / "ansible"
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
@@ -88,19 +87,11 @@ def decrypt_vault() -> VaultSecrets:
     if result.returncode != 0:
         abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
     raw = yaml.safe_load(result.stdout) or {}
-    # Local import to avoid module-level import after sys.path mutation
-    from models import VaultSecrets
-
     return VaultSecrets.model_validate(raw)
 
 
-def encrypt_vault(secrets: Any) -> None:
-    """Write secrets (VaultSecrets or plain dict) to an encrypted vault file."""
-    if hasattr(secrets, "model_dump"):
-        data = secrets.model_dump()
-    else:
-        data = dict(secrets)
-
+def encrypt_vault(data: dict) -> None:
+    """Write *data* to an encrypted vault file."""
     plaintext = yaml.dump(data, default_flow_style=False)
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False, dir=ANSIBLE_DIR) as tmp:
@@ -133,9 +124,6 @@ def prompt_missing(secrets: VaultSecrets) -> VaultSecrets:
     """Prompt for any secrets not already present. Returns a VaultSecrets model
     populated only with the newly-provided values (other fields None).
     """
-    # Local import for runtime use
-    from models import VaultSecrets
-
     missing = [s for s in SECRETS if not getattr(secrets, s["key"], None)]
     if not missing:
         return VaultSecrets()
@@ -154,9 +142,6 @@ def prompt_missing(secrets: VaultSecrets) -> VaultSecrets:
             print("  Value cannot be empty — try again.")
         new_entries[s["key"]] = value
 
-    # Local import to avoid module-level import after sys.path mutation
-    from models import VaultSecrets
-
     return VaultSecrets.model_validate(new_entries)
 
 
@@ -168,8 +153,6 @@ def main() -> None:
     if VAULT_FILE.exists():
         existing = decrypt_vault()
     else:
-        from models import VaultSecrets
-
         existing = VaultSecrets()
 
     new_entries = prompt_missing(existing)

@@ -5,6 +5,7 @@
 - name: Detect local connection for minio tasks
   ansible.builtin.set_fact:
     minio_local_run: "{{ (ansible_connection == 'local') | default(false) }}"
+    _mc_creds_ready: "{{ (minio_root_user is defined) and (minio_root_password is defined) }}"
 
 
 - name: Install mc via package (optional)
@@ -43,7 +44,7 @@
     url: "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port|string)) }}/minio/health/ready"
     method: GET
     status_code: 200
-    validate_certs: no
+    validate_certs: false  # health endpoint is plain HTTP; no cert to validate
   register: minio_health
   retries: "{{ mc_wait_retries }}"
   delay: "{{ mc_wait_delay }}"
@@ -52,7 +53,7 @@
 
 - name: Ensure mc config directory exists
   ansible.builtin.file:
-    path: "/home/{{ brew_user }}/.mc"
+    path: "{{ brew_home }}/.mc"
     state: directory
     owner: "{{ brew_user }}"
     group: "{{ brew_user }}"
@@ -61,7 +62,7 @@
 
 - name: Write mc `config.json` with MinIO alias (no_log)
   ansible.builtin.copy:
-    dest: "/home/{{ brew_user }}/.mc/config.json"
+    dest: "{{ brew_home }}/.mc/config.json"
     content: |
       {
         "version": "10",
@@ -80,30 +81,26 @@
     mode: "0600"
   become: "{{ not minio_local_run }}"
   no_log: true
-  when:
-    - minio_root_user is defined
-    - minio_root_password is defined
+  when: _mc_creds_ready
 
 - name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
   ansible.builtin.command: "mc ls {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
-    HOME: "/home/{{ brew_user }}"
+    HOME: "{{ brew_home }}"
     TERM: "xterm"
   register: mc_bucket_check
   failed_when: false
   changed_when: false
-  when:
-    - minio_root_user is defined
-    - minio_root_password is defined
+  when: _mc_creds_ready
 
 - name: Create bucket {{ mc_bucket }} if missing
   ansible.builtin.command: "mc mb {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
-    HOME: "/home/{{ brew_user }}"
+    HOME: "{{ brew_home }}"
     TERM: "xterm"
   when:
     - mc_bucket_check is defined
@@ -117,27 +114,24 @@
   become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
-    HOME: "/home/{{ brew_user }}"
+    HOME: "{{ brew_home }}"
     TERM: "xterm"
   register: mc_anon_set
   failed_when: false
   changed_when: mc_anon_set.rc == 0
-  when:
-    - minio_root_user is defined
-    - minio_root_password is defined
+  when: _mc_creds_ready
 
 - name: Ensure anonymous/download policy on {{ mc_alias }}/{{ mc_bucket }} (legacy)
   ansible.builtin.command: "mc policy set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
   become_user: "{{ brew_user }}"
   environment:
-    HOME: "/home/{{ brew_user }}"
+    HOME: "{{ brew_home }}"
     TERM: "xterm"
   register: mc_policy_set
   failed_when: false
   changed_when: mc_policy_set.rc == 0
   when:
-    - minio_root_user is defined
-    - minio_root_password is defined
+    - _mc_creds_ready
     - mc_anon_set is not defined or mc_anon_set.rc != 0
 

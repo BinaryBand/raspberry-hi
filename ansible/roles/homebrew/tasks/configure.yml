@@ -1,0 +1,10 @@
+---
+# Add Homebrew's shellenv initialisation to the user's shell profile.
+- name: Add Homebrew to shell profile ({{ brew_shell_profile }})
+  ansible.builtin.lineinfile:
+    path: "{{ brew_home }}/{{ brew_shell_profile }}"
+    line: 'eval "$({{ brew_prefix }}/bin/brew shellenv)"'
+    state: present
+    create: false
+  become: "{{ ansible_system != 'Darwin' }}"
+  become_user: "{{ brew_user if ansible_system != 'Darwin' else omit }}"

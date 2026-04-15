@@ -48,7 +48,8 @@ def main() -> None:
     all_ok &= check(
         "Pi reachable",
         pi_ok,
-        "Check SSH key and Pi address in ansible/inventory/hosts.ini",
+        "Check SSH key and Pi address in ansible/inventory/hosts.ini"
+        " — if the host key is unknown, run: make add-hostkey",
     )
 
     print()

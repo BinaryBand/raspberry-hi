@@ -15,11 +15,13 @@
       tags: [podman]
       become: true
 
-
     - role: storage
       tags: [storage]
       become: true
 
-
+    # MinIO uses Podman Quadlets (systemd .container units) and is Linux-only.
+    # It is also tagged so it is skipped by default (`make site` uses --skip-tags minio).
+    # Run `make minio` to provision or re-provision MinIO independently.
     - role: minio
       tags: [minio]
+      when: ansible_system == "Linux"

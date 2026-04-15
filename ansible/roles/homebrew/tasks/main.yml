@@ -1,39 +1,6 @@
 ---
-- name: Install Homebrew dependencies
-  ansible.builtin.apt:
-    name:
-      - build-essential
-      - procps
-      - curl
-      - file
-      - git
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-  become: true
-
-- name: Check if Homebrew is already installed
-  ansible.builtin.stat:
-    path: "{{ brew_prefix }}/bin/brew"
-  register: brew_binary
-  changed_when: false
-
 - name: Install Homebrew
-  ansible.builtin.shell:
-    cmd: >
-      NONINTERACTIVE=1 /bin/bash -c
-      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  become: true
-  become_user: "{{ brew_user }}"
-  when: not brew_binary.stat.exists
-  environment:
-    HOME: "/home/{{ brew_user }}"
+  ansible.builtin.include_tasks: install.yml
 
-- name: Add Homebrew to shell profile
-  ansible.builtin.lineinfile:
-    path: "/home/{{ brew_user }}/.bashrc"
-    line: 'eval "$({{ brew_prefix }}/bin/brew shellenv)"'
-    state: present
-    create: false
-  become: true
-  become_user: "{{ brew_user }}"
+- name: Configure Homebrew shell integration
+  ansible.builtin.include_tasks: configure.yml

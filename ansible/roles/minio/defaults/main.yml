@@ -1,8 +1,7 @@
 ---
 # Pin to a specific release tag for reproducibility.
 # Browse tags at: https://hub.docker.com/r/minio/minio/tags
-# e.g. docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
-minio_image: docker.io/minio/minio:latest
+minio_image: docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
 minio_data_path: /srv/minio/data
 minio_port: 9000
 minio_console_port: 9001

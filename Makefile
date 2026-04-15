@@ -16,7 +16,15 @@ PI_HOST := $(word 1,$(_INV))
 PI_USER := $(word 2,$(_INV))
 PI_KEY  := $(word 3,$(_INV))
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey
+# Shared Ansible flags — avoids repeating paths across targets.
+ANSIBLE_CFG  := $(CURDIR)/ansible/ansible.cfg
+VAULT_PASS   := $(CURDIR)/ansible/.vault-password
+INV          := ansible/inventory/hosts.ini
+INV_LOCAL    := ansible/inventory/hosts-local.ini
+PLAYBOOK     := ansible/site.yml
+ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS)
+
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint
 
 
 help:
@@ -24,8 +32,10 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
+	@echo "  lint          Run ruff linter over scripts/ and models/"
 	@echo "  site          Provision the Pi (runs all roles)"
 	@echo "  site-local    Provision against localhost (dev/testing)"
+	@echo "  minio         Setup MinIO storage"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the Pi"
@@ -37,8 +47,11 @@ help:
 check:
 	poetry run python ./scripts/check.py
 
+lint:
+	poetry run ruff check scripts/ models/
+
 ping:
-	ansible raspberry_pi -m ping -i ansible/inventory/hosts.ini
+	ansible raspberry_pi -m ping -i $(INV)
 
 add-hostkey:
 	ssh-keyscan -H $(PI_HOST) >> ~/.ssh/known_hosts
@@ -47,7 +60,7 @@ ssh:
 	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) -p 22
 
 vault-edit:
-	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=ansible/ansible.cfg ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(CURDIR)/ansible/.vault-password
+	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
 
 bootstrap:
 	poetry run python ./scripts/bootstrap.py
@@ -55,12 +68,15 @@ bootstrap:
 mount:
 	poetry run python ./scripts/pick_storage.py
 
-site:
+minio:
 	poetry run python ./scripts/setup_minio_storage.py
-	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+	$(ANSIBLE_PLAY) --tags minio
+
+site:
+	$(ANSIBLE_PLAY) --skip-tags minio
 
 site-local:
-	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/site.yml -i ansible/inventory/hosts-local.ini --vault-password-file $(CURDIR)/ansible/.vault-password
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV_LOCAL) --vault-password-file $(VAULT_PASS) --skip-tags minio
 
 %:
 	@:

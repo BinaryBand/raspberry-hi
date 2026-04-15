@@ -1,7 +1,16 @@
 ---
-- name: Install Podman
+# Install Podman via apt on Debian/Ubuntu.
+- name: Install Podman (apt)
   ansible.builtin.apt:
     name: podman
     state: present
     update_cache: true
     cache_valid_time: 3600
+  when: ansible_pkg_mgr == "apt"
+
+# Install Podman via Homebrew on macOS.
+- name: Install Podman (Homebrew)
+  community.general.homebrew:
+    name: podman
+    state: present
+  when: ansible_system == "Darwin"

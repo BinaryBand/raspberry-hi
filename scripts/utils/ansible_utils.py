@@ -94,8 +94,7 @@ def run_playbook(playbook: Path, **extra_vars: str) -> None:
 def read_role_defaults(role: str) -> dict:
     """Return the parsed defaults/main.yml for *role*."""
     path = ANSIBLE_DIR / "roles" / role / "defaults" / "main.yml"
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
+    return yaml.safe_load(path.read_text()) or {}
 
 
 # ---------------------------------------------------------------------------
@@ -103,18 +102,20 @@ def read_role_defaults(role: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _host_vars_path(host: str) -> Path:
+    return ANSIBLE_DIR / "inventory" / "host_vars" / f"{host}.yml"
+
+
 def read_host_vars(host: str = "rpi") -> dict:
     """Read the raw YAML host_vars file for *host* as a plain dict."""
-    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{host}.yml"
+    path = _host_vars_path(host)
     return yaml.safe_load(path.read_text()) or {} if path.exists() else {}
 
 
 def write_host_vars(host: str, data: dict) -> None:
     """Overwrite the host_vars file for *host* with *data*."""
-    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{host}.yml"
-    with open(path, "w") as f:
-        f.write("---\n")
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    path = _host_vars_path(host)
+    path.write_text("---\n" + yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False))
 
 
 def update_host_vars(host: str, **kwargs) -> None:

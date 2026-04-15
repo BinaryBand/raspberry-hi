@@ -15,7 +15,11 @@ from rich.table import Table
 if TYPE_CHECKING:
     from models import BlockDevice, MountInfo
 
+# Mount points that belong to the system (boot, root, swap).
 SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "[SWAP]"}
+
+# Virtual/kernel filesystem prefixes — never user data.
+SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
 
 console = Console()
 
@@ -120,10 +124,8 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
 
 def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
-    skip_exact = {"/", "/boot", "/boot/firmware"}
-    skip_prefixes = ("/sys", "/proc", "/dev", "/run")
     return [
         fs for fs in mounts
-        if fs.target not in skip_exact
-        and not any(fs.target.startswith(p) for p in skip_prefixes)
+        if fs.target not in SYSTEM_MOUNTS
+        and not any(fs.target.startswith(p) for p in SYSTEM_MOUNT_PREFIXES)
     ]
