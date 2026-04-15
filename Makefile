@@ -24,7 +24,7 @@ INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS)
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs baikal minio
 
 
 help:
@@ -39,6 +39,7 @@ help:
 	@echo "  site          Provision the Pi (runs all roles)"
 	@echo "  site-local    Provision against localhost (dev/testing)"
 	@echo "  minio         Setup MinIO storage"
+	@echo "  baikal        Provision Baikal CalDAV/CardDAV server"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the Pi"
@@ -86,6 +87,9 @@ mount:
 minio:
 	HOST=$(HOST) poetry run python ./scripts/setup_minio_storage.py
 	$(ANSIBLE_PLAY) --tags minio
+
+baikal:
+	$(ANSIBLE_PLAY) --tags baikal
 
 status:
 	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "systemctl --user status minio --no-pager"

@@ -1,0 +1,9 @@
+---
+- name: restart baikal
+  ansible.builtin.systemd:
+    name: baikal
+    scope: user
+    state: restarted
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"

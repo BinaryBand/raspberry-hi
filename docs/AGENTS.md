@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provision and manage a Raspberry Pi media server using Ansible and Python. The primary service is MinIO object storage, running in a rootless Podman container backed by an external USB drive.
+Provision and manage a Raspberry Pi media server using Ansible and Python. The primary service is MinIO object storage, running in a rootless Podman container backed by an external USB drive. Baikal provides CalDAV/CardDAV for calendar and contact sync.
 
 **Scope:** Infrastructure provisioning, storage configuration, and secret management.
 **Out of scope:** Application-level MinIO configuration, rclone restore workflows (see `config/.help.md`).
@@ -30,7 +30,8 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The p
 ```text
 ansible/                  Playbooks and roles
   apps/
-    minio/                MinIO container + mc bucket setup (Linux only, tagged minio)
+    minio/                MinIO object storage container (Linux only, tagged minio)
+    baikal/               Baikal CalDAV/CardDAV server (Linux only, tagged baikal)
   roles/
     auto-updates/         Unattended security upgrades (Debian/apt only)
     homebrew/             Homebrew/Linuxbrew — installs CLI tools on Linux and macOS
@@ -146,11 +147,15 @@ make minio                        # configure storage and provision MinIO
   └─ ansible-playbook site.yml --tags minio
        └─ role: minio             # deploys quadlet, enables service, sets up bucket
 
+make baikal                       # provision Baikal CalDAV/CardDAV
+  └─ ansible-playbook site.yml --tags baikal
+       └─ role: baikal            # creates data dirs, deploys quadlet, enables service
+
 make mount                        # mount a drive without provisioning
   └─ pick_storage.py              # interactive device picker + mounter
 ```
 
-App roles (under `ansible/apps/`) are tagged with both `apps` and their own name (e.g. `[apps, minio]`). This means `make site` skips all of them, while `make minio` still targets MinIO specifically via `--tags minio`. Future apps follow the same pattern.
+App roles (under `ansible/apps/`) are tagged with both `apps` and their own name (e.g. `[apps, minio]`). This means `make site` skips all of them, while individual `make <app>` targets still work. Future apps follow the same pattern.
 
 ---
 

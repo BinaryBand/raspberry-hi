@@ -1,0 +1,16 @@
+[Unit]
+Description=Baikal CalDAV/CardDAV Server
+After=network.target
+
+[Container]
+Image={{ baikal_image }}
+PublishPort={{ baikal_port }}:80
+Volume={{ baikal_config_path }}:/var/www/baikal/config
+Volume={{ baikal_data_path }}:/var/www/baikal/Specific
+
+[Service]
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,14 @@
+---
+# Pin to a specific release tag for reproducibility.
+# Browse tags at: https://hub.docker.com/r/ckulka/baikal/tags
+baikal_image: docker.io/ckulka/baikal:nginx
+
+# Port the Baikal web interface is published on the host.
+baikal_port: 8088
+
+# Directories for Baikal config and data (calendar/contact databases).
+# Both are mounted into the container and should persist across restarts.
+baikal_config_path: /srv/baikal/config
+baikal_data_path: /srv/baikal/data
+
+baikal_service_name: baikal
