@@ -18,7 +18,7 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The p
 | `HOST` | Alias for the target Pi (`rpi` or `rpi2`). Defaults to `rpi`. Pass as `HOST=rpi2 make site`. |
 | `minio_data_path` | Filesystem path on the Pi where MinIO stores data. Must be on external storage. |
 | `minio_require_external_mount` | Boolean role default. If `true`, `make minio` aborts unless `minio_data_path` is on a non-root mount. |
-| `brew_user` | The Linux user who owns the Homebrew installation. Follows `ansible_user`. |
+| `app_user_home` | Home directory for `ansible_user` on the target host. Defined in `group_vars/all/vars.yml`. Used by app roles for config and quadlet paths. |
 | `quadlet` | A systemd `.container` unit file that Podman uses to manage containers as services. |
 | `vault` | An Ansible Vault-encrypted YAML file (`ansible/group_vars/all/vault.yml`) storing MinIO credentials. |
 | `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/`. Override role defaults for a specific Pi. |
@@ -33,8 +33,7 @@ ansible/                  Playbooks and roles
     minio/                MinIO object storage container (Linux only, tagged minio)
     baikal/               Baikal CalDAV/CardDAV server (Linux only, tagged baikal)
   roles/
-    auto-updates/         Unattended security upgrades (Debian/apt only)
-    homebrew/             Homebrew/Linuxbrew — installs CLI tools on Linux and macOS
+    auto-updates/         Unattended security upgrades (apt/dnf)
     podman/               Rootless container runtime
     storage/              Creates the minio_data_path directory
   inventory/
@@ -137,7 +136,6 @@ The top-level form triggers deprecation warnings in ansible-core ≥ 2.20.
 make site                         # provisions base stack (skips all app roles)
   └─ ansible-playbook site.yml --skip-tags apps
        ├─ role: auto-updates
-       ├─ role: homebrew
        ├─ role: podman
        └─ role: storage           # creates minio_data_path directory
 

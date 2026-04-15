@@ -59,7 +59,6 @@ Currently configured for the `storage` role
 (`ansible/roles/storage/molecule/default/`):
 
 - **converge.yml** — runs the role with `minio_data_path: /tmp/minio-test/data`
-  and `brew_user: root`
 - **verify.yml** — uses `ansible.builtin.stat` to assert the directory exists,
   is mode `0750`, and is owned by `root`
 

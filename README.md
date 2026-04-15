@@ -105,7 +105,7 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make ping` | Check Pi is reachable |
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
-| `make site` | Full provision: base → Homebrew → Podman → storage |
+| `make site` | Full provision: base → Podman → storage |
 | `make minio` | Configure MinIO storage and provision the MinIO role |
 | `make mount` | Interactively mount external storage |
 
@@ -120,7 +120,6 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 ### Tags — run a subset of roles
 
 ```bash
-cd ansible && ansible-playbook site.yml --tags homebrew
 cd ansible && ansible-playbook site.yml --tags minio
 cd ansible && ansible-playbook site.yml --tags "podman,storage"
 ```

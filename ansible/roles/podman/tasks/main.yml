@@ -7,10 +7,3 @@
     update_cache: true
     cache_valid_time: 3600
   when: ansible_facts['pkg_mgr'] == "apt"
-
-# Install Podman via Homebrew on macOS.
-- name: Install Podman (Homebrew)
-  community.general.homebrew:
-    name: podman
-    state: present
-  when: ansible_facts['system'] == "Darwin"

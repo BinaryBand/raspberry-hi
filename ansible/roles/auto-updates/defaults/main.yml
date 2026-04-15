@@ -1,0 +1,25 @@
+---
+auto_updates_enabled: true
+auto_updates_fail_on_unsupported: false
+
+auto_updates_supported_managers:
+  - apt
+  - dnf
+
+auto_updates_reboot_enabled: true
+auto_updates_reboot_time: "03:00"
+
+auto_updates_packages:
+  apt:
+    - unattended-upgrades
+    - apt-listchanges
+  dnf:
+    - dnf-automatic
+
+auto_updates_units:
+  apt: unattended-upgrades
+  dnf: dnf-automatic.timer
+
+auto_updates_apt_conf_dir: /etc/apt/apt.conf.d
+auto_updates_apt_periodic_file: "{{ auto_updates_apt_conf_dir }}/20auto-upgrades"
+auto_updates_apt_unattended_file: "{{ auto_updates_apt_conf_dir }}/50unattended-upgrades"

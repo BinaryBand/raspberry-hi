@@ -8,9 +8,6 @@
       tags: [base]
       become: true
 
-    - role: homebrew
-      tags: [homebrew]
-
     - role: podman
       tags: [podman]
       become: true

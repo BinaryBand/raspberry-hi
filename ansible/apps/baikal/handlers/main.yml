@@ -6,4 +6,4 @@
     state: restarted
     daemon_reload: true
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ brew_user_uid }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ _app_user_uid }}"

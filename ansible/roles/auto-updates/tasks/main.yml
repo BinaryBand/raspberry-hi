@@ -1,54 +1,39 @@
 ---
-# Automatic security updates are managed via unattended-upgrades on Debian/Ubuntu.
-# On other OS families (e.g. macOS) this role is a no-op.
 
-- name: Skip auto-updates on non-Debian systems
+- name: Skip auto-updates when disabled
   ansible.builtin.debug:
-    msg: "auto-updates role skipped — unattended-upgrades is not available on {{ ansible_facts['os_family'] }}."
-  when: ansible_facts['pkg_mgr'] != "apt"
+    msg: "auto-updates role skipped because auto_updates_enabled=false"
+  when: not auto_updates_enabled | bool
 
-- name: Install unattended-upgrades
-  ansible.builtin.apt:
-    name:
-      - unattended-upgrades
-      - apt-listchanges
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-  when: ansible_facts['pkg_mgr'] == "apt"
+- name: Assert supported package manager
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['pkg_mgr'] in auto_updates_supported_managers
+    fail_msg: >-
+      auto-updates role does not support package manager '{{ ansible_facts['pkg_mgr'] }}'.
+      Supported managers: {{ auto_updates_supported_managers | join(', ') }}.
+  when:
+    - auto_updates_enabled | bool
+    - auto_updates_fail_on_unsupported | bool
 
-- name: Enable automatic security updates
-  ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/20auto-upgrades
-    content: |
-      APT::Periodic::Update-Package-Lists "1";
-      APT::Periodic::Unattended-Upgrade "1";
-      APT::Periodic::AutocleanInterval "7";
-    owner: root
-    group: root
-    mode: "0644"
-  when: ansible_facts['pkg_mgr'] == "apt"
+- name: Skip unsupported package manager (non-strict mode)
+  ansible.builtin.debug:
+    msg: >-
+      auto-updates role skipped for unsupported package manager '{{ ansible_facts['pkg_mgr'] }}'.
+      Supported managers: {{ auto_updates_supported_managers | join(', ') }}.
+  when:
+    - auto_updates_enabled | bool
+    - not auto_updates_fail_on_unsupported | bool
+    - ansible_facts['pkg_mgr'] not in auto_updates_supported_managers
 
-- name: Configure unattended-upgrades for security origins
-  ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/50unattended-upgrades
-    content: |
-      Unattended-Upgrade::Allowed-Origins {
-          "${distro_id}:${distro_codename}-security";
-          "${distro_id}ESMApps:${distro_codename}-apps-security";
-          "${distro_id}ESM:${distro_codename}-infra-security";
-      };
-      Unattended-Upgrade::Remove-Unused-Dependencies "true";
-      Unattended-Upgrade::Automatic-Reboot "true";
-      Unattended-Upgrade::Automatic-Reboot-Time "03:00";
-    owner: root
-    group: root
-    mode: "0644"
-  when: ansible_facts['pkg_mgr'] == "apt"
+- name: Configure auto-updates (apt)
+  ansible.builtin.include_tasks: pkg_apt.yml
+  when:
+    - auto_updates_enabled | bool
+    - ansible_facts['pkg_mgr'] == 'apt'
 
-- name: Ensure unattended-upgrades service is enabled and running
-  ansible.builtin.service:
-    name: unattended-upgrades
-    enabled: true
-    state: started
-  when: ansible_facts['pkg_mgr'] == "apt"
+- name: Configure auto-updates (dnf)
+  ansible.builtin.include_tasks: pkg_dnf.yml
+  when:
+    - auto_updates_enabled | bool
+    - ansible_facts['pkg_mgr'] == 'dnf'

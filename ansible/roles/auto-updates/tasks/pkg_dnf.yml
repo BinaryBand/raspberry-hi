@@ -1,0 +1,32 @@
+---
+- name: Assert dnf auto-updates requires systemd (strict mode)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['service_mgr'] == 'systemd'
+    fail_msg: >-
+      dnf auto-updates requires systemd timers, but service manager is
+      '{{ ansible_facts['service_mgr'] }}'.
+  when: auto_updates_fail_on_unsupported | bool
+
+- name: Skip dnf auto-updates on non-systemd hosts (non-strict mode)
+  ansible.builtin.debug:
+    msg: >-
+      dnf auto-updates skipped because service manager '{{ ansible_facts['service_mgr'] }}'
+      is not systemd.
+  when:
+    - not auto_updates_fail_on_unsupported | bool
+    - ansible_facts['service_mgr'] != 'systemd'
+
+- name: Install auto-update packages (dnf)
+  ansible.builtin.dnf:
+    name: "{{ auto_updates_packages['dnf'] }}"
+    state: present
+    update_cache: true
+  when: ansible_facts['service_mgr'] == 'systemd'
+
+- name: Ensure dnf automatic updates timer is enabled and running
+  ansible.builtin.service:
+    name: "{{ auto_updates_units['dnf'] }}"
+    enabled: true
+    state: started
+  when: ansible_facts['service_mgr'] == 'systemd'

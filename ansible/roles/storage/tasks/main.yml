@@ -3,6 +3,6 @@
   ansible.builtin.file:
     path: "{{ minio_data_path }}"
     state: directory
-    owner: "{{ brew_user }}"
-    group: "{{ brew_user }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0750"

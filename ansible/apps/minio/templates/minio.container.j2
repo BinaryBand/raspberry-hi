@@ -8,7 +8,7 @@ Image={{ minio_image }}
 PublishPort={{ minio_port }}:9000
 PublishPort={{ minio_console_port }}:9001
 Volume={{ minio_data_path }}:/data
-EnvironmentFile={{ brew_home }}/.config/minio/minio.env
+EnvironmentFile={{ app_user_home }}/.config/minio/minio.env
 Exec=server /data --address :{{ minio_port }} --console-address :{{ minio_console_port }}
 
 [Service]

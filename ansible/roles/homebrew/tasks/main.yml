@@ -1,6 +1,0 @@
----
-- name: Install Homebrew
-  ansible.builtin.include_tasks: install.yml
-
-- name: Configure Homebrew shell integration
-  ansible.builtin.include_tasks: configure.yml

@@ -7,6 +7,7 @@ re-implement SSH setup or lsblk/findmnt parsing.
 from __future__ import annotations
 
 import json
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -17,12 +18,41 @@ if TYPE_CHECKING:
 
     from models import BlockDevice, MountInfo
 
-# Mount points that belong to the system (boot, root, swap).
-# Covers Raspberry Pi OS (/boot/firmware), standard Debian/Ubuntu (/boot), and UEFI x86 (/boot/efi).
-SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "/boot/efi", "[SWAP]"}
-
-# Virtual/kernel filesystem prefixes — never user data.
+# Virtual/kernel filesystem prefixes - never user data.
 SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
+
+
+class MountPolicyAdapter(ABC):
+    """Platform adapter for deciding whether a mount point is system-owned."""
+
+    @abstractmethod
+    def is_system_mount(self, target: str | None) -> bool:
+        """Return True when *target* should be treated as a system mount."""
+
+
+class DefaultMountPolicyAdapter(MountPolicyAdapter):
+    """Reasonable cross-distro defaults for system mount classification."""
+
+    _SYSTEM_MOUNTS = {"/", "/boot", "/boot/efi", "[SWAP]"}
+
+    def is_system_mount(self, target: str | None) -> bool:
+        if not target:
+            return False
+
+        if target in self._SYSTEM_MOUNTS:
+            return True
+
+        # Catch distro variants such as /boot/firmware without hardcoding each one.
+        if target.startswith("/boot/"):
+            return True
+
+        return any(target.startswith(prefix) for prefix in SYSTEM_MOUNT_PREFIXES)
+
+
+DEFAULT_MOUNT_POLICY = DefaultMountPolicyAdapter()
+
+# Kept for compatibility in modules/tests that consume this symbol directly.
+SYSTEM_MOUNTS = DefaultMountPolicyAdapter._SYSTEM_MOUNTS
 
 console = Console()
 
@@ -41,11 +71,15 @@ def get_block_devices(conn: Connection) -> list[BlockDevice]:
     return [BlockDevice.model_validate(d) for d in raw]
 
 
-def is_system_device(device: BlockDevice) -> bool:
+def is_system_device(
+    device: BlockDevice,
+    mount_policy: MountPolicyAdapter | None = None,
+) -> bool:
     """Return True if *device* or any of its children is at a system mount point."""
-    if device.mountpoint in SYSTEM_MOUNTS:
+    policy = mount_policy or DEFAULT_MOUNT_POLICY
+    if policy.is_system_mount(device.mountpoint):
         return True
-    return any(is_system_device(child) for child in (device.children or []))
+    return any(is_system_device(child, policy) for child in (device.children or []))
 
 
 def collect_partitions(device: BlockDevice) -> list[BlockDevice]:
@@ -58,11 +92,15 @@ def collect_partitions(device: BlockDevice) -> list[BlockDevice]:
     return []
 
 
-def get_external_devices(devices: list[BlockDevice]) -> list[BlockDevice]:
+def get_external_devices(
+    devices: list[BlockDevice],
+    mount_policy: MountPolicyAdapter | None = None,
+) -> list[BlockDevice]:
     """Filter *devices* down to mountable partitions on non-system disks."""
+    policy = mount_policy or DEFAULT_MOUNT_POLICY
     external = []
     for device in devices:
-        if device.type != "disk" or is_system_device(device):
+        if device.type != "disk" or is_system_device(device, policy):
             continue
         external.extend(collect_partitions(device))
     return external
@@ -125,11 +163,14 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
     return covering
 
 
-def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
+def external_mounts(
+    mounts: list[MountInfo],
+    mount_policy: MountPolicyAdapter | None = None,
+) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
+    policy = mount_policy or DEFAULT_MOUNT_POLICY
     return [
         fs
         for fs in mounts
-        if fs.target not in SYSTEM_MOUNTS
-        and not any(fs.target.startswith(p) for p in SYSTEM_MOUNT_PREFIXES)
+        if not policy.is_system_mount(fs.target)
     ]

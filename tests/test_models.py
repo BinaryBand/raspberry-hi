@@ -90,7 +90,7 @@ class TestMinioConfig:
 
     def test_extra_fields_allowed(self):
         """Ensure extra model fields are allowed."""
-        cfg = MinioConfig.model_validate({"brew_user": "pi"})
+        cfg = MinioConfig.model_validate({"extra_field": "ignored"})
         assert cfg.minio_data_path == "/srv/minio/data"
 
 

@@ -1,0 +1,29 @@
+---
+- name: Install auto-update packages (apt)
+  ansible.builtin.apt:
+    name: "{{ auto_updates_packages['apt'] }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configure apt periodic auto-upgrades
+  ansible.builtin.template:
+    src: apt-periodic-updates.conf.j2
+    dest: "{{ auto_updates_apt_periodic_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure unattended-upgrades origins and reboot policy
+  ansible.builtin.template:
+    src: apt-unattended-upgrades.conf.j2
+    dest: "{{ auto_updates_apt_unattended_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure unattended-upgrades service is enabled and running
+  ansible.builtin.service:
+    name: "{{ auto_updates_units['apt'] }}"
+    enabled: true
+    state: started

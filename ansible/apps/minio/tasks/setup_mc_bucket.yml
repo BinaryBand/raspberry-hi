@@ -53,16 +53,16 @@
 
 - name: Ensure mc config directory exists
   ansible.builtin.file:
-    path: "{{ brew_home }}/.mc"
+    path: "{{ app_user_home }}/.mc"
     state: directory
-    owner: "{{ brew_user }}"
-    group: "{{ brew_user }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0700"
   become: "{{ not minio_local_run }}"
 
 - name: Write mc `config.json` with MinIO alias (no_log)
   ansible.builtin.copy:
-    dest: "{{ brew_home }}/.mc/config.json"
+    dest: "{{ app_user_home }}/.mc/config.json"
     content: |
       {
         "version": "10",
@@ -76,8 +76,8 @@
           }
         }
       }
-    owner: "{{ brew_user }}"
-    group: "{{ brew_user }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0600"
   become: "{{ not minio_local_run }}"
   no_log: true
@@ -86,9 +86,9 @@
 - name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
   ansible.builtin.command: "mc ls {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
-  become_user: "{{ brew_user }}"
+  become_user: "{{ ansible_user }}"
   environment:
-    HOME: "{{ brew_home }}"
+    HOME: "{{ app_user_home }}"
     TERM: "xterm"
   register: mc_bucket_check
   failed_when: false
@@ -98,9 +98,9 @@
 - name: Create bucket {{ mc_bucket }} if missing
   ansible.builtin.command: "mc mb {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
-  become_user: "{{ brew_user }}"
+  become_user: "{{ ansible_user }}"
   environment:
-    HOME: "{{ brew_home }}"
+    HOME: "{{ app_user_home }}"
     TERM: "xterm"
   when:
     - mc_bucket_check is defined
@@ -112,9 +112,9 @@
 - name: Try mc anonymous set (preferred in newer mc)
   ansible.builtin.command: "mc anonymous set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
-  become_user: "{{ brew_user }}"
+  become_user: "{{ ansible_user }}"
   environment:
-    HOME: "{{ brew_home }}"
+    HOME: "{{ app_user_home }}"
     TERM: "xterm"
   register: mc_anon_set
   failed_when: false
@@ -124,9 +124,9 @@
 - name: Ensure anonymous/download policy on {{ mc_alias }}/{{ mc_bucket }} (legacy)
   ansible.builtin.command: "mc policy set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
   become: "{{ not minio_local_run }}"
-  become_user: "{{ brew_user }}"
+  become_user: "{{ ansible_user }}"
   environment:
-    HOME: "{{ brew_home }}"
+    HOME: "{{ app_user_home }}"
     TERM: "xterm"
   register: mc_policy_set
   failed_when: false
