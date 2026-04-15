@@ -19,6 +19,28 @@ def mnt(
     return MountInfo(target=target, source=source, fstype=fstype, size=size)
 
 
+def blk(
+    name: str,
+    device_type: str,
+    mountpoint: str | None,
+    children: list[BlockDevice] | None = None,
+    *,
+    fstype: str | None = None,
+    label: str | None = None,
+    size: str = "1T",
+) -> BlockDevice:
+    """Build a BlockDevice with explicit type and mountpoint."""
+    return BlockDevice(
+        name=name,
+        type=device_type,
+        size=size,
+        mountpoint=mountpoint,
+        children=children,
+        fstype=fstype,
+        label=label,
+    )
+
+
 def disk(name: str, *, children: list[BlockDevice] | None = None) -> BlockDevice:
     """Build a disk-type BlockDevice."""
     return BlockDevice(name=name, type="disk", size="1T", children=children)

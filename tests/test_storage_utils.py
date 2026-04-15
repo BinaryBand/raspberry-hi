@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from scripts.utils.storage_utils import (
-    MountPolicyAdapter,
     SYSTEM_MOUNT_PREFIXES,
+    MountPolicyAdapter,
     external_mounts,
     get_block_devices,
     get_external_devices,
@@ -14,8 +14,7 @@ from scripts.utils.storage_utils import (
     is_system_device,
     mount_covering,
 )
-from tests.support.builders import blk
-from tests.support.builders import mnt
+from tests.support.builders import blk, mnt
 from tests.support.connections import FakeConnection
 
 # ---------------------------------------------------------------------------
@@ -188,7 +187,10 @@ class TestGetExternalDevices:
             "nvme0n1",
             "disk",
             None,
-            [blk("nvme0n1p1", "part", "/efi", fstype="vfat"), blk("nvme0n1p2", "part", "/", fstype="ext4")],
+            [
+                blk("nvme0n1p1", "part", "/efi", fstype="vfat"),
+                blk("nvme0n1p2", "part", "/", fstype="ext4"),
+            ],
         )
         data_disk = blk("sdb", "disk", None, [blk("sdb1", "part", "/boot/firmware", fstype="ext4")])
 

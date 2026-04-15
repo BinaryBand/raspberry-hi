@@ -169,8 +169,4 @@ def external_mounts(
 ) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
     policy = mount_policy or DEFAULT_MOUNT_POLICY
-    return [
-        fs
-        for fs in mounts
-        if not policy.is_system_mount(fs.target)
-    ]
+    return [fs for fs in mounts if not policy.is_system_mount(fs.target)]
