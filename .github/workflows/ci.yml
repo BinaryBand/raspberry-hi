@@ -18,6 +18,16 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtual environment
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-ubuntu-py3.12-${{ hashFiles('poetry.lock') }}
+          restore-keys: venv-ubuntu-py3.12-
+
       - name: Install dependencies
         run: poetry install
 
@@ -36,6 +46,16 @@ jobs:
 
       - name: Install Poetry
         run: pip install poetry
+
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtual environment
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-ubuntu-py3.12-${{ hashFiles('poetry.lock') }}
+          restore-keys: venv-ubuntu-py3.12-
 
       - name: Install dependencies
         run: poetry install

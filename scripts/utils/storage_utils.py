@@ -13,6 +13,8 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
+    from fabric import Connection
+
     from models import BlockDevice, MountInfo
 
 # Mount points that belong to the system (boot, root, swap).
@@ -30,7 +32,7 @@ console = Console()
 # ---------------------------------------------------------------------------
 
 
-def get_block_devices(conn) -> list[BlockDevice]:
+def get_block_devices(conn: Connection) -> list[BlockDevice]:
     """Return all block devices reported by lsblk on the remote host."""
     from models import BlockDevice
 
@@ -94,7 +96,7 @@ def display_devices(devices: list[BlockDevice]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_real_mounts(conn) -> list[MountInfo]:
+def get_real_mounts(conn: Connection) -> list[MountInfo]:
     """Return all real (non-virtual) mount points on the remote host."""
     from models import MountInfo
 

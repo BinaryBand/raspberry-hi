@@ -25,13 +25,16 @@ All commands below should be run from the project root (`./`).
 Add your Pi to `ansible/inventory/hosts.ini`:
 
 ```ini
-[raspberry_pi]
-rpi ansible_host=192.168.0.x
+[devices]
+rpi
 ```
 
 Then create `ansible/inventory/host_vars/rpi.yml` with its connection details:
 
 ```yaml
+# Use an mDNS name (rpi.local) or a raw IP (192.168.0.x).
+# mDNS survives DHCP changes without editing this file.
+ansible_host: rpi.local
 ansible_user: youruser
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
@@ -109,13 +112,14 @@ Add each host to `ansible/inventory/hosts.ini` and create a matching `host_vars/
 
 ```ini
 # hosts.ini
-[raspberry_pi]
-rpi  ansible_host=192.168.0.33
-rpi2 ansible_host=192.168.0.35
+[devices]
+rpi
+rpi2
 ```
 
 ```yaml
 # host_vars/rpi2.yml
+ansible_host: rpi2.local
 ansible_user: youruser
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key

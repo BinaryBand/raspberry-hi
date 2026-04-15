@@ -2,17 +2,21 @@
 
 ## Architecture
 
-- [ ] Prefer Makefile → Ansible and declarative programming.
-- [ ] Makefile → Python → Ansible if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
+- [ ] Organize ./model files with intuitive directories. *
+- [ ] Prefer `Makefile → Ansible` and declarative programming.
+- [ ] `Makefile → Python → Ansible` if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
+  - [ ] ... and then organize and *abstract-ify* ./scripts.
 
 > Consider Ansible-Runner ports and adaptors to improve modularity through scalability.
 
-## Portability (Not a priority)
+## Portability
 
-- [ ] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine).
+- [ ] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine). *
 - [ ] Non-systemd init support — service management (Podman quadlets, `loginctl enable-linger`) assumes systemd; add an init-system guard and document alternatives for OpenRC or runit targets.
+- [ ] `SYSTEM_MOUNTS` in `storage_utils.py` has Pi-specific paths baked in (`/boot/firmware`) — consider an abstract class adaptor per platform/distro.
+- [ ] Consider dropping the Homebrew role to be more platform-agnostic.
 
-## Features (Not a priority)
+## Features -
 
 - [ ] Create a backup and restore plan.
 - [ ] Manage timed tasks via a centralized, declarative file/directory.
@@ -20,10 +24,10 @@
 
 ## Style
 
-- [ ] Enforce complexity constraints. (Lizard)
+- [ ] Enforce complexity constraints. (Lizard) -
 - [ ] Enforce utility gating constraints. (Vulture)
 - [ ] Enforce redundancy constraints. (jscpd)
-- [ ] Plan and enforce arbitrary architectural constrains. (semgrep)
+- [ ] Plan and enforce arbitrary architectural constrains. (semgrep) *
 - [ ] Codify and gate docs/AGENTS.md:Success rubric violations.
 
 * * *
@@ -38,3 +42,8 @@ When asked to evaluate this project, score it 1–5 across the following dimensi
 | **Simplicity** | Is the project structure flat and navigable? Are responsibilities well-separated? Is complexity justified? |
 | **Usability** | Is it easy for a new user to get started? Are commands discoverable? Is error handling helpful? |
 | **Best practice** | Are secrets, types, data-flow, linting, and testing handled correctly? Does it follow conventions for its toolchain? |
+
+## Notes
+
+- `*` - Prioritize
+- `-` - Not a priority

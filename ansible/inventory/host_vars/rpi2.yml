@@ -1,5 +1,7 @@
 ---
-# Connection settings for rpi2 (192.168.0.35).
+# ansible_host accepts either a raw IP (192.168.0.x) or an mDNS name (rpi2.local).
+# mDNS is preferred for home networks — survives DHCP address changes without editing this file.
+ansible_host: 192.168.0.35
 ansible_user: avid-askew-dean
 ansible_port: 22
 ansible_ssh_private_key_file: config/.ed25519
