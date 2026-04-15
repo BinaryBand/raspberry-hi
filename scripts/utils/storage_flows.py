@@ -62,7 +62,7 @@ def flow_mount_new_device(
     devices = get_external_devices(get_block_devices(conn))
 
     if not devices:
-        console.print("[yellow]No external storage devices found on the Pi.[/yellow]")
+        console.print("[yellow]No external storage devices found on the target host.[/yellow]")
         return None
 
     display_devices(devices)

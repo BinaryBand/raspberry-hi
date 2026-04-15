@@ -33,15 +33,15 @@ def main() -> None:
     inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
 
     ping = run_resolved(
-        ["ansible", "raspberry_pi", "-m", "ping", "-i", str(inventory_path)],
+        ["ansible", "devices", "-m", "ping", "-i", str(inventory_path)],
         capture_output=True,
         text=True,
     )
     pi_ok = "SUCCESS" in ping.stdout
     all_ok &= check(
-        "Pi reachable",
+        "Host reachable",
         pi_ok,
-        "Check SSH key and Pi address in ansible/inventory/hosts.ini"
+        "Check SSH key and host address in ansible/inventory/hosts.ini"
         " — if the host key is unknown, run: make add-hostkey",
     )
 

@@ -1,6 +1,6 @@
 ---
-- name: Provision Raspberry Pi
-  hosts: raspberry_pi
+- name: Provision devices
+  hosts: devices
   gather_facts: true
 
   roles:

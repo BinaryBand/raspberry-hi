@@ -16,7 +16,8 @@ if TYPE_CHECKING:
     from models import BlockDevice, MountInfo
 
 # Mount points that belong to the system (boot, root, swap).
-SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "[SWAP]"}
+# Covers Raspberry Pi OS (/boot/firmware), standard Debian/Ubuntu (/boot), and UEFI x86 (/boot/efi).
+SYSTEM_MOUNTS = {"/", "/boot", "/boot/firmware", "/boot/efi", "[SWAP]"}
 
 # Virtual/kernel filesystem prefixes — never user data.
 SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")

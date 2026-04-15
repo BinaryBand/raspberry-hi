@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Connects to the Raspberry Pi, lists safe external storage devices,
+Connects to the remote host, lists safe external storage devices,
 prompts the user to pick one, then runs the mount_storage playbook.
 
 Run via: make mount
@@ -19,7 +19,7 @@ console = Console()
 
 
 def main(host: str = "rpi") -> None:
-    console.print("[bold]Fetching block devices from Raspberry Pi...[/bold]")
+    console.print("[bold]Fetching block devices from remote host...[/bold]")
 
     hvars = inventory_host_vars(host)
     conn = make_connection(hvars)

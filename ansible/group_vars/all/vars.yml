@@ -1,2 +1,5 @@
 # brew_user follows ansible_user so the username only needs to be set in hosts.ini.
 brew_user: "{{ ansible_user }}"
+
+# Let Ansible detect the Python interpreter rather than pinning a version.
+ansible_python_interpreter: auto_silent

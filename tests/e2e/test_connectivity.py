@@ -34,12 +34,15 @@ def test_block_devices_discoverable(live_conn):
 
 
 @pytest.mark.e2e
-def test_sd_card_classified_as_system(live_conn):
-    """Verify SD card is correctly classified as a system device."""
+def test_root_device_classified_as_system(live_conn):
+    """Verify the disk hosting the root filesystem is classified as a system device."""
     from scripts.utils.storage_utils import is_system_device
 
     devices = get_block_devices(live_conn)
-    # The Pi always has mmcblk0 (SD card) as a system device
-    sd_cards = [d for d in devices if d.name.startswith("mmcblk")]
-    assert sd_cards, "No SD card found"
-    assert all(is_system_device(d) for d in sd_cards)
+    # Find whichever disk contains a partition mounted at /
+    root_disks = [
+        d for d in devices
+        if d.type == "disk" and any(c.mountpoint == "/" for c in (d.children or []))
+    ]
+    assert root_disks, "No disk found hosting the root partition"
+    assert all(is_system_device(d) for d in root_disks)

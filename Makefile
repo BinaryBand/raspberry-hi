@@ -1,20 +1,20 @@
 ANSIBLE_DIR := ansible
 
-# Default Pi host alias (matches ansible/inventory/hosts.ini).
-# Override for a specific Pi: HOST=rpi2 make site
+# Default host alias (matches ansible/inventory/hosts.ini).
+# Override for a specific host: HOST=rpi2 make site
 HOST ?= rpi
 
 # Single inventory call — splits host/user/key into three Make variables.
 # No ANSIBLE_CONFIG: we only need inventory vars (hosts.ini + host_vars/), not group_vars or vault.
 # python3 returns '' on empty/failed output rather than crashing.
 # Values must not contain spaces (safe for IPs, usernames, and file paths).
-_INV    := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.ini --host $(HOST) 2>/dev/null \
+_INV        := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.ini --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.loads(sys.stdin.read() or '{}'); \
 	  print(d.get('ansible_host',''), d.get('ansible_user',''), d.get('ansible_ssh_private_key_file',''))" \
 	2>/dev/null)
-PI_HOST := $(word 1,$(_INV))
-PI_USER := $(word 2,$(_INV))
-PI_KEY  := $(word 3,$(_INV))
+REMOTE_HOST := $(word 1,$(_INV))
+REMOTE_USER := $(word 2,$(_INV))
+REMOTE_KEY  := $(word 3,$(_INV))
 
 # Shared Ansible flags — avoids repeating paths across targets.
 ANSIBLE_CFG  := $(CURDIR)/ansible/ansible.cfg
@@ -70,13 +70,13 @@ test-e2e:
 	HOST=$(HOST) poetry run pytest tests/e2e/ -v -m e2e
 
 ping:
-	ansible raspberry_pi -m ping -i $(INV) || true
+	ansible devices -m ping -i $(INV) || true
 
 add-hostkey:
-	ssh-keyscan -H $(PI_HOST) >> ~/.ssh/known_hosts
+	ssh-keyscan -H $(REMOTE_HOST) >> ~/.ssh/known_hosts
 
 ssh:
-	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) -p 22
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p 22
 
 vault-edit:
 	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
@@ -95,10 +95,10 @@ baikal:
 	$(ANSIBLE_PLAY) --tags baikal
 
 status:
-	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "systemctl --user status minio --no-pager"
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) "systemctl --user status minio --no-pager"
 
 logs:
-	ssh -i $(PI_KEY) $(PI_USER)@$(PI_HOST) "journalctl --user -u minio -n 50 --no-pager"
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) "journalctl --user -u minio -n 50 --no-pager"
 
 site:
 	$(ANSIBLE_PLAY) --skip-tags apps

@@ -7,6 +7,11 @@
 
 > Consider Ansible-Runner ports and adaptors to improve modularity through scalability.
 
+## Portability (Not a priority)
+
+- [ ] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine).
+- [ ] Non-systemd init support — service management (Podman quadlets, `loginctl enable-linger`) assumes systemd; add an init-system guard and document alternatives for OpenRC or runit targets.
+
 ## Features (Not a priority)
 
 - [ ] Create a backup and restore plan.
