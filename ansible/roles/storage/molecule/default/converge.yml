@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    minio_data_path: /tmp/minio-test/data
+    brew_user: root
+  roles:
+    - role: storage

@@ -92,7 +92,7 @@ Two Pis are managed:
 
 ## Provisioning pipeline
 
-```
+```text
 make site
   └─ setup_minio_storage.py     # pre-flight: verify minio_data_path is on external mount
        ├─ if not: guide user →  # pick device → mount → update host_vars/rpi.yml

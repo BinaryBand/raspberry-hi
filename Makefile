@@ -24,7 +24,7 @@ INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS)
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint status logs
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs
 
 
 help:
@@ -33,6 +33,9 @@ help:
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
 	@echo "  lint          Run ruff linter over scripts/ and models/"
+	@echo "  test          Run unit + stub tests (no infra needed)"
+	@echo "  test-roles    Run Ansible role tests in Docker (requires Docker)"
+	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
 	@echo "  site          Provision the Pi (runs all roles)"
 	@echo "  site-local    Provision against localhost (dev/testing)"
 	@echo "  minio         Setup MinIO storage"
@@ -52,6 +55,15 @@ check:
 
 lint:
 	poetry run ruff check scripts/ models/
+
+test:
+	poetry run pytest tests/ -v
+
+test-roles:
+	cd ansible/roles/storage && poetry run molecule test
+
+test-e2e:
+	HOST=$(HOST) poetry run pytest tests/e2e/ -v -m e2e
 
 ping:
 	ansible raspberry_pi -m ping -i $(INV) || true

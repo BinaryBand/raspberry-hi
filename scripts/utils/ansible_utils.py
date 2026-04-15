@@ -92,9 +92,12 @@ def run_playbook(playbook: Path, **extra_vars: str) -> None:
 
 
 def read_role_defaults(role: str) -> dict:
-    """Return the parsed defaults/main.yml for *role*."""
-    path = ANSIBLE_DIR / "roles" / role / "defaults" / "main.yml"
-    return yaml.safe_load(path.read_text()) or {}
+    """Return the parsed defaults/main.yml for *role*, searching roles/ then apps/."""
+    for subdir in ("roles", "apps"):
+        path = ANSIBLE_DIR / subdir / role / "defaults" / "main.yml"
+        if path.exists():
+            return yaml.safe_load(path.read_text()) or {}
+    return {}
 
 
 # ---------------------------------------------------------------------------

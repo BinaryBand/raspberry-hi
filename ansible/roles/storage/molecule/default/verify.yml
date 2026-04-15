@@ -1,0 +1,20 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Gather info on MinIO data directory
+      ansible.builtin.stat:
+        path: /tmp/minio-test/data
+      register: data_dir
+
+    - name: Assert directory exists with correct permissions
+      ansible.builtin.assert:
+        that:
+          - data_dir.stat.exists
+          - data_dir.stat.isdir
+          - data_dir.stat.mode == '0750'
+          - data_dir.stat.pw_name == 'root'
+        fail_msg: >
+          Expected /tmp/minio-test/data to exist as a directory owned by root
+          with mode 0750. Got: exists={{ data_dir.stat.exists }},
+          mode={{ data_dir.stat.mode | default('N/A') }}
