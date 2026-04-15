@@ -35,6 +35,7 @@ class FakeConnection:
     """
 
     def __init__(self, responses: dict[str, str | tuple[str, bool]]):
+        """Initialize the connection with response mappings."""
         self._responses = responses
 
     def run(
@@ -45,6 +46,7 @@ class FakeConnection:
         warn: bool = False,
         **kwargs: object,
     ) -> FakeResult:
+        """Stub for fabric.Connection.run()."""
         for prefix, value in self._responses.items():
             if command.startswith(prefix):
                 if isinstance(value, tuple):

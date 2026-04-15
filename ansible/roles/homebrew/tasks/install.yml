@@ -12,7 +12,7 @@
     update_cache: true
     cache_valid_time: 3600
   become: true
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts['pkg_mgr'] == "apt"
 
 - name: Check if Homebrew is already installed
   ansible.builtin.stat:
@@ -30,7 +30,7 @@
   become_user: "{{ brew_user }}"
   when:
     - not brew_binary.stat.exists
-    - ansible_system != "Darwin"
+    - ansible_facts['system'] != "Darwin"
   environment:
     HOME: "{{ brew_home }}"
 
@@ -42,6 +42,6 @@
       "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   when:
     - not brew_binary.stat.exists
-    - ansible_system == "Darwin"
+    - ansible_facts['system'] == "Darwin"
   environment:
     HOME: "{{ brew_home }}"

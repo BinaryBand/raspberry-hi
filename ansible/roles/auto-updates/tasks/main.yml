@@ -4,8 +4,8 @@
 
 - name: Skip auto-updates on non-Debian systems
   ansible.builtin.debug:
-    msg: "auto-updates role skipped — unattended-upgrades is not available on {{ ansible_os_family }}."
-  when: ansible_pkg_mgr != "apt"
+    msg: "auto-updates role skipped — unattended-upgrades is not available on {{ ansible_facts['os_family'] }}."
+  when: ansible_facts['pkg_mgr'] != "apt"
 
 - name: Install unattended-upgrades
   ansible.builtin.apt:
@@ -15,7 +15,7 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts['pkg_mgr'] == "apt"
 
 - name: Enable automatic security updates
   ansible.builtin.copy:
@@ -27,7 +27,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts['pkg_mgr'] == "apt"
 
 - name: Configure unattended-upgrades for security origins
   ansible.builtin.copy:
@@ -44,11 +44,11 @@
     owner: root
     group: root
     mode: "0644"
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts['pkg_mgr'] == "apt"
 
 - name: Ensure unattended-upgrades service is enabled and running
   ansible.builtin.service:
     name: unattended-upgrades
     enabled: true
     state: started
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts['pkg_mgr'] == "apt"

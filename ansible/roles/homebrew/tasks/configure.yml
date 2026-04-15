@@ -6,5 +6,5 @@
     line: 'eval "$({{ brew_prefix }}/bin/brew shellenv)"'
     state: present
     create: false
-  become: "{{ ansible_system != 'Darwin' }}"
-  become_user: "{{ brew_user if ansible_system != 'Darwin' else omit }}"
+  become: "{{ ansible_facts['system'] != 'Darwin' }}"
+  become_user: "{{ brew_user if ansible_facts['system'] != 'Darwin' else omit }}"
