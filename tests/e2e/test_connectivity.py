@@ -41,7 +41,8 @@ def test_root_device_classified_as_system(live_conn):
     devices = get_block_devices(live_conn)
     # Find whichever disk contains a partition mounted at /
     root_disks = [
-        d for d in devices
+        d
+        for d in devices
         if d.type == "disk" and any(c.mountpoint == "/" for c in (d.children or []))
     ]
     assert root_disks, "No disk found hosting the root partition"

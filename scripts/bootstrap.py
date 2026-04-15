@@ -17,10 +17,10 @@ from pathlib import Path
 from typing import Dict, List, TypedDict
 
 import yaml
-
-from models import VaultSecrets
 from utils.ansible_utils import ANSIBLE_DIR
 from utils.exec_utils import run_resolved
+
+from models import VaultSecrets
 
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"

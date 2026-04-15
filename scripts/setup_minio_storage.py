@@ -9,10 +9,10 @@ Run via: make minio
 
 from __future__ import annotations
 
+import sys
+
 import questionary
 from rich.console import Console
-
-from models import MinioConfig
 from utils.ansible_utils import (
     ANSIBLE_DIR,
     inventory_host_vars,
@@ -24,6 +24,8 @@ from utils.ansible_utils import (
 )
 from utils.storage_flows import flow_mount_new_device, flow_use_existing_mount, parse_path_hints
 from utils.storage_utils import external_mounts, get_real_mounts
+
+from models import MinioConfig
 
 MOUNT_PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
 

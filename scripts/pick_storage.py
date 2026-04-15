@@ -9,7 +9,6 @@ Run via: make mount
 import os
 
 from rich.console import Console
-
 from utils.ansible_utils import ANSIBLE_DIR, inventory_host_vars, make_connection, run_playbook
 from utils.storage_flows import flow_mount_new_device
 

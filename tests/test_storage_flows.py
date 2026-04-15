@@ -6,13 +6,13 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from scripts.utils.storage_flows import flow_mount_new_device, flow_use_existing_mount, parse_path_hints
+from scripts.utils.storage_flows import (
+    flow_mount_new_device,
+    flow_use_existing_mount,
+    parse_path_hints,
+)
 from tests.support.builders import mnt, partition
 from tests.support.connections import FakeConnection
-from tests.support.data import LSBLK_OUTPUT
-
 
 # ---------------------------------------------------------------------------
 # parse_path_hints
@@ -50,18 +50,38 @@ class TestParsePathHints:
 # ---------------------------------------------------------------------------
 
 # A connection that returns only system disks — no external devices.
-_SYSTEM_ONLY_LSBLK = json.dumps({
-    "blockdevices": [{
-        "name": "mmcblk0", "size": "32G", "type": "disk",
-        "mountpoint": None, "label": None, "fstype": None,
-        "children": [
-            {"name": "mmcblk0p1", "size": "500M", "type": "part",
-             "mountpoint": "/boot/firmware", "label": "bootfs", "fstype": "vfat"},
-            {"name": "mmcblk0p2", "size": "31G", "type": "part",
-             "mountpoint": "/", "label": "rootfs", "fstype": "ext4"},
-        ],
-    }]
-})
+_SYSTEM_ONLY_LSBLK = json.dumps(
+    {
+        "blockdevices": [
+            {
+                "name": "mmcblk0",
+                "size": "32G",
+                "type": "disk",
+                "mountpoint": None,
+                "label": None,
+                "fstype": None,
+                "children": [
+                    {
+                        "name": "mmcblk0p1",
+                        "size": "500M",
+                        "type": "part",
+                        "mountpoint": "/boot/firmware",
+                        "label": "bootfs",
+                        "fstype": "vfat",
+                    },
+                    {
+                        "name": "mmcblk0p2",
+                        "size": "31G",
+                        "type": "part",
+                        "mountpoint": "/",
+                        "label": "rootfs",
+                        "fstype": "ext4",
+                    },
+                ],
+            }
+        ]
+    }
+)
 
 # The external partition returned by LSBLK_OUTPUT after device filtering.
 _USB_PARTITION = partition("sda1", mountpoint="/mnt/usb", fstype="ext4", label="storage")
