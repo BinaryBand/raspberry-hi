@@ -4,7 +4,7 @@ Tests are split into three independent tiers. Each tier can run without the
 tiers above it — you don't need a Pi to run the unit tests, and you don't need
 Docker to run the E2E tests.
 
-```
+```bash
 make test          →  unit + stub  (always safe, no infra)
 make test-roles    →  Molecule     (requires Docker)
 make test-e2e      →  live Pi      (requires Pi reachable over SSH)
@@ -20,7 +20,7 @@ They cover all Python logic: models, utility functions, and file I/O.
 **What's tested:**
 
 | File | Covers |
-|---|---|
+| --- | --- |
 | `test_models.py` | Pydantic validation, defaults, and field constraints for all five models |
 | `test_storage_utils.py` | Mount filtering, device classification, and SSH-stub variants of `get_real_mounts` / `get_block_devices` |
 | `test_ansible_utils.py` | `read_host_vars`, `write_host_vars`, `update_host_vars`, `read_role_defaults` — all via `tmp_path` |
@@ -36,7 +36,7 @@ with pytest's built-in `tmp_path` fixture and `monkeypatch` to redirect
 The test framework lives in `tests/support/` and has no pytest dependency of
 its own — it is plain Python that tests import:
 
-```
+```text
 tests/support/
   connections.py   FakeConnection, FakeResult
   data.py          Canonical lsblk / findmnt JSON payloads
@@ -96,9 +96,9 @@ the SD card is correctly classified as a system device.
 ## Adding new tests
 
 | I want to test… | Put it in… |
-|---|---|
+| --- | --- |
 | A pure function or Pydantic model | `tests/test_*.py` |
 | A function that calls `conn.run()` | `tests/test_*.py` with `FakeConnection` |
 | A function that reads/writes files | `tests/test_*.py` with `tmp_path` + `monkeypatch` |
 | An Ansible role | `ansible/roles/<role>/molecule/default/` |
-| Full SSH behaviour against real hardware | `tests/e2e/` with `@pytest.mark.e2e` |
+| Full SSH behavior against real hardware | `tests/e2e/` with `@pytest.mark.e2e` |

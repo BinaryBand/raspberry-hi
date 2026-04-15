@@ -17,7 +17,12 @@ SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from utils.ansible_utils import ANSIBLE_DIR, inventory_host_vars, make_connection, run_playbook  # noqa: E402
+from utils.ansible_utils import (  # noqa: E402
+    ANSIBLE_DIR,
+    inventory_host_vars,
+    make_connection,
+    run_playbook,
+)
 from utils.storage_flows import flow_mount_new_device  # noqa: E402
 
 PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"

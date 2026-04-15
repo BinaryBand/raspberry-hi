@@ -5,7 +5,7 @@ Run with: make test-e2e
 
 import pytest
 
-from scripts.utils.storage_utils import get_block_devices, get_external_devices, get_real_mounts
+from scripts.utils.storage_utils import get_block_devices, get_real_mounts
 
 
 @pytest.mark.e2e
@@ -33,6 +33,7 @@ def test_block_devices_discoverable(live_conn):
 @pytest.mark.e2e
 def test_sd_card_classified_as_system(live_conn):
     from scripts.utils.storage_utils import is_system_device
+
     devices = get_block_devices(live_conn)
     # The Pi always has mmcblk0 (SD card) as a system device
     sd_cards = [d for d in devices if d.name.startswith("mmcblk")]

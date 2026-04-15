@@ -14,6 +14,7 @@ import yaml
 
 if TYPE_CHECKING:
     from fabric import Connection
+
     from models import HostVars
 
 # lib/ → scripts/ → project root
@@ -28,8 +29,9 @@ ANSIBLE_DIR = ROOT / "ansible"
 
 def inventory_host_vars(host: str = "rpi") -> HostVars:
     """Return merged host vars from ansible-inventory for *host*."""
-    from .exec_utils import run_resolved
     from models import HostVars
+
+    from .exec_utils import run_resolved
 
     result = run_resolved(
         ["ansible-inventory", "--host", host],
@@ -57,7 +59,9 @@ def make_connection(hvars: HostVars) -> Connection:
         if not key_path.is_absolute():
             key_path = ROOT / key_path
         connect_kwargs["key_filename"] = str(key_path)
-    return Connection(host=hvars.ansible_host, user=hvars.ansible_user, connect_kwargs=connect_kwargs)
+    return Connection(
+        host=hvars.ansible_host, user=hvars.ansible_user, connect_kwargs=connect_kwargs
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +122,9 @@ def read_host_vars(host: str = "rpi") -> dict:
 def write_host_vars(host: str, data: dict) -> None:
     """Overwrite the host_vars file for *host* with *data*."""
     path = _host_vars_path(host)
-    path.write_text("---\n" + yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False))
+    path.write_text(
+        "---\n" + yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    )
 
 
 def update_host_vars(host: str, **kwargs) -> None:

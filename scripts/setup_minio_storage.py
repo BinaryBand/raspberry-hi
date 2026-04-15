@@ -20,7 +20,6 @@ SCRIPTS_DIR = ROOT / "scripts"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from models import MinioConfig  # noqa: E402
 from utils.ansible_utils import (  # noqa: E402
     ANSIBLE_DIR,
     inventory_host_vars,
@@ -30,8 +29,14 @@ from utils.ansible_utils import (  # noqa: E402
     run_playbook,
     update_host_vars,
 )
-from utils.storage_flows import flow_mount_new_device, flow_use_existing_mount, parse_path_hints  # noqa: E402
+from utils.storage_flows import (  # noqa: E402
+    flow_mount_new_device,
+    flow_use_existing_mount,
+    parse_path_hints,
+)
 from utils.storage_utils import external_mounts, get_real_mounts  # noqa: E402
+
+from models import MinioConfig  # noqa: E402
 
 MOUNT_PLAYBOOK = ANSIBLE_DIR / "mount_storage.yml"
 
@@ -42,7 +47,9 @@ def main(host: str = "rpi") -> None:
     config = MinioConfig.model_validate({**read_role_defaults("minio"), **read_host_vars(host)})
 
     if not config.minio_require_external_mount:
-        console.print("[dim]MinIO external-mount check skipped (minio_require_external_mount: false).[/dim]")
+        console.print(
+            "[dim]MinIO external-mount check skipped (minio_require_external_mount: false).[/dim]"
+        )
         return
 
     console.print("[bold]Checking MinIO storage configuration...[/bold]")
@@ -59,7 +66,9 @@ def main(host: str = "rpi") -> None:
         choices.append(questionary.Choice("Use a drive that's already mounted", value="existing"))
     choices.append(questionary.Choice("Abort", value="abort"))
 
-    action = questionary.select("How would you like to configure MinIO storage?", choices=choices).ask()
+    action = questionary.select(
+        "How would you like to configure MinIO storage?", choices=choices
+    ).ask()
 
     if action is None or action == "abort":
         sys.exit(1)
@@ -84,10 +93,12 @@ def main(host: str = "rpi") -> None:
     new_path = f"{base.rstrip('/')}/{subdir.strip('/')}"
     update_host_vars(host, minio_data_path=new_path, minio_require_external_mount=True)
     console.print(
-        f"\n[bold green]Set minio_data_path: {new_path} and minio_require_external_mount: True in host_vars.[/bold green]"
+        f"\n[bold green]Set minio_data_path: {new_path} and "
+        "minio_require_external_mount: True in host_vars.[/bold green]"
     )
 
 
 if __name__ == "__main__":
     import os
+
     main(host=os.environ.get("HOST", "rpi"))

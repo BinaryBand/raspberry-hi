@@ -21,6 +21,7 @@ from utils.storage_utils import (
 
 if TYPE_CHECKING:
     from fabric import Connection
+
     from models import MountInfo
 
 console = Console()
@@ -51,7 +52,9 @@ def parse_path_hints(minio_data_path: str) -> tuple[str | None, str | None]:
 # ---------------------------------------------------------------------------
 
 
-def flow_mount_new_device(conn: Connection, run_playbook, playbook: Path, label_hint: str | None = None) -> str | None:
+def flow_mount_new_device(
+    conn: Connection, run_playbook, playbook: Path, label_hint: str | None = None
+) -> str | None:
     """List external block devices, mount the chosen one, return its mount point.
 
     *run_playbook* is injected to avoid a circular import with ansible_utils.

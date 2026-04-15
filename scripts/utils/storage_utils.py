@@ -125,7 +125,8 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
 def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
     return [
-        fs for fs in mounts
+        fs
+        for fs in mounts
         if fs.target not in SYSTEM_MOUNTS
         and not any(fs.target.startswith(p) for p in SYSTEM_MOUNT_PREFIXES)
     ]
