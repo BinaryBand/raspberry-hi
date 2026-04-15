@@ -22,7 +22,7 @@ VAULT_PASS   := $(CURDIR)/ansible/.vault-password
 INV          := ansible/inventory/hosts.ini
 INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
-ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS)
+ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint test test-roles test-e2e status logs baikal minio
 

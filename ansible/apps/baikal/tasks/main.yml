@@ -63,6 +63,14 @@
   changed_when: true
   when: _linger_status.stdout | default('') != 'yes'
 
+# Pull the image before starting so systemd doesn't time out waiting for the download.
+- name: Pull Baikal container image
+  ansible.builtin.command: "podman pull {{ baikal_image }}"
+  become: true
+  become_user: "{{ brew_user }}"
+  register: _baikal_pull
+  changed_when: "'Copying' in _baikal_pull.stdout"
+
 # Run as the brew user with explicit XDG_RUNTIME_DIR so Ansible can
 # reach the user's systemd socket without an interactive login session.
 - name: Enable and start Baikal service

@@ -1,0 +1,35 @@
+# TODO
+
+## Architecture
+
+- [ ] Prefer Makefile → Ansible and declarative programming.
+- [ ] Makefile → Python → Ansible if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
+
+> Consider Ansible-Runner ports and adaptors to improve modularity through scalability.
+
+## Features (Not a priority)
+
+- [ ] Create a backup and restore plan.
+- [ ] Manage timed tasks via a centralized, declarative file/directory.
+- [ ] Setup reverse-proxy management.
+
+## Style
+
+- [ ] Enforce complexity constraints. (Lizard)
+- [ ] Enforce utility gating constraints. (Vulture)
+- [ ] Enforce redundancy constraints. (jscpd)
+- [ ] Plan and enforce arbitrary architectural constrains. (semgrep)
+- [ ] Codify and gate docs/AGENTS.md:Success rubric violations.
+
+* * *
+
+## Success rubric
+
+When asked to evaluate this project, score it 1–5 across the following dimensions and provide a brief justification for each:
+
+| Dimension | What to assess |
+| --- | --- |
+| **Portability** | Does the project handle multiple OS/architectures cleanly? Are there hard dependencies that limit where it can run? |
+| **Simplicity** | Is the project structure flat and navigable? Are responsibilities well-separated? Is complexity justified? |
+| **Usability** | Is it easy for a new user to get started? Are commands discoverable? Is error handling helpful? |
+| **Best practice** | Are secrets, types, data-flow, linting, and testing handled correctly? Does it follow conventions for its toolchain? |

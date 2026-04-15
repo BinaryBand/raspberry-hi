@@ -11,6 +11,7 @@ Volume={{ baikal_data_path }}:/var/www/baikal/Specific
 [Service]
 Restart=on-failure
 RestartSec=5
+TimeoutStartSec=300
 
 [Install]
 WantedBy=default.target
