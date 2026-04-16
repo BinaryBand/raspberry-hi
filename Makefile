@@ -4,10 +4,11 @@ ANSIBLE_DIR := ansible
 # Override for a specific host: HOST=rpi2 make site
 HOST ?= rpi
 
-# Single inventory call — splits host/user/key into three Make variables.
-# No ANSIBLE_CONFIG: we only need inventory vars (hosts.ini + host_vars/), not group_vars or vault.
-# python3 returns '' on empty/failed output rather than crashing.
-# Values must not contain spaces (safe for IPs, usernames, and file paths).
+# Single inventory call — emits "host user port key" on one line so Make can
+# split it into four variables with $(word N,...).  No ANSIBLE_CONFIG needed:
+# we only read hosts.ini + host_vars/, not group_vars or vault.
+# python3 returns '' on any error rather than crashing Make evaluation.
+# Spaces are not valid in IPs, usernames, ports, or key paths, so word-split is safe.
 _INV        := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.ini --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.loads(sys.stdin.read() or '{}'); \
 	  print(d.get('ansible_host',''), d.get('ansible_user',''), d.get('ansible_port', 22), d.get('ansible_ssh_private_key_file',''))" \
