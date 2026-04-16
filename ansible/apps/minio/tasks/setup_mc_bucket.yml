@@ -3,11 +3,6 @@
 # (via the already-installed Podman) to configure the alias, create the
 # bucket, and set the access policy. No mc binary installation required.
 
-- name: Detect local connection for minio tasks
-  ansible.builtin.set_fact:
-    minio_local_run: "{{ (ansible_connection == 'local') | default(false) }}"
-    _mc_creds_ready: "{{ (minio_root_user is defined) and (minio_root_password is defined) }}"
-
 - name: Wait for MinIO TCP port {{ minio_port }} to be available
   ansible.builtin.wait_for:
     host: 127.0.0.1
@@ -45,7 +40,6 @@
   failed_when: false
   changed_when: false
   no_log: true
-  when: _mc_creds_ready
 
 - name: Create bucket {{ mc_bucket }} if missing
   ansible.builtin.command:
@@ -64,10 +58,7 @@
   register: mc_bucket_mb
   failed_when: mc_bucket_mb.rc != 0
   changed_when: mc_bucket_mb.rc == 0
-  when:
-    - _mc_creds_ready
-    - mc_bucket_check is defined
-    - mc_bucket_check.rc != 0
+  when: mc_bucket_check.rc != 0
   no_log: true
 
 - name: Set anonymous {{ mc_policy }} policy on {{ mc_alias }}/{{ mc_bucket }}
@@ -89,5 +80,4 @@
   register: mc_policy_set
   failed_when: mc_policy_set.rc != 0
   changed_when: mc_policy_set.rc == 0
-  when: _mc_creds_ready
   no_log: true

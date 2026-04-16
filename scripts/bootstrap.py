@@ -79,8 +79,8 @@ def setup_vault_password() -> None:
     print(f"Vault password saved to {VAULT_PASSWORD_FILE}\n")
 
 
-def decrypt_vault() -> VaultSecrets:
-    """Decrypt the vault file and return its contents as a VaultSecrets model."""
+def decrypt_vault_raw() -> dict:
+    """Decrypt the vault file and return its raw contents as a dict."""
     result = run_resolved(
         [
             "ansible-vault",
@@ -96,8 +96,12 @@ def decrypt_vault() -> VaultSecrets:
     )
     if result.returncode != 0:
         abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
-    raw = yaml.safe_load(result.stdout) or {}
-    return VaultSecrets.model_validate(raw)
+    return yaml.safe_load(result.stdout) or {}
+
+
+def decrypt_vault() -> VaultSecrets:
+    """Decrypt the vault file and return its contents as a VaultSecrets model."""
+    return VaultSecrets.model_validate(decrypt_vault_raw())
 
 
 def encrypt_vault(data: dict) -> None:
@@ -196,31 +200,15 @@ def main() -> None:
     setup_vault_password()
 
     if VAULT_FILE.exists():
-        existing = decrypt_vault()
-        # Re-read raw to handle migration without going through the model.
-        result = run_resolved(
-            [
-                "ansible-vault",
-                "decrypt",
-                str(VAULT_FILE),
-                "--vault-password-file",
-                str(VAULT_PASSWORD_FILE),
-                "--output",
-                "-",
-            ],
-            capture_output=True,
-            text=True,
-        )
-        raw: dict = yaml.safe_load(result.stdout) or {}
+        raw: dict = decrypt_vault_raw()
+        raw, migrated = migrate_legacy_become_keys(raw)
+        if migrated:
+            print("Migrated legacy per-host become_password keys to become_passwords dict.\n")
+        existing = VaultSecrets.model_validate(raw)
     else:
         existing = VaultSecrets()
         raw = {}
-
-    # Migrate old per-host keys if present.
-    raw, migrated = migrate_legacy_become_keys(raw)
-    if migrated:
-        print("Migrated legacy per-host become_password keys to become_passwords dict.\n")
-        existing = VaultSecrets.model_validate(raw)
+        migrated = False
 
     # Prompt for missing static secrets.
     new_static = prompt_missing_static(existing)

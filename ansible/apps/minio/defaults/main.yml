@@ -23,6 +23,3 @@ mc_policy: download
 # in host_vars to store MinIO data on the root filesystem instead.
 minio_require_external_mount: true
 
-# Set true in host_vars to remove the legacy system-level minio service from
-# a host that was provisioned before the rootless Podman migration.
-minio_cleanup_legacy: false

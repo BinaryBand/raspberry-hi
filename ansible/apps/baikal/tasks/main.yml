@@ -43,7 +43,7 @@
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register Baikal with service_adapter
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: service_adapter
   vars:
     svc_name: "{{ baikal_service_name }}"
