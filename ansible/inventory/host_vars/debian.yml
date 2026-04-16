@@ -1,4 +1,4 @@
 ---
 ansible_connection: local
 ansible_user: owen
-ansible_become_password: "{{ debian_become_password }}"
+ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"

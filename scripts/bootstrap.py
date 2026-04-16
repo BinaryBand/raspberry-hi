@@ -4,12 +4,15 @@ Interactive setup: create the vault password file and ensure all required
 secrets are present in ansible/group_vars/all/vault.yml.
 
 Safe to re-run — only prompts for credentials that are missing.
+Adding a new host to hosts.ini and re-running will prompt only for that
+host's become password; nothing else changes.
 
 Run via: make bootstrap
 """
 
 from __future__ import annotations
 
+import configparser
 import getpass
 import sys
 import tempfile
@@ -24,9 +27,10 @@ from models import VaultSecrets
 
 VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
+INVENTORY_FILE = ANSIBLE_DIR / "inventory" / "hosts.ini"
 
 
-# Add new secrets here as the project grows.
+# Static secrets that don't depend on host count.
 class SecretSpec(TypedDict):
     key: str
     label: str
@@ -36,14 +40,26 @@ class SecretSpec(TypedDict):
 SECRETS: List[SecretSpec] = [
     {"key": "minio_root_user", "label": "MinIO root username", "hidden": False},
     {"key": "minio_root_password", "label": "MinIO root password", "hidden": True},
-    {"key": "rpi_become_password", "label": "rpi sudo password", "hidden": True},
-    {"key": "debian_become_password", "label": "Debian sudo password", "hidden": True},
 ]
 
 
 def abort(msg: str) -> None:
     print(f"\nERROR: {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+def discover_hosts() -> list[str]:
+    """Return all hostnames from the Ansible inventory without requiring Ansible."""
+    parser = configparser.ConfigParser(allow_no_value=True)
+    parser.read(INVENTORY_FILE)
+    seen: set[str] = set()
+    hosts: list[str] = []
+    for section in parser.sections():
+        for host in parser.options(section):
+            if host not in seen:
+                seen.add(host)
+                hosts.append(host)
+    return hosts
 
 
 def setup_vault_password() -> None:
@@ -112,13 +128,33 @@ def encrypt_vault(data: dict) -> None:
         tmp_path.unlink(missing_ok=True)
 
 
-def prompt_missing(secrets: VaultSecrets) -> VaultSecrets:
-    """Prompt for any secrets not already present. Returns a VaultSecrets model
-    populated only with the newly-provided values (other fields None).
+def migrate_legacy_become_keys(raw: dict) -> tuple[dict, bool]:
+    """Migrate old per-host `<host>_become_password` keys to the `become_passwords` dict.
+
+    Returns the updated raw dict and a flag indicating whether migration occurred.
     """
+    legacy = {
+        k: v for k, v in raw.items() if k.endswith("_become_password") and k != "become_passwords"
+    }
+    if not legacy:
+        return raw, False
+
+    become_pwds: dict[str, str] = dict(raw.get("become_passwords") or {})
+    for key, value in legacy.items():
+        host = key[: -len("_become_password")]
+        if host not in become_pwds and value:
+            become_pwds[host] = value
+
+    updated = {k: v for k, v in raw.items() if not k.endswith("_become_password")}
+    updated["become_passwords"] = become_pwds
+    return updated, True
+
+
+def prompt_missing_static(secrets: VaultSecrets) -> Dict[str, str]:
+    """Prompt for any static secrets not already present."""
     missing = [s for s in SECRETS if not getattr(secrets, s["key"], None)]
     if not missing:
-        return VaultSecrets()
+        return {}
 
     print("Enter the following credentials (they will be encrypted in the vault):\n")
     new_entries: Dict[str, str] = {}
@@ -133,8 +169,25 @@ def prompt_missing(secrets: VaultSecrets) -> VaultSecrets:
                 break
             print("  Value cannot be empty — try again.")
         new_entries[s["key"]] = value
+    return new_entries
 
-    return VaultSecrets.model_validate(new_entries)
+
+def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:
+    """Prompt for become passwords for any hosts not yet in the vault dict."""
+    missing = [h for h in hosts if not existing.get(h)]
+    if not missing:
+        return {}
+
+    print("Enter sudo (become) passwords for the following hosts:\n")
+    new_entries: dict[str, str] = {}
+    for host in missing:
+        while True:
+            value = getpass.getpass(f"  {host} sudo password: ")
+            if value:
+                break
+            print("  Value cannot be empty — try again.")
+        new_entries[host] = value
+    return new_entries
 
 
 def main() -> None:
@@ -144,22 +197,54 @@ def main() -> None:
 
     if VAULT_FILE.exists():
         existing = decrypt_vault()
+        # Re-read raw to handle migration without going through the model.
+        result = run_resolved(
+            [
+                "ansible-vault",
+                "decrypt",
+                str(VAULT_FILE),
+                "--vault-password-file",
+                str(VAULT_PASSWORD_FILE),
+                "--output",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        raw: dict = yaml.safe_load(result.stdout) or {}
     else:
         existing = VaultSecrets()
+        raw = {}
 
-    new_entries = prompt_missing(existing)
-    new_entries_dict = new_entries.model_dump(exclude_none=True)
+    # Migrate old per-host keys if present.
+    raw, migrated = migrate_legacy_become_keys(raw)
+    if migrated:
+        print("Migrated legacy per-host become_password keys to become_passwords dict.\n")
+        existing = VaultSecrets.model_validate(raw)
 
-    if not new_entries_dict:
+    # Prompt for missing static secrets.
+    new_static = prompt_missing_static(existing)
+
+    # Prompt for missing per-host become passwords.
+    hosts = discover_hosts()
+    current_become = dict(existing.become_passwords or {})
+    new_become = prompt_missing_become_passwords(current_become, hosts)
+
+    if not new_static and not new_become and not migrated:
         print("All secrets are present — nothing to do.")
         print("To update a value, run: make vault-edit")
         return
 
-    updated = {**existing.model_dump(), **new_entries_dict}
+    # Merge and save.
+    updated_become = {**current_become, **new_become}
+    updated = {**raw, **new_static, "become_passwords": updated_become}
     encrypt_vault(updated)
 
-    added = ", ".join(new_entries_dict.keys())
-    print(f"\nVault updated ({added}).")
+    added_keys = list(new_static.keys()) + [f"become_passwords.{h}" for h in new_become]
+    if added_keys:
+        print(f"\nVault updated ({', '.join(added_keys)}).")
+    else:
+        print("\nVault migrated successfully.")
     print("Run 'make check' then 'make site' to provision.\n")
 
 

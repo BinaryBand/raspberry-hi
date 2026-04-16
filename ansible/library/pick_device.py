@@ -1,13 +1,28 @@
 #!/usr/bin/python
-"""Ansible module that interactively picks an external block device."""
+"""Ansible module that interactively picks an external block device.
+
+This module is called by Ansible with ``delegate_to: localhost``.  It relies
+on the project root and ``scripts/`` being on sys.path, which the Makefile
+ensures via ``PYTHONPATH``.  The guard below makes the module self-healing
+when invoked outside of ``make`` (e.g. direct ``ansible-playbook`` calls).
+"""
 
 from __future__ import annotations
 
-from ansible.module_utils.basic import AnsibleModule
-from utils.ansible_utils import make_connection
-from utils.storage_flows import flow_mount_new_device
+import sys
+from pathlib import Path
 
-from models import HostVars
+# Ensure project utilities are importable regardless of how Ansible was invoked.
+_ROOT = Path(__file__).resolve().parents[2]
+for _p in (str(_ROOT), str(_ROOT / "scripts")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from ansible.module_utils.basic import AnsibleModule  # noqa: E402
+from utils.ansible_utils import make_connection  # noqa: E402
+from utils.storage_flows import flow_mount_new_device  # noqa: E402
+
+from models import HostVars  # noqa: E402
 
 
 def main() -> None:

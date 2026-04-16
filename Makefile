@@ -27,7 +27,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio _vault_check
 
 
 help:
@@ -87,14 +87,17 @@ vault-edit:
 bootstrap:
 	poetry run python ./scripts/bootstrap.py
 
-mount:
+_vault_check:
+	@poetry run python ./scripts/check.py --vault-only
+
+mount: _vault_check
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/mount_storage.yml \
 	  -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 
-minio:
+minio: _vault_check
 	$(ANSIBLE_PLAY) --tags minio
 
-baikal:
+baikal: _vault_check
 	$(ANSIBLE_PLAY) --tags baikal
 
 status:
@@ -103,7 +106,7 @@ status:
 logs:
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u minio -n 50 --no-pager"
 
-site:
+site: _vault_check
 	$(ANSIBLE_PLAY) --skip-tags apps
 
 

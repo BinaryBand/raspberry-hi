@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Validate prerequisites before running make site."""
+"""Validate prerequisites before running make site.
+
+Usage:
+  poetry run python scripts/check.py             full check
+  poetry run python scripts/check.py --vault-only  fast vault-only check (Makefile prereq)
+"""
 
 import sys
 
@@ -18,7 +23,42 @@ def check(label: str, ok: bool, fix: str = "") -> bool:
     return ok
 
 
+def check_vault_secrets() -> bool:
+    """Verify the vault is decryptable and all required secrets are present."""
+    from bootstrap import SECRETS, decrypt_vault, discover_hosts
+
+    if not VAULT_PASSWORD_FILE.exists():
+        return check(
+            "Vault secrets complete",
+            False,
+            "run `make bootstrap` — vault password file is missing",
+        )
+
+    secrets = decrypt_vault()
+
+    missing_static = [s["key"] for s in SECRETS if not getattr(secrets, s["key"], None)]
+
+    hosts = discover_hosts()
+    become_pwds = secrets.become_passwords or {}
+    missing_hosts = [h for h in hosts if not become_pwds.get(h)]
+
+    missing = missing_static + [f"become_passwords.{h}" for h in missing_hosts]
+    return check(
+        "Vault secrets complete",
+        not missing,
+        f"run `make bootstrap` to add: {', '.join(missing)}" if missing else "",
+    )
+
+
 def main() -> None:
+    vault_only = "--vault-only" in sys.argv
+
+    if vault_only:
+        all_ok = check_vault_secrets()
+        if not all_ok:
+            sys.exit(1)
+        return
+
     print("Checking prerequisites...\n")
     all_ok = True
 
@@ -63,6 +103,10 @@ def main() -> None:
         vault_ok,
         "echo 'your-password' > ansible/.vault-password && chmod 600 ansible/.vault-password",
     )
+
+    # Vault secrets completeness (only meaningful when the password file exists)
+    if vault_ok:
+        all_ok &= check_vault_secrets()
 
     # Pi reachable
     inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"

@@ -2,13 +2,9 @@
 
 ## Goal
 
-Invert the current driver relationship. Today Python scripts are the primary
-entry points — they call Ansible as a subprocess. The target shape makes
-Ansible the single driver; Python lives in `ansible/library/` as custom
-modules that Ansible calls when it needs interactive TUI logic.
+Invert the current driver relationship. Today Python scripts are the primary entry points — they call Ansible as a subprocess. The target shape makes Ansible the single driver; Python lives in `ansible/library/` as custom modules that Ansible calls when it needs interactive TUI logic.
 
-This also fixes the immediate `sudo: a password is required` failures on both
-`rpi` and `debian` by storing per-host become passwords in the vault.
+This also fixes the immediate `sudo: a password is required` failures on both `rpi` and `debian` by storing per-host become passwords in the vault.
 
 ---
 
@@ -18,25 +14,31 @@ Both hosts need their sudo passwords in the vault so Ansible can become root
 without prompting on the command line.
 
 ### `models/services/vault.py`
+
 Add two optional fields:
+
 ```python
 rpi_become_password: Optional[str] = None
 debian_become_password: Optional[str] = None
 ```
 
 ### `scripts/bootstrap.py` — `SECRETS` list
+
 Add after the existing minio entries:
+
 ```python
 {"key": "rpi_become_password",    "label": "rpi sudo password",    "hidden": True},
 {"key": "debian_become_password", "label": "Debian sudo password", "hidden": True},
 ```
 
 ### `ansible/inventory/host_vars/rpi.yml`
+
 ```yaml
 ansible_become_password: "{{ rpi_become_password }}"
 ```
 
 ### `ansible/inventory/host_vars/debian.yml`
+
 ```yaml
 ansible_become_password: "{{ debian_become_password }}"
 ```
@@ -49,15 +51,11 @@ Run `make bootstrap` after — it prompts only for the two new missing secrets.
 
 ### Key decision: keep `scripts/utils/` in place
 
-`scripts/utils/storage_utils.py` and `storage_flows.py` stay where they are.
-The Makefile already exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts`, and
-modules running via `delegate_to: localhost` inherit the calling process
-environment. No `ansible/module_utils/` directory, no shims, no test import
-changes needed.
+`scripts/utils/storage_utils.py` and `storage_flows.py` stay where they are. The Makefile already exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts`, and modules running via `delegate_to: localhost` inherit the calling process environment. No `ansible/module_utils/` directory, no shims, no test import changes needed.
 
 ### New files
 
-```
+```text
 ansible/
   library/
     pick_device.py        ← NEW: replaces scripts/pick_storage.py
@@ -110,6 +108,7 @@ returns: {data_path: "/mnt/minio/data", changed: bool}
 ```
 
 Logic:
+
 1. SSH in, call `get_real_mounts()` + `mount_covering()` to check if
    `current_data_path` is already on an external mount → if yes, return
    `{changed: false}` immediately (idempotent).
@@ -209,8 +208,9 @@ library = ./library
 ## Phase 3 — Cleanup
 
 ### Files to delete
+
 | File | Reason |
-|------|--------|
+| ------ | -------- |
 | `scripts/pick_storage.py` | Replaced by `ansible/library/pick_device.py` |
 | `scripts/setup_minio_storage.py` | Replaced by `ansible/library/minio_preflight.py` |
 | `models/services/minio.py` | Only used by `setup_minio_storage.py` |

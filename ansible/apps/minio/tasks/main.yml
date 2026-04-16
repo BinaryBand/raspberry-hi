@@ -53,7 +53,7 @@
 
 # 3. Wire up service management — adapter handles init-system details.
 - name: Register MinIO with service_adapter
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: service_adapter
   vars:
     svc_name: "{{ minio_service_name }}"

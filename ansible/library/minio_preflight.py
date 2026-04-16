@@ -1,18 +1,30 @@
 #!/usr/bin/python
-"""Ansible module that ensures MinIO data is placed on external storage."""
+"""Ansible module that ensures MinIO data is placed on external storage.
+
+This module is called by Ansible with ``delegate_to: localhost``.  It relies
+on the project root and ``scripts/`` being on sys.path, which the Makefile
+ensures via ``PYTHONPATH``.  The guard below makes the module self-healing
+when invoked outside of ``make`` (e.g. direct ``ansible-playbook`` calls).
+"""
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-import questionary
-import yaml
-from ansible.module_utils.basic import AnsibleModule
-from utils.ansible_utils import make_connection
-from utils.storage_flows import parse_path_hints
-from utils.storage_utils import external_mounts, get_real_mounts, mount_covering
+# Ensure project utilities are importable regardless of how Ansible was invoked.
+_ROOT = Path(__file__).resolve().parents[2]
+for _p in (str(_ROOT), str(_ROOT / "scripts")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from models import HostVars
+import yaml  # noqa: E402
+from ansible.module_utils.basic import AnsibleModule  # noqa: E402
+from utils.ansible_utils import make_connection  # noqa: E402
+from utils.storage_flows import flow_use_existing_mount, parse_path_hints  # noqa: E402
+from utils.storage_utils import external_mounts, get_real_mounts, mount_covering  # noqa: E402
+
+from models import HostVars  # noqa: E402
 
 
 def update_host_vars(path: Path, data_path: str) -> None:
@@ -33,6 +45,8 @@ def update_host_vars(path: Path, data_path: str) -> None:
 
 def main() -> None:
     """Ensure MinIO uses external storage or prompt for a replacement path."""
+    import questionary
+
     module = AnsibleModule(
         argument_spec={
             "host": {"type": "str", "required": True},
@@ -70,16 +84,8 @@ def main() -> None:
         module.fail_json(msg="MinIO data path is not on external storage; run `make mount` first.")
 
     _, subdir_hint = parse_path_hints(current_data_path)
-    base_path = questionary.select(
-        "Select the mount point to use for MinIO data:",
-        choices=[
-            questionary.Choice(
-                title=f"{fs.target}  ({fs.source or '?'}, {fs.fstype or '?'}, {fs.size or '?'})",
-                value=fs.target,
-            )
-            for fs in available_mounts
-        ],
-    ).ask()
+
+    base_path = flow_use_existing_mount(available_mounts)
     if not base_path:
         module.fail_json(msg="No mount selected.")
 
