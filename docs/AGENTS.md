@@ -5,7 +5,7 @@
 Provision and manage a Raspberry Pi media server using Ansible and Python. The primary service is MinIO object storage, running in a rootless Podman container backed by an external USB drive. Baikal provides CalDAV/CardDAV for calendar and contact sync.
 
 **Scope:** Infrastructure provisioning, storage configuration, and secret management.
-**Out of scope:** Application-level MinIO configuration, rclone restore workflows (see `config/.help.md`).
+**Out of scope:** Application-level MinIO configuration, rclone restore workflows (see `docs/.notes.md`).
 
 **When responding:** Be concise. Prefer bullet lists over prose. Always reference exact file paths. Use `make <target>` syntax for commands.
 

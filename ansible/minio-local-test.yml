@@ -1,6 +1,0 @@
----
-- hosts: raspberry_pi
-  gather_facts: true
-
-  roles:
-    - role: minio

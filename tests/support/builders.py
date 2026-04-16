@@ -41,11 +41,6 @@ def blk(
     )
 
 
-def disk(name: str, *, children: list[BlockDevice] | None = None) -> BlockDevice:
-    """Build a disk-type BlockDevice."""
-    return BlockDevice(name=name, type="disk", size="1T", children=children)
-
-
 def partition(
     name: str,
     *,

@@ -44,6 +44,18 @@ def main() -> None:
         "poetry install  (or: pipx install ansible)",
     )
 
+    # Node.js for make cpd
+    try:
+        resolve_executable("node")
+        node_found = True
+    except FileNotFoundError:
+        node_found = False
+    all_ok &= check(
+        "node available in PATH (for make cpd)",
+        node_found,
+        "install Node.js 18+ via nvm, your distro's package manager, or nodejs.org",
+    )
+
     # Vault password file exists and is private
     vault_ok = VAULT_PASSWORD_FILE.exists() and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600
     all_ok &= check(

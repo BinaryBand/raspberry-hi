@@ -1,10 +1,29 @@
 ---
+- name: Assert apt auto-updates requires systemd (strict mode)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['service_mgr'] == 'systemd'
+    fail_msg: >-
+      apt auto-updates requires systemd, but service manager is
+      '{{ ansible_facts['service_mgr'] }}'.
+  when: auto_updates_fail_on_unsupported | bool
+
+- name: Skip apt auto-updates on non-systemd hosts (non-strict mode)
+  ansible.builtin.debug:
+    msg: >-
+      apt auto-updates skipped because service manager '{{ ansible_facts['service_mgr'] }}'
+      is not systemd.
+  when:
+    - not auto_updates_fail_on_unsupported | bool
+    - ansible_facts['service_mgr'] != 'systemd'
+
 - name: Install auto-update packages (apt)
   ansible.builtin.apt:
     name: "{{ auto_updates_packages['apt'] }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
+  when: ansible_facts['service_mgr'] == 'systemd'
 
 - name: Configure apt periodic auto-upgrades
   ansible.builtin.template:
@@ -13,6 +32,7 @@
     owner: root
     group: root
     mode: "0644"
+  when: ansible_facts['service_mgr'] == 'systemd'
 
 - name: Configure unattended-upgrades origins and reboot policy
   ansible.builtin.template:
@@ -21,9 +41,11 @@
     owner: root
     group: root
     mode: "0644"
+  when: ansible_facts['service_mgr'] == 'systemd'
 
 - name: Ensure unattended-upgrades service is enabled and running
   ansible.builtin.service:
     name: "{{ auto_updates_units['apt'] }}"
     enabled: true
     state: started
+  when: ansible_facts['service_mgr'] == 'systemd'

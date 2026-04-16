@@ -27,7 +27,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
+.PHONY: help check ping bootstrap site site-local mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
 
 
 help:
