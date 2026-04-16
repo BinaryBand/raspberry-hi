@@ -1,6 +1,6 @@
 ---
 - name: restart baikal
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: service_adapter
     tasks_from: restart
   vars:

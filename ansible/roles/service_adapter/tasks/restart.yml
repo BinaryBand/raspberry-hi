@@ -1,5 +1,5 @@
 ---
-# Called by app handlers via: include_role: name=service_adapter tasks_from=restart
+# Called by app handlers via: import_role: name=service_adapter tasks_from=restart
 # Requires _svc_user_uid to be set (populated by adapter_systemd.yml on first run).
 
 - name: Restart {{ svc_name }} (systemd)

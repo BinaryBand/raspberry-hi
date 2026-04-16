@@ -20,7 +20,6 @@ REMOTE_KEY  := $(word 3,$(_INV))
 ANSIBLE_CFG  := $(CURDIR)/ansible/ansible.cfg
 VAULT_PASS   := $(CURDIR)/ansible/.vault-password
 INV          := ansible/inventory/hosts.ini
-INV_LOCAL    := ansible/inventory/hosts-local.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 
@@ -108,7 +107,7 @@ site:
 	$(ANSIBLE_PLAY) --skip-tags apps
 
 site-local:
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV_LOCAL) --vault-password-file $(VAULT_PASS) --skip-tags apps
+	$(ANSIBLE_PLAY) --skip-tags apps --limit debian
 
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1
