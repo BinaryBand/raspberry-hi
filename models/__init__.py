@@ -1,7 +1,7 @@
-from .blockdevice import BlockDevice
-from .hostvars import HostVars
-from .minio import MinioConfig
-from .mount import MountInfo
-from .vault import VaultSecrets
+from .ansible.hostvars import HostVars
+from .services.minio import MinioConfig
+from .services.vault import VaultSecrets
+from .system.blockdevice import BlockDevice
+from .system.mount import MountInfo
 
 __all__ = ["BlockDevice", "HostVars", "MinioConfig", "MountInfo", "VaultSecrets"]

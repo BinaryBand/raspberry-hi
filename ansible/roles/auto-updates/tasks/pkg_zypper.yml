@@ -1,0 +1,25 @@
+---
+# openSUSE has no standard unattended-upgrade daemon; use a cron job instead.
+- name: Write zypper auto-update script
+  ansible.builtin.copy:
+    dest: "{{ auto_updates_scripts['zypper'] }}"
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      zypper refresh && zypper up -y
+
+- name: Schedule zypper auto-update via cron
+  ansible.builtin.cron:
+    name: zypper-auto-update
+    minute: "0"
+    hour: "{{ auto_updates_reboot_time.split(':')[0] }}"
+    job: "{{ auto_updates_scripts['zypper'] }}"
+    cron_file: auto-updates
+
+- name: Ensure cron service is running (zypper)
+  ansible.builtin.service:
+    name: "{{ auto_updates_units['zypper'] }}"
+    enabled: true
+    state: started

@@ -23,9 +23,14 @@ def main(host: str = "rpi") -> None:
     hvars = inventory_host_vars(host)
     conn = make_connection(hvars)
 
-    result = flow_mount_new_device(conn, run_playbook, PLAYBOOK)
+    result = flow_mount_new_device(conn)
     if not result:
         console.print("[yellow]No device mounted.[/yellow]")
+        return
+
+    device_path, label = result
+    console.print(f"\n[bold green]Mounting {device_path} at /mnt/{label}...[/bold green]")
+    run_playbook(PLAYBOOK, device=device_path, label=label)
 
 
 if __name__ == "__main__":

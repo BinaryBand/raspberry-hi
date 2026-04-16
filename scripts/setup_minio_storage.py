@@ -62,11 +62,17 @@ def main(host: str = "rpi") -> None:
     if action is None or action == "abort":
         sys.exit(1)
 
-    base = (
-        flow_mount_new_device(conn, run_playbook, MOUNT_PLAYBOOK, label_hint=label_hint)
-        if action == "mount"
-        else flow_use_existing_mount(mounts)
-    )
+    if action == "mount":
+        mount_result = flow_mount_new_device(conn, label_hint=label_hint)
+        if mount_result:
+            device_path, label = mount_result
+            console.print(f"\n[bold green]Mounting {device_path} at /mnt/{label}...[/bold green]")
+            run_playbook(MOUNT_PLAYBOOK, device=device_path, label=label)
+            base = f"/mnt/{label}"
+        else:
+            base = None
+    else:
+        base = flow_use_existing_mount(mounts)
 
     if not base:
         console.print("[red]No mount point selected. Aborting.[/red]")

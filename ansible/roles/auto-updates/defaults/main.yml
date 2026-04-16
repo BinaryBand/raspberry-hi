@@ -5,6 +5,9 @@ auto_updates_fail_on_unsupported: false
 auto_updates_supported_managers:
   - apt
   - dnf
+  - zypper
+  - apk
+  - pacman
 
 auto_updates_reboot_enabled: true
 auto_updates_reboot_time: "03:00"
@@ -15,10 +18,25 @@ auto_updates_packages:
     - apt-listchanges
   dnf:
     - dnf-automatic
+  zypper: []        # cron-based; no dedicated auto-update package on openSUSE
+  apk: []           # uses busybox crond, already present on Alpine
+  pacman:
+    - cronie        # cronie provides crond on Arch
 
 auto_updates_units:
   apt: unattended-upgrades
   dnf: dnf-automatic.timer
+  zypper: cron      # openSUSE cron service
+  apk: crond        # Alpine busybox cron
+  pacman: cronie    # Arch cronie service
+
+auto_updates_scripts:
+  zypper: /usr/local/sbin/auto-updates-zypper
+  apk: /usr/local/sbin/auto-updates-apk
+  pacman: /usr/local/sbin/auto-updates-pacman
+
+# Pacman safety gate — Arch rolling-release updates can break systems without warning.
+auto_updates_pacman_acknowledge_risk: false
 
 auto_updates_apt_conf_dir: /etc/apt/apt.conf.d
 auto_updates_apt_periodic_file: "{{ auto_updates_apt_conf_dir }}/20auto-upgrades"

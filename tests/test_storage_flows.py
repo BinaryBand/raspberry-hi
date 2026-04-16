@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from scripts.utils.storage_flows import (
     flow_mount_new_device,
@@ -98,37 +97,30 @@ class TestFlowMountNewDevice:
     def test_returns_none_when_no_external_devices(self):
         """Verify None is returned when no external devices are found."""
         conn = FakeConnection({"lsblk": _SYSTEM_ONLY_LSBLK})
-        result = flow_mount_new_device(conn, MagicMock(), Path("/playbook.yml"))
-        assert result is None
+        assert flow_mount_new_device(conn) is None
 
     @patch("scripts.utils.storage_flows.questionary")
     def test_mounts_selected_device(self, mock_q, lsblk_conn):
-        """Verify playbook is called and mount path returned on successful selection."""
+        """Verify (device_path, label) tuple returned on successful selection."""
         mock_q.select.return_value.ask.return_value = _USB_PARTITION
         mock_q.text.return_value.ask.return_value = "myusb"
-        mock_run_playbook = MagicMock()
 
-        result = flow_mount_new_device(lsblk_conn, mock_run_playbook, Path("/playbook.yml"))
+        result = flow_mount_new_device(lsblk_conn)
 
-        assert result == "/mnt/myusb"
-        mock_run_playbook.assert_called_once_with(
-            Path("/playbook.yml"), device="/dev/sda1", label="myusb"
-        )
+        assert result == ("/dev/sda1", "myusb")
 
     @patch("scripts.utils.storage_flows.questionary")
     def test_returns_none_when_device_selection_cancelled(self, mock_q, lsblk_conn):
         """Verify None is returned when user cancels device selection."""
         mock_q.select.return_value.ask.return_value = None
-        result = flow_mount_new_device(lsblk_conn, MagicMock(), Path("/playbook.yml"))
-        assert result is None
+        assert flow_mount_new_device(lsblk_conn) is None
 
     @patch("scripts.utils.storage_flows.questionary")
     def test_returns_none_when_label_cancelled(self, mock_q, lsblk_conn):
         """Verify None is returned when user cancels label input."""
         mock_q.select.return_value.ask.return_value = _USB_PARTITION
         mock_q.text.return_value.ask.return_value = None
-        result = flow_mount_new_device(lsblk_conn, MagicMock(), Path("/playbook.yml"))
-        assert result is None
+        assert flow_mount_new_device(lsblk_conn) is None
 
     @patch("scripts.utils.storage_flows.questionary")
     def test_label_hint_used_as_default(self, mock_q, lsblk_conn):
@@ -136,7 +128,7 @@ class TestFlowMountNewDevice:
         mock_q.select.return_value.ask.return_value = _USB_PARTITION
         mock_q.text.return_value.ask.return_value = "hinted"
 
-        flow_mount_new_device(lsblk_conn, MagicMock(), Path("/playbook.yml"), label_hint="hinted")
+        flow_mount_new_device(lsblk_conn, label_hint="hinted")
 
         _, kwargs = mock_q.text.call_args
         assert kwargs.get("default") == "hinted"

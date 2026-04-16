@@ -2,21 +2,21 @@
 
 ## Architecture
 
-- [ ] Organize ./model files with intuitive directories. *
+- [x] Organize ./model files with intuitive directories. *
 - [ ] Prefer `Makefile → Ansible` and declarative programming.
-- [ ] `Makefile → Python → Ansible` if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
-  - [ ] ... and then organize and *abstract-ify* ./scripts.
+- [x] `Makefile → Python → Ansible` if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
+  - [x] ... and then organize and *abstract-ify* ./scripts.
 
 > Consider Ansible-Runner ports and adaptors to improve modularity through scalability.
 
 ## Portability
 
-- [ ] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine). *
+- [x] Non-Debian package manager support — extend `auto-updates` role for `dnf` (Fedora), `pacman` (Arch), `zypper` (openSUSE), and `apk` (Alpine). *
   - [x] Phase 1: Simplified role structure (orchestrator `main.yml`, defaults, apt split into task/template files).
   - [x] Phase 2: Added `dnf` support (`dnf-automatic` + `dnf-automatic.timer`).
-  - [ ] Follow-up: add `zypper`, `apk`, and `pacman` support.
+  - [x] Follow-up: add `zypper`, `apk`, and `pacman` support.
   - [x] Consider dropping the Homebrew role to be more platform-agnostic.
-- [ ] Non-systemd init support — service management (Podman quadlets, `loginctl enable-linger`) assumes systemd; add an init-system guard and document alternatives for OpenRC or runit targets.
+- [x] Non-systemd init support — service management (Podman quadlets, `loginctl enable-linger`) assumes systemd; add an init-system guard and document alternatives for OpenRC or runit targets.
 - [x] `SYSTEM_MOUNTS` in `storage_utils.py` has Pi-specific paths baked in (`/boot/firmware`) — abstract class adaptor per platform/distro added.
 
 ## Features -

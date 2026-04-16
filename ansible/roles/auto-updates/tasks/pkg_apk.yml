@@ -1,0 +1,25 @@
+---
+# Alpine uses busybox crond (already present); no separate package needed.
+- name: Write apk auto-update script
+  ansible.builtin.copy:
+    dest: "{{ auto_updates_scripts['apk'] }}"
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      apk update && apk upgrade
+
+- name: Schedule apk auto-update via cron
+  ansible.builtin.cron:
+    name: apk-auto-update
+    minute: "0"
+    hour: "{{ auto_updates_reboot_time.split(':')[0] }}"
+    job: "{{ auto_updates_scripts['apk'] }}"
+    cron_file: auto-updates
+
+- name: Ensure crond is running (apk)
+  ansible.builtin.service:
+    name: "{{ auto_updates_units['apk'] }}"
+    enabled: true
+    state: started

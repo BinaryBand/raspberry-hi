@@ -53,11 +53,13 @@ def parse_path_hints(minio_data_path: str) -> tuple[str | None, str | None]:
 
 
 def flow_mount_new_device(
-    conn: Connection, run_playbook, playbook: Path, label_hint: str | None = None
-) -> str | None:
-    """List external block devices, mount the chosen one, return its mount point.
+    conn: Connection, label_hint: str | None = None
+) -> tuple[str, str] | None:
+    """List external block devices and prompt the user to select one.
 
-    *run_playbook* is injected to avoid a circular import with ansible_utils.
+    Returns ``(device_path, label)`` — e.g. ``("/dev/sda1", "myusb")`` — so
+    the caller can run the mount playbook and compute the mount point.
+    Returns ``None`` if the user cancels at any step.
     """
     devices = get_external_devices(get_block_devices(conn))
 
@@ -84,9 +86,7 @@ def flow_mount_new_device(
     if not label:
         return None
 
-    console.print(f"\n[bold green]Mounting /dev/{selected.name} at /mnt/{label}...[/bold green]")
-    run_playbook(playbook, device=f"/dev/{selected.name}", label=label)
-    return f"/mnt/{label}"
+    return f"/dev/{selected.name}", label
 
 
 def flow_use_existing_mount(mounts: list[MountInfo]) -> str | None:

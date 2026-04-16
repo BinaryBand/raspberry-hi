@@ -1,0 +1,38 @@
+---
+# Arch Linux rolling-release updates can break systems without warning.
+# Require explicit opt-in via auto_updates_pacman_acknowledge_risk=true.
+- name: Assert pacman auto-update risk acknowledged
+  ansible.builtin.assert:
+    that: auto_updates_pacman_acknowledge_risk | bool
+    fail_msg: >-
+      Arch auto-updates require auto_updates_pacman_acknowledge_risk=true in host_vars.
+      Rolling-release updates can break systems without warning.
+
+- name: Install cronie (pacman)
+  community.general.pacman:
+    name: "{{ auto_updates_packages['pacman'] }}"
+    state: present
+
+- name: Write pacman auto-update script
+  ansible.builtin.copy:
+    dest: "{{ auto_updates_scripts['pacman'] }}"
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/bash
+      pacman -Syu --noconfirm
+
+- name: Schedule pacman auto-update via cron
+  ansible.builtin.cron:
+    name: pacman-auto-update
+    minute: "0"
+    hour: "{{ auto_updates_reboot_time.split(':')[0] }}"
+    job: "{{ auto_updates_scripts['pacman'] }}"
+    cron_file: auto-updates
+
+- name: Ensure cronie is running (pacman)
+  ansible.builtin.service:
+    name: "{{ auto_updates_units['pacman'] }}"
+    enabled: true
+    state: started

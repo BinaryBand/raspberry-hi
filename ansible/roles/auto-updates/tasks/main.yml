@@ -37,3 +37,21 @@
   when:
     - auto_updates_enabled | bool
     - ansible_facts['pkg_mgr'] == 'dnf'
+
+- name: Configure auto-updates (zypper)
+  ansible.builtin.include_tasks: pkg_zypper.yml
+  when:
+    - auto_updates_enabled | bool
+    - ansible_facts['pkg_mgr'] == 'zypper'
+
+- name: Configure auto-updates (apk)
+  ansible.builtin.include_tasks: pkg_apk.yml
+  when:
+    - auto_updates_enabled | bool
+    - ansible_facts['pkg_mgr'] == 'apk'
+
+- name: Configure auto-updates (pacman)
+  ansible.builtin.include_tasks: pkg_pacman.yml
+  when:
+    - auto_updates_enabled | bool
+    - ansible_facts['pkg_mgr'] == 'pacman'

@@ -1,0 +1,6 @@
+---
+- name: Install Podman (dnf)
+  ansible.builtin.dnf:
+    name: podman
+    state: present
+    update_cache: true
