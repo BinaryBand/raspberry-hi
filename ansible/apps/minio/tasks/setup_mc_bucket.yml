@@ -1,16 +1,12 @@
 ---
-# Ensure MinIO client (mc) is present, wait for the service to be healthy,
-# configure the alias, create the bucket if missing, and set access policy.
+# Waits for MinIO to be healthy, then uses the official minio/mc container
+# (via the already-installed Podman) to configure the alias, create the
+# bucket, and set the access policy. No mc binary installation required.
 
 - name: Detect local connection for minio tasks
   ansible.builtin.set_fact:
     minio_local_run: "{{ (ansible_connection == 'local') | default(false) }}"
     _mc_creds_ready: "{{ (minio_root_user is defined) and (minio_root_password is defined) }}"
-
-# Install mc via the adapter — method controlled by mc_install_method (default: binary).
-- name: Install mc
-  ansible.builtin.include_role:
-    name: mc_adapter
 
 - name: Wait for MinIO TCP port {{ minio_port }} to be available
   ansible.builtin.wait_for:
@@ -21,7 +17,7 @@
 
 - name: Wait until MinIO health endpoint responds HTTP 200
   ansible.builtin.uri:
-    url: "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port | string)) }}/minio/health/ready"
+    url: "http://127.0.0.1:{{ minio_port }}/minio/health/ready"
     method: GET
     status_code: 200
     validate_certs: false
@@ -31,72 +27,67 @@
   until: minio_health.status == 200
   failed_when: false
 
-- name: Ensure mc config directory exists
-  ansible.builtin.file:
-    path: "{{ app_user_home }}/.mc"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0700"
-  become: "{{ not minio_local_run }}"
-
-- name: Write mc config.json with MinIO alias
-  ansible.builtin.copy:
-    dest: "{{ app_user_home }}/.mc/config.json"
-    content: |
-      {
-        "version": "10",
-        "hosts": {
-          "{{ mc_alias }}": {
-            "url": "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port | string)) }}",
-            "accessKey": "{{ minio_root_user }}",
-            "secretKey": "{{ minio_root_password }}",
-            "api": "S3v4",
-            "lookup": "auto"
-          }
-        }
-      }
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0600"
-  become: "{{ not minio_local_run }}"
-  no_log: true
-  when: _mc_creds_ready
-
 - name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
-  ansible.builtin.command: "mc ls {{ mc_alias }}/{{ mc_bucket }}"
-  become: "{{ not minio_local_run }}"
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network=host
+      - -e
+      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - "{{ mc_image }}"
+      - ls
+      - "{{ mc_alias }}/{{ mc_bucket }}"
+  become: true
   become_user: "{{ ansible_user }}"
-  environment:
-    HOME: "{{ app_user_home }}"
-    TERM: "xterm"
   register: mc_bucket_check
   failed_when: false
   changed_when: false
+  no_log: true
   when: _mc_creds_ready
 
 - name: Create bucket {{ mc_bucket }} if missing
-  ansible.builtin.command: "mc mb {{ mc_alias }}/{{ mc_bucket }}"
-  become: "{{ not minio_local_run }}"
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network=host
+      - -e
+      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - "{{ mc_image }}"
+      - mb
+      - "{{ mc_alias }}/{{ mc_bucket }}"
+  become: true
   become_user: "{{ ansible_user }}"
-  environment:
-    HOME: "{{ app_user_home }}"
-    TERM: "xterm"
-  when:
-    - mc_bucket_check is defined
-    - mc_bucket_check.rc != 0
   register: mc_bucket_mb
   failed_when: mc_bucket_mb.rc != 0
   changed_when: mc_bucket_mb.rc == 0
+  when:
+    - _mc_creds_ready
+    - mc_bucket_check is defined
+    - mc_bucket_check.rc != 0
+  no_log: true
 
-- name: Try mc anonymous set (preferred in newer mc)
-  ansible.builtin.command: "mc anonymous set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
-  become: "{{ not minio_local_run }}"
+- name: Set anonymous {{ mc_policy }} policy on {{ mc_alias }}/{{ mc_bucket }}
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network=host
+      - -e
+      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - "{{ mc_image }}"
+      - anonymous
+      - set
+      - "{{ mc_policy }}"
+      - "{{ mc_alias }}/{{ mc_bucket }}"
+  become: true
   become_user: "{{ ansible_user }}"
-  environment:
-    HOME: "{{ app_user_home }}"
-    TERM: "xterm"
-  register: mc_anon_set
+  register: mc_policy_set
   failed_when: false
-  changed_when: mc_anon_set.rc == 0
+  changed_when: mc_policy_set.rc == 0
   when: _mc_creds_ready
+  no_log: true

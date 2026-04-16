@@ -7,12 +7,14 @@ minio_port: 9000
 minio_console_port: 9001
 minio_service_name: minio
 
-# MinIO client (mc) defaults for bucket setup and policy management.
-# mc_install_method and mc_binary_path are set in roles/mc_adapter/defaults/main.yml.
-# Override per-host in host_vars if needed.
+# MinIO client — run via Podman, no binary installation required.
+# Pin to a matching release tag for consistency with minio_image.
+# Browse tags at: https://hub.docker.com/r/minio/mc/tags
+mc_image: docker.io/minio/mc:RELEASE.2025-04-03T17-07-56Z
 mc_alias: myminio
 mc_bucket: media
 mc_url: "http://127.0.0.1:{{ minio_port }}"
+mc_url_with_creds: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_port }}"
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
@@ -21,3 +23,7 @@ mc_policy: download
 # external mount — encouraging you to run 'make mount' first. Set to false
 # in host_vars to store MinIO data on the root filesystem instead.
 minio_require_external_mount: true
+
+# Set true in host_vars to remove the legacy system-level minio service from
+# a host that was provisioned before the rootless Podman migration.
+minio_cleanup_legacy: false

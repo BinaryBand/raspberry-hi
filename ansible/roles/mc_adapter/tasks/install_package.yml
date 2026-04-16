@@ -1,9 +1,0 @@
----
-# Installs mc via the host's package manager.
-# mc must be available in a configured repository for this to succeed.
-
-- name: Install mc via package manager
-  ansible.builtin.package:
-    name: mc
-    state: present
-  become: true
