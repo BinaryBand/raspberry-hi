@@ -1,9 +1,20 @@
 ---
-- name: restart minio
-  ansible.builtin.import_role:
-    name: service_adapter
-    tasks_from: restart
-  vars:
-    svc_name: "{{ minio_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"
+- name: restart minio (systemd)
+  listen: restart minio
+  ansible.builtin.systemd:
+    name: "{{ minio_service_name }}"
+    scope: user
+    state: restarted
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend == 'systemd'
+
+- name: restart minio (script)
+  listen: restart minio
+  ansible.builtin.command: "{{ app_user_home }}/bin/run-minio.sh"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend != 'systemd'

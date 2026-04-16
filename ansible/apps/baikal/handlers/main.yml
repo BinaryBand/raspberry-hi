@@ -1,9 +1,20 @@
 ---
-- name: restart baikal
-  ansible.builtin.import_role:
-    name: service_adapter
-    tasks_from: restart
-  vars:
-    svc_name: "{{ baikal_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
+- name: restart baikal (systemd)
+  listen: restart baikal
+  ansible.builtin.systemd:
+    name: "{{ baikal_service_name }}"
+    scope: user
+    state: restarted
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend == 'systemd'
+
+- name: restart baikal (script)
+  listen: restart baikal
+  ansible.builtin.command: "{{ app_user_home }}/bin/run-baikal.sh"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend != 'systemd'

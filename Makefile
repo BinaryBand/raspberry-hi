@@ -26,7 +26,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site site-local mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-roles test-e2e status logs baikal minio
 
 
 help:
@@ -39,8 +39,7 @@ help:
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-roles    Run Ansible role tests in Docker (requires Docker)"
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
-	@echo "  site          Provision the Pi (runs all roles)"
-	@echo "  site-local    Provision against localhost (dev/testing)"
+	@echo "  site          Provision a device (HOST=rpi|rpi2|debian)"
 	@echo "  minio         Setup MinIO storage"
 	@echo "  baikal        Provision Baikal CalDAV/CardDAV server"
 	@echo "  mount         Interactive: pick and mount external storage"
@@ -106,8 +105,6 @@ logs:
 site:
 	$(ANSIBLE_PLAY) --skip-tags apps
 
-site-local:
-	$(ANSIBLE_PLAY) --skip-tags apps --limit debian
 
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1
