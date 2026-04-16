@@ -1,0 +1,28 @@
+---
+# manual adapter: deploys a run script and prints operator instructions.
+# No boot integration — the operator wires it into their init system manually.
+
+- name: Ensure service bin directory exists
+  ansible.builtin.file:
+    path: "{{ svc_run_script | dirname }}"
+    state: directory
+    owner: "{{ svc_user }}"
+    group: "{{ svc_user }}"
+    mode: "0755"
+  become: true
+
+- name: Deploy run script for {{ svc_name }}
+  ansible.builtin.template:
+    src: run-container.sh.j2
+    dest: "{{ svc_run_script }}"
+    owner: "{{ svc_user }}"
+    group: "{{ svc_user }}"
+    mode: "0755"
+  become: true
+
+- name: Remind operator to start {{ svc_name }} manually
+  ansible.builtin.debug:
+    msg: >-
+      Service '{{ svc_name }}' deployed but not started.
+      Run: {{ svc_run_script }}
+      To persist across reboots, wire this script into your init system manually.

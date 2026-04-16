@@ -7,13 +7,12 @@ minio_port: 9000
 minio_console_port: 9001
 minio_service_name: minio
 
-# MinIO client (mc) defaults for bucket setup and policy management
-# These can be overridden in role vars or inventory host_vars as needed.
+# MinIO client (mc) defaults for bucket setup and policy management.
+# mc_install_method and mc_binary_path are set in roles/mc_adapter/defaults/main.yml.
+# Override per-host in host_vars if needed.
 mc_alias: myminio
 mc_bucket: media
 mc_url: "http://127.0.0.1:{{ minio_port }}"
-mc_install_method: binary
-mc_binary_path: /usr/local/bin/mc
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
@@ -22,8 +21,3 @@ mc_policy: download
 # external mount — encouraging you to run 'make mount' first. Set to false
 # in host_vars to store MinIO data on the root filesystem instead.
 minio_require_external_mount: true
-# Pin mc to a specific version and provide its sha256 checksum for integrity verification.
-# Find checksums at: https://dl.min.io/client/mc/release/linux-<arch>/mc.sha256sum
-# Leave empty to always fetch latest (not recommended for production).
-mc_version: ""
-mc_checksum: ""

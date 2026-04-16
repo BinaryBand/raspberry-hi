@@ -1,22 +1,5 @@
 ---
-- name: Assert systemd is the init system
-  ansible.builtin.assert:
-    that: ansible_service_mgr == 'systemd'
-    fail_msg: "baikal role requires systemd (detected: {{ ansible_service_mgr }})"
-
-# Fetch the service user's UID once — needed to address their systemd socket.
-- name: Get UID of {{ ansible_user }}
-  ansible.builtin.command: "id -u {{ ansible_user }}"
-  register: _app_user_uid_out
-  changed_when: false
-
-- name: Set _app_user_uid fact
-  ansible.builtin.set_fact:
-    _app_user_uid: "{{ _app_user_uid_out.stdout }}"
-
-# Baikal persists calendar/contact data in two directories:
-#   config/   — Baikal configuration files
-#   Specific/ — SQLite databases and user data
+# 1. App-specific: data and config directories.
 - name: Ensure Baikal config directory exists
   ansible.builtin.file:
     path: "{{ baikal_config_path }}"
@@ -35,15 +18,15 @@
     mode: "0750"
   become: true
 
-- name: Ensure Podman quadlet directory exists
-  ansible.builtin.file:
-    path: "{{ app_user_home }}/.config/containers/systemd"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0755"
+# 2. Pre-pull the image to avoid systemd timing out on slow connections.
+- name: Pull Baikal container image
+  ansible.builtin.command: "podman pull {{ baikal_image }}"
   become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_pull
+  changed_when: "'Copying' in _baikal_pull.stdout"
 
+# 3. Deploy container unit (app owns the template; service_adapter owns the directory).
 - name: Install Baikal Podman quadlet
   ansible.builtin.template:
     src: baikal.container.j2
@@ -54,36 +37,11 @@
   become: true
   notify: restart baikal
 
-# Linger lets the user's systemd instance (and its services) survive logout.
-- name: Check linger status for {{ ansible_user }}
-  ansible.builtin.command: "loginctl show-user {{ ansible_user }} -p Linger --value"
-  register: _linger_status
-  become: true
-  changed_when: false
-  failed_when: false
-
-- name: Enable linger for {{ ansible_user }}
-  ansible.builtin.command: "loginctl enable-linger {{ ansible_user }}"
-  become: true
-  changed_when: true
-  when: _linger_status.stdout | default('') != 'yes'
-
-# Pull the image before starting so systemd doesn't time out waiting for the download.
-- name: Pull Baikal container image
-  ansible.builtin.command: "podman pull {{ baikal_image }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  register: _baikal_pull
-  changed_when: "'Copying' in _baikal_pull.stdout"
-
-# Run as ansible_user with explicit XDG_RUNTIME_DIR so Ansible can
-# reach the user's systemd socket without an interactive login session.
-- name: Enable and start Baikal service
-  ansible.builtin.systemd:
-    name: baikal
-    scope: user
-    state: started
-    enabled: true
-    daemon_reload: true
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _app_user_uid }}"
+# 4. Wire up service management — adapter handles init-system details.
+- name: Register Baikal with service_adapter
+  ansible.builtin.include_role:
+    name: service_adapter
+  vars:
+    svc_name: "{{ baikal_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-baikal.sh"

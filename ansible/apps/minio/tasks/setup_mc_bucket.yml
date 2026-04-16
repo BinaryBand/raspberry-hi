@@ -1,36 +1,16 @@
 ---
-# Ensure MinIO client (`mc`) is present, wait for service, configure alias,
-# create bucket if missing, and ensure anonymous download policy.
+# Ensure MinIO client (mc) is present, wait for the service to be healthy,
+# configure the alias, create the bucket if missing, and set access policy.
 
 - name: Detect local connection for minio tasks
   ansible.builtin.set_fact:
     minio_local_run: "{{ (ansible_connection == 'local') | default(false) }}"
     _mc_creds_ready: "{{ (minio_root_user is defined) and (minio_root_password is defined) }}"
 
-
-- name: Install mc via package (optional)
-  ansible.builtin.package:
-    name: mc
-    state: present
-  become: "{{ not minio_local_run }}"
-  when: mc_install_method == 'package'
-
-- name: Determine mc download architecture
-  ansible.builtin.set_fact:
-    mc_dl_arch: >-
-      {% if ansible_facts['architecture'] == 'aarch64' %}arm64{% elif ansible_facts['architecture'].startswith('arm') %}arm{% elif ansible_facts['architecture'] == 'x86_64' %}amd64{% else %}{{ ansible_facts['architecture'] }}{% endif %}
-  when: mc_install_method == 'binary'
-
-- name: Download MinIO client binary to {{ mc_binary_path }}
-  ansible.builtin.get_url:
-    url: "https://dl.min.io/client/mc/release/linux-{{ mc_dl_arch }}/mc"
-    dest: "{{ mc_binary_path }}"
-    checksum: "{{ mc_checksum | default(omit) }}"
-    mode: '0755'
-    owner: root
-    group: root
-  become: "{{ not minio_local_run }}"
-  when: mc_install_method == 'binary'
+# Install mc via the adapter — method controlled by mc_install_method (default: binary).
+- name: Install mc
+  ansible.builtin.include_role:
+    name: mc_adapter
 
 - name: Wait for MinIO TCP port {{ minio_port }} to be available
   ansible.builtin.wait_for:
@@ -41,10 +21,10 @@
 
 - name: Wait until MinIO health endpoint responds HTTP 200
   ansible.builtin.uri:
-    url: "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port|string)) }}/minio/health/ready"
+    url: "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port | string)) }}/minio/health/ready"
     method: GET
     status_code: 200
-    validate_certs: false  # health endpoint is plain HTTP; no cert to validate
+    validate_certs: false
   register: minio_health
   retries: "{{ mc_wait_retries }}"
   delay: "{{ mc_wait_delay }}"
@@ -60,7 +40,7 @@
     mode: "0700"
   become: "{{ not minio_local_run }}"
 
-- name: Write mc `config.json` with MinIO alias (no_log)
+- name: Write mc config.json with MinIO alias
   ansible.builtin.copy:
     dest: "{{ app_user_home }}/.mc/config.json"
     content: |
@@ -68,7 +48,7 @@
         "version": "10",
         "hosts": {
           "{{ mc_alias }}": {
-            "url": "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port|string)) }}",
+            "url": "{{ mc_url | default('http://127.0.0.1:' ~ (minio_port | string)) }}",
             "accessKey": "{{ minio_root_user }}",
             "secretKey": "{{ minio_root_password }}",
             "api": "S3v4",
@@ -120,18 +100,3 @@
   failed_when: false
   changed_when: mc_anon_set.rc == 0
   when: _mc_creds_ready
-
-- name: Ensure anonymous/download policy on {{ mc_alias }}/{{ mc_bucket }} (legacy)
-  ansible.builtin.command: "mc policy set {{ mc_policy }} {{ mc_alias }}/{{ mc_bucket }}"
-  become: "{{ not minio_local_run }}"
-  become_user: "{{ ansible_user }}"
-  environment:
-    HOME: "{{ app_user_home }}"
-    TERM: "xterm"
-  register: mc_policy_set
-  failed_when: false
-  changed_when: mc_policy_set.rc == 0
-  when:
-    - _mc_creds_ready
-    - mc_anon_set is not defined or mc_anon_set.rc != 0
-

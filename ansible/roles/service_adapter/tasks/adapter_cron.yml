@@ -1,0 +1,30 @@
+---
+# cron adapter: deploys a run script and schedules it via @reboot cron.
+# No restart-on-failure; no boot-ordering guarantee beyond the mount wait loop
+# in the run script template.
+
+- name: Ensure service bin directory exists
+  ansible.builtin.file:
+    path: "{{ svc_run_script | dirname }}"
+    state: directory
+    owner: "{{ svc_user }}"
+    group: "{{ svc_user }}"
+    mode: "0755"
+  become: true
+
+- name: Deploy run script for {{ svc_name }}
+  ansible.builtin.template:
+    src: run-container.sh.j2
+    dest: "{{ svc_run_script }}"
+    owner: "{{ svc_user }}"
+    group: "{{ svc_user }}"
+    mode: "0755"
+  become: true
+
+- name: Schedule {{ svc_name }} via @reboot cron
+  ansible.builtin.cron:
+    name: "{{ svc_name }}-start"
+    special_time: reboot
+    job: "{{ svc_run_script }}"
+    cron_file: "{{ svc_name }}"
+    user: "{{ svc_user }}"

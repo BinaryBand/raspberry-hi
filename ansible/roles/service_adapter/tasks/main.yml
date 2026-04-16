@@ -1,0 +1,25 @@
+---
+# Port: service lifecycle management.
+# Apps call this role with svc_name, svc_user, svc_run_script, and optionally
+# svc_requires_mount. The adapter handles init-system-specific details.
+
+- name: Assert supported service backend
+  ansible.builtin.assert:
+    that:
+      - service_adapter_backend in service_adapter_supported_backends
+    fail_msg: >-
+      service_adapter does not support backend '{{ service_adapter_backend }}'.
+      Supported backends: {{ service_adapter_supported_backends | join(', ') }}.
+  when: service_adapter_fail_on_unsupported | bool
+
+- name: Register service (systemd)
+  ansible.builtin.include_tasks: adapter_systemd.yml
+  when: service_adapter_backend == 'systemd'
+
+- name: Register service (cron)
+  ansible.builtin.include_tasks: adapter_cron.yml
+  when: service_adapter_backend == 'cron'
+
+- name: Register service (manual)
+  ansible.builtin.include_tasks: adapter_manual.yml
+  when: service_adapter_backend == 'manual'

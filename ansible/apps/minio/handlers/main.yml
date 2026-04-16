@@ -1,9 +1,9 @@
 ---
 - name: restart minio
-  ansible.builtin.systemd:
-    name: minio
-    scope: user
-    state: restarted
-    daemon_reload: true
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _app_user_uid }}"
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: restart
+  vars:
+    svc_name: "{{ minio_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"

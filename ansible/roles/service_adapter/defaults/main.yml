@@ -1,0 +1,12 @@
+---
+# Auto-detect backend from init system; override in host_vars for explicit control.
+# Valid values: systemd, cron, manual
+service_adapter_backend: >-
+  {{ 'systemd' if ansible_facts['service_mgr'] == 'systemd' else 'manual' }}
+
+service_adapter_fail_on_unsupported: true
+
+service_adapter_supported_backends:
+  - systemd
+  - cron
+  - manual

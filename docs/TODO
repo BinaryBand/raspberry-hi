@@ -6,6 +6,9 @@
 - [ ] Prefer `Makefile → Ansible` and declarative programming.
 - [x] `Makefile → Python → Ansible` if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
   - [x] ... and then organize and *abstract-ify* ./scripts.
+- [x] Port/adapter pattern for `ansible/apps` — apps declare what they need; adapter roles handle how. *
+  - [x] `service_adapter` role: service lifecycle (systemd/cron/manual backends).
+  - [x] `mc_adapter` role: MinIO client installation (binary/package/skip).
 
 > Consider Ansible-Runner ports and adaptors to improve modularity through scalability.
 
