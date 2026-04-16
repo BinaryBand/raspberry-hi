@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from models import BlockDevice, HostVars, MinioConfig, MountInfo, VaultSecrets
+from models import BlockDevice, HostVars, MountInfo, VaultSecrets
 
 
 class TestBlockDevice:
@@ -64,36 +64,6 @@ class TestMountInfo:
         assert m.target == "/mnt/usb"
 
 
-class TestMinioConfig:
-    """Test suite for MinioConfig model validation."""
-
-    def test_default_data_path(self):
-        """Verify default MinIO data path."""
-        assert MinioConfig().minio_data_path == "/srv/minio/data"
-
-    def test_default_requires_external_mount(self):
-        """Verify default requirement for external mount."""
-        assert MinioConfig().minio_require_external_mount is True
-
-    def test_host_var_overrides_default(self):
-        """Verify host variables override default config values."""
-        cfg = MinioConfig(minio_data_path="/mnt/usb/minio/data")
-        assert cfg.minio_data_path == "/mnt/usb/minio/data"
-
-    def test_model_validate_merges_role_defaults_and_host_vars(self):
-        """Verify merging of role defaults and host variables."""
-        role_defaults = {"minio_data_path": "/srv/minio/data", "minio_require_external_mount": True}
-        host_vars = {"minio_data_path": "/mnt/usb/minio/data"}
-        cfg = MinioConfig.model_validate({**role_defaults, **host_vars})
-        assert cfg.minio_data_path == "/mnt/usb/minio/data"
-        assert cfg.minio_require_external_mount is True
-
-    def test_extra_fields_allowed(self):
-        """Ensure extra model fields are allowed."""
-        cfg = MinioConfig.model_validate({"extra_field": "ignored"})
-        assert cfg.minio_data_path == "/srv/minio/data"
-
-
 class TestHostVars:
     """Test suite for HostVars model validation."""
 
@@ -133,6 +103,8 @@ class TestVaultSecrets:
         v = VaultSecrets()
         assert v.minio_root_user is None
         assert v.minio_root_password is None
+        assert v.rpi_become_password is None
+        assert v.debian_become_password is None
 
     def test_construction_with_values(self):
         """Verify construction with provided values."""

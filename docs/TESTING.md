@@ -15,21 +15,19 @@ make test-e2e      →  live Pi      (requires Pi reachable over SSH)
 ## Tier 1 — Unit & Stub (`tests/`)
 
 Fast tests that run in the local virtualenv with no external dependencies.
-They cover all Python logic: models, utility functions, and file I/O.
+They cover all Python logic: models and utility functions.
 
 **What's tested:**
 
 | File | Covers |
 | --- | --- |
-| `test_models.py` | Pydantic validation, defaults, and field constraints for all five models |
+| `test_models.py` | Pydantic validation, defaults, and field constraints for the shared models |
+| `test_minio_preflight.py` | Host-vars persistence used by the MinIO preflight module |
 | `test_storage_utils.py` | Mount filtering, device classification, and SSH-stub variants of `get_real_mounts` / `get_block_devices` |
-| `test_ansible_utils.py` | `read_host_vars`, `write_host_vars`, `update_host_vars`, `read_role_defaults` — all via `tmp_path` |
 | `test_storage_flows.py` | `parse_path_hints` (pure function; interactive flows are E2E territory) |
 
 SSH-dependent functions are tested with `FakeConnection` — a stub that returns
-pre-configured JSON without opening a socket. File-system helpers are tested
-with pytest's built-in `tmp_path` fixture and `monkeypatch` to redirect
-`ANSIBLE_DIR` away from the real inventory.
+pre-configured JSON without opening a socket.
 
 ### Framework vs tests
 

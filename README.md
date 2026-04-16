@@ -51,7 +51,8 @@ make bootstrap
 ```
 
 This will prompt you for a vault password (saved locally, never committed) and your
-MinIO credentials, then write the encrypted vault file.
+MinIO credentials plus any missing per-host sudo passwords, then write the
+encrypted vault file.
 
 To update secrets later: `make vault-edit`
 
@@ -72,14 +73,13 @@ make site
 Installs and configures everything on the Pi. Subsequent runs need no extra steps —
 the vault password file handles decryption automatically.
 
-**MinIO external storage:** `make site` checks whether `minio_data_path` is on an
-external mount before provisioning. If not, it walks you through your options:
+**MinIO external storage:** `make minio` checks whether `minio_data_path` is on an
+external mount before provisioning the MinIO role. If not, it prompts you to pick an
+existing external mount and a subdirectory for the data path.
 
-- **Mount a new drive** — lists external block devices on the Pi, mounts the one you
-  pick, and writes the path to `host_vars` automatically.
-- **Use an already-mounted drive** — lists current non-root mounts and lets you pick one.
-- **Use the root filesystem** — sets `minio_require_external_mount: false` in `host_vars`
-  and continues. Not recommended; risks wearing the SD card.
+If no external mount exists yet, run `make mount` first. That command now launches the
+Ansible playbook directly and uses a custom `pick_device` module on the control node to
+drive the interactive selection.
 
 You can also run `make mount` at any time to (re-)mount external storage independently.
 
@@ -91,7 +91,7 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 
 | Command | What it does |
 | --- | --- |
-| `make lint` | Run ruff over `scripts/`, `models/`, and `tests/` |
+| `make lint` | Run ruff over `ansible/library`, `scripts/`, `models/`, and `tests/` |
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
 | `make test-roles` | Run Ansible role tests in Docker (requires Docker) |
@@ -106,7 +106,7 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
 | `make site` | Full provision: base → Podman → storage |
-| `make minio` | Configure MinIO storage and provision the MinIO role |
+| `make minio` | Validate MinIO storage placement, update `host_vars` if needed, then provision MinIO |
 | `make mount` | Interactively mount external storage |
 
 ### Operations

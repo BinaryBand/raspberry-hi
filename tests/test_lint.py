@@ -21,7 +21,7 @@ class TestCpd:
 class TestRuff:
     """Ensure the codebase passes ruff linting and formatting checks."""
 
-    PATHS = ["scripts/", "models/", "tests/"]
+    PATHS = ["ansible/library/", "scripts/", "models/", "tests/"]
 
     def test_ruff_check(self):
         """Fail if ruff reports any lint violations."""

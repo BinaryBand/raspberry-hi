@@ -36,6 +36,8 @@ class SecretSpec(TypedDict):
 SECRETS: List[SecretSpec] = [
     {"key": "minio_root_user", "label": "MinIO root username", "hidden": False},
     {"key": "minio_root_password", "label": "MinIO root password", "hidden": True},
+    {"key": "rpi_become_password", "label": "rpi sudo password", "hidden": True},
+    {"key": "debian_become_password", "label": "Debian sudo password", "hidden": True},
 ]
 
 

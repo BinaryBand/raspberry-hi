@@ -10,11 +10,12 @@ HOST ?= rpi
 # Values must not contain spaces (safe for IPs, usernames, and file paths).
 _INV        := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.ini --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.loads(sys.stdin.read() or '{}'); \
-	  print(d.get('ansible_host',''), d.get('ansible_user',''), d.get('ansible_ssh_private_key_file',''))" \
+	  print(d.get('ansible_host',''), d.get('ansible_user',''), d.get('ansible_port', 22), d.get('ansible_ssh_private_key_file',''))" \
 	2>/dev/null)
 REMOTE_HOST := $(word 1,$(_INV))
 REMOTE_USER := $(word 2,$(_INV))
-REMOTE_KEY  := $(word 3,$(_INV))
+REMOTE_PORT := $(or $(word 3,$(_INV)),22)
+REMOTE_KEY  := $(word 4,$(_INV))
 
 # Shared Ansible flags — avoids repeating paths across targets.
 ANSIBLE_CFG  := $(CURDIR)/ansible/ansible.cfg
@@ -34,7 +35,7 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
-	@echo "  lint          Run ruff linter over scripts/ and models/"
+	@echo "  lint          Run ruff linter over ansible/library, scripts/, models/, and tests/"
 	@echo "  cpd           Check for copy-paste duplication (jscpd, threshold 3%)"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-roles    Run Ansible role tests in Docker (requires Docker)"
@@ -57,7 +58,7 @@ check:
 	poetry run python ./scripts/check.py
 
 lint:
-	poetry run ruff check scripts/ models/ tests/
+	poetry run ruff check ansible/library scripts/ models/ tests/
 
 cpd:
 	npx jscpd .
@@ -78,7 +79,7 @@ add-hostkey:
 	ssh-keyscan -H $(REMOTE_HOST) >> ~/.ssh/known_hosts
 
 ssh:
-	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p 22
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT)
 
 vault-edit:
 	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
@@ -87,20 +88,20 @@ bootstrap:
 	poetry run python ./scripts/bootstrap.py
 
 mount:
-	HOST=$(HOST) poetry run python ./scripts/pick_storage.py
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/mount_storage.yml \
+	  -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 
 minio:
-	HOST=$(HOST) poetry run python ./scripts/setup_minio_storage.py
 	$(ANSIBLE_PLAY) --tags minio
 
 baikal:
 	$(ANSIBLE_PLAY) --tags baikal
 
 status:
-	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) "systemctl --user status minio --no-pager"
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "systemctl --user status minio --no-pager"
 
 logs:
-	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) "journalctl --user -u minio -n 50 --no-pager"
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u minio -n 50 --no-pager"
 
 site:
 	$(ANSIBLE_PLAY) --skip-tags apps

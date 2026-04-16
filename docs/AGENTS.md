@@ -53,27 +53,27 @@ models/                   Pydantic models for typed data shared across scripts
   ansible/
     hostvars.py           HostVars      — ansible-inventory output
   services/
-    minio.py              MinioConfig   — role defaults + host_var overrides
     vault.py              VaultSecrets  — MinIO credentials
   __init__.py             Re-exports all models — import sites use `from models import X`
 
 scripts/
   utils/                  Shared helpers — imported by scripts, never called directly
     exec_utils.py         subprocess.run wrapper (resolves executables via PATH)
-    ansible_utils.py      inventory_host_vars, make_connection, run_playbook,
-                          read/write host_vars, read_role_defaults
+    ansible_utils.py      inventory_host_vars, make_connection
     storage_utils.py      get_block_devices, get_external_devices,
                           get_real_mounts, mount_covering, external_mounts
     storage_flows.py      interactive TUI flows for picking/mounting storage
   bootstrap.py            make bootstrap — first-time vault + credential setup
   check.py                make check    — validates prerequisites
-  pick_storage.py         make mount    — interactive device picker + mounter
-  setup_minio_storage.py  make minio pre-flight — ensures minio_data_path is on
-                          external storage; guides user through options if not
+
+ansible/
+  library/                Custom Ansible modules, executed via delegate_to: localhost
+    pick_device.py        make mount helper — interactive device picker
+    minio_preflight.py    make minio helper — ensures minio_data_path is on
+                          external storage; updates host_vars when needed
 
 tests/
   test_models.py          Unit tests for Pydantic model validation
-  test_ansible_utils.py   Unit tests for ansible file I/O helpers
   test_storage_utils.py   Unit tests for mount/block device logic
   test_storage_flows.py   Unit tests for pure storage flow functions
   conftest.py             Shared pytest fixtures (findmnt_conn, lsblk_conn)
@@ -96,22 +96,15 @@ Makefile                  All user-facing commands — run `make help` for full 
 
 ### Python imports
 
-Entry-point scripts add ROOT and SCRIPTS_DIR to `sys.path` before importing:
+The Makefile exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts` so local Python
+entry points and custom Ansible modules can import project packages directly:
 
 ```python
-ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = ROOT / "scripts"
-sys.path.insert(0, str(ROOT))        # for models
-sys.path.insert(0, str(SCRIPTS_DIR)) # for utils
+from models import HostVars
+from utils.ansible_utils import make_connection
 ```
 
-Then import as `from utils.ansible_utils import ...` and `from models import ...`.
 Within `scripts/utils/`, use relative imports: `from .exec_utils import run_resolved`.
-
-### ansible-playbook must run from ROOT
-
-Relative SSH key paths (e.g. `config/.ed25519`) resolve against CWD.
-Always pass `cwd=str(ROOT)` and set `ANSIBLE_CONFIG` in env. See `run_playbook()`.
 
 ### ansible-inventory must run from ANSIBLE_DIR
 
@@ -120,7 +113,7 @@ See `inventory_host_vars()`.
 
 ### Use Pydantic models, not dicts
 
-Use models (`MountInfo`, `MinioConfig`, `BlockDevice`) wherever data has a known shape.
+Use models (`MountInfo`, `HostVars`, `BlockDevice`) wherever data has a known shape.
 Add new models to `models/` and export from `models/__init__.py`.
 
 ### Multi-Pi support
@@ -164,17 +157,16 @@ make site                         # provisions base stack (skips all app roles)
        └─ role: storage           # creates minio_data_path directory
 
 make minio                        # configure storage and provision MinIO
-  ├─ setup_minio_storage.py       # pre-flight: ensure minio_data_path is on external storage
-  │    └─ if not: guides user → pick device → mount → write host_vars
   └─ ansible-playbook site.yml --tags minio
-       └─ role: minio             # deploys quadlet, enables service, sets up bucket
+    └─ role: minio             # runs minio_preflight, then deploys quadlet and bucket setup
 
 make baikal                       # provision Baikal CalDAV/CardDAV
   └─ ansible-playbook site.yml --tags baikal
        └─ role: baikal            # creates data dirs, deploys quadlet, enables service
 
 make mount                        # mount a drive without provisioning
-  └─ pick_storage.py              # interactive device picker + mounter
+  └─ ansible-playbook mount_storage.yml
+    └─ pick_device             # interactive device picker when device= is omitted
 ```
 
 App roles (under `ansible/apps/`) are tagged with both `apps` and their own name (e.g. `[apps, minio]`). This means `make site` skips all of them, while individual `make <app>` targets still work. Future apps follow the same pattern.
