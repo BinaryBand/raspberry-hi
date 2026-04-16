@@ -34,8 +34,8 @@
       - run
       - --rm
       - --network=host
-      - -e
-      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - --env-file
+      - "{{ app_user_home }}/.config/minio/minio.env"
       - "{{ mc_image }}"
       - ls
       - "{{ mc_alias }}/{{ mc_bucket }}"
@@ -54,8 +54,8 @@
       - run
       - --rm
       - --network=host
-      - -e
-      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - --env-file
+      - "{{ app_user_home }}/.config/minio/minio.env"
       - "{{ mc_image }}"
       - mb
       - "{{ mc_alias }}/{{ mc_bucket }}"
@@ -77,8 +77,8 @@
       - run
       - --rm
       - --network=host
-      - -e
-      - "MC_HOST_{{ mc_alias }}={{ mc_url_with_creds }}"
+      - --env-file
+      - "{{ app_user_home }}/.config/minio/minio.env"
       - "{{ mc_image }}"
       - anonymous
       - set
@@ -87,7 +87,7 @@
   become: true
   become_user: "{{ ansible_user }}"
   register: mc_policy_set
-  failed_when: false
+  failed_when: mc_policy_set.rc != 0
   changed_when: mc_policy_set.rc == 0
   when: _mc_creds_ready
   no_log: true

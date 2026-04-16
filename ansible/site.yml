@@ -22,9 +22,7 @@
     # Run `make minio` to provision or re-provision MinIO independently.
     - role: minio
       tags: [apps, minio]
-      when: ansible_facts['system'] == "Linux"
 
     # Run `make baikal` to provision or re-provision Baikal independently.
     - role: baikal
       tags: [apps, baikal]
-      when: ansible_facts['system'] == "Linux"

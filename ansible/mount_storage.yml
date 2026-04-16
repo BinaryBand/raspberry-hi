@@ -3,7 +3,7 @@
 # Optional: -e "mount_point=/mnt/storage fstype=ext4"
 
 - name: Mount external storage
-  hosts: raspberry_pi
+  hosts: devices
   become: true
 
   vars:

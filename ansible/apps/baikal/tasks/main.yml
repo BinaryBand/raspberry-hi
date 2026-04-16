@@ -20,7 +20,11 @@
 
 # 2. Pre-pull the image to avoid systemd timing out on slow connections.
 - name: Pull Baikal container image
-  ansible.builtin.command: "podman pull {{ baikal_image }}"
+  ansible.builtin.command:
+    argv:
+      - podman
+      - pull
+      - "{{ baikal_image }}"
   become: true
   become_user: "{{ ansible_user }}"
   register: _baikal_pull

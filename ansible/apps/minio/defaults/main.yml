@@ -14,7 +14,6 @@ mc_image: docker.io/minio/mc:RELEASE.2025-04-03T17-07-56Z
 mc_alias: myminio
 mc_bucket: media
 mc_url: "http://127.0.0.1:{{ minio_port }}"
-mc_url_with_creds: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_port }}"
 mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
