@@ -69,4 +69,4 @@
 # 4. Post-deployment: ensure mc is present then configure bucket and policy.
 - name: Setup MinIO buckets and public policy
   ansible.builtin.include_tasks: setup_mc_bucket.yml
-  when: not (minio_skip_bucket_setup | default(false))
+  when: not minio_skip_bucket_setup

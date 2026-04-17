@@ -6,6 +6,7 @@ Usage:
   poetry run python scripts/check.py --vault-only  fast vault-only check (Makefile prereq)
 """
 
+import subprocess
 import sys
 
 from utils.ansible_utils import ANSIBLE_DIR
@@ -110,12 +111,16 @@ def main() -> None:
     # Pi reachable
     inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
 
-    ping = run_resolved(
-        ["ansible", "devices", "-m", "ping", "-i", str(inventory_path)],
-        capture_output=True,
-        text=True,
-    )
-    pi_ok = "SUCCESS" in ping.stdout
+    try:
+        ping = run_resolved(
+            ["ansible", "devices", "-m", "ping", "-i", str(inventory_path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        pi_ok = ping.returncode == 0
+    except subprocess.TimeoutExpired:
+        pi_ok = False
     all_ok &= check(
         "Host reachable",
         pi_ok,

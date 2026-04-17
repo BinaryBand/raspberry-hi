@@ -101,8 +101,13 @@ def decrypt_vault() -> VaultSecrets:
     return VaultSecrets.model_validate(decrypt_vault_raw())
 
 
-def encrypt_vault(data: RawVaultData) -> None:
-    """Write *data* to an encrypted vault file."""
+def encrypt_vault(data: RawVaultData, output: Path | None = None) -> None:
+    """Write *data* to an encrypted vault file.
+
+    *output* defaults to VAULT_FILE. Pass an alternate path to write to a
+    temporary location first (for atomic replace patterns).
+    """
+    target = output or VAULT_FILE
     plaintext = yaml.dump(data, default_flow_style=False)
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False, dir=ANSIBLE_DIR) as tmp:
@@ -118,7 +123,7 @@ def encrypt_vault(data: RawVaultData) -> None:
                 "--vault-password-file",
                 str(VAULT_PASSWORD_FILE),
                 "--output",
-                str(VAULT_FILE),
+                str(target),
             ],
             capture_output=True,
             text=True,

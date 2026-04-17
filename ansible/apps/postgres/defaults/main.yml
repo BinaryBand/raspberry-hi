@@ -7,3 +7,7 @@ postgres_port: 5432
 postgres_database: baikal
 postgres_user: baikal
 postgres_service_name: postgres
+
+# UID/GID of the postgres user inside the official postgres alpine image.
+postgres_runtime_uid: 70
+postgres_runtime_gid: 70

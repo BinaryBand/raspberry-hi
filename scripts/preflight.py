@@ -122,11 +122,13 @@ class VaultStore:
         return decrypt_vault_raw()
 
     def write(self, hostname: str, updates: StoreData) -> None:
-        from bootstrap import decrypt_vault_raw, encrypt_vault
+        from bootstrap import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
         raw = decrypt_vault_raw()
         raw.update(updates)
-        encrypt_vault(raw)
+        tmp = VAULT_FILE.with_suffix(".tmp")
+        encrypt_vault(raw, output=tmp)
+        os.replace(tmp, VAULT_FILE)
 
 
 # ---------------------------------------------------------------------------

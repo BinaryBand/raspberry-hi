@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import os
+import shlex
 import sys
 from pathlib import Path
 from typing import cast
@@ -63,9 +64,11 @@ def main() -> None:
 
     device, label = result
     mount_point = f"/mnt/{label}"
+    dev = shlex.quote(device)
+    mp = shlex.quote(mount_point)
 
-    conn.sudo(f"mkdir -p {mount_point}", hide=True)
-    conn.sudo(f"mount {device} {mount_point}", hide=True)
+    conn.sudo(f"mkdir -p {mp}", hide=True)
+    conn.sudo(f"mount {dev} {mp}", hide=True)
 
     # Append to fstab only if this device isn't already listed.
     fstab = conn.sudo("cat /etc/fstab", hide=True).stdout

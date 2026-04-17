@@ -11,8 +11,10 @@
   ansible.builtin.file:
     path: "{{ postgres_data_path }}"
     state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
   become: true
-  become_user: "{{ ansible_user }}"
 
 - name: Check PostgreSQL data directory owner in podman user namespace
   ansible.builtin.command:
@@ -35,11 +37,12 @@
       - unshare
       - chown
       - -R
-      - "70:70"
+      - "{{ postgres_runtime_uid }}:{{ postgres_runtime_gid }}"
       - "{{ postgres_data_path }}"
   become: true
   become_user: "{{ ansible_user }}"
-  when: _postgres_data_uid.stdout | trim != '70'
+  when: _postgres_data_uid.stdout | trim != (postgres_runtime_uid | string)
+  changed_when: true
   notify: restart postgres
 
 - name: Ensure PostgreSQL config directory exists

@@ -37,6 +37,9 @@ jobs:
       - name: Run Semgrep
         run: make semgrep
 
+      - name: Run ansible-lint
+        run: poetry run ansible-lint ansible/
+
   test:
     name: Unit & stub tests
     runs-on: ubuntu-latest

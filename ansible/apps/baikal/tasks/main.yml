@@ -64,6 +64,7 @@
     loop_var: baikal_dir_owner
     label: "{{ baikal_dir_owner.item }}"
   when: baikal_dir_owner.stdout | trim != (baikal_runtime_uid | string ~ ':' ~ baikal_runtime_gid | string)
+  changed_when: true
   notify: restart baikal
 
 # 2. Pre-pull the image to avoid systemd timing out on slow connections.
@@ -128,6 +129,7 @@
   become: true
   become_user: "{{ ansible_user }}"
   when: _baikal_database_check.stdout | trim != '1'
+  changed_when: true
   no_log: true
 
 - name: Check whether Baikal PostgreSQL schema exists
