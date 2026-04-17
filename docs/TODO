@@ -30,11 +30,12 @@
 
 ## Style
 
-- [ ] Standardize typing constraints. (Pyright) *
+- [x] Standardize typing constraints. (Pyright) *
 - [ ] Enforce complexity constraints. (Lizard) -
 - [ ] Enforce utility gate constraints. (Vulture)
 - [x] Enforce redundancy constraints. (jscpd) *
-- [ ] Plan and enforce arbitrary architectural constrains. (Semgrep)
+- [x] Plan and enforce initial architectural constraints. (Semgrep)
+  - [ ] Expand the ruleset as the Python ↔ Ansible constitution hardens.
 - [ ] Codify and gate docs/AGENTS.md:'Success rubric' violations.
 
 * * *

@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint cpd test test-e2e status logs baikal minio _vault_check _minio_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio _vault_check _minio_preflight
 
 
 help:
@@ -36,7 +36,11 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
-	@echo "  lint          Run ruff linter over ansible/library, scripts/, models/, and tests/"
+	@echo "  lint          Run the full static quality gate (Ruff, format check, Pyright, Semgrep, cpd)"
+	@echo "  ruff          Run Ruff lint checks over scripts/, models/, and tests/"
+	@echo "  format-check  Run Ruff formatting checks over scripts/, models/, and tests/"
+	@echo "  pyright       Run Pyright type checks over the repository"
+	@echo "  semgrep       Run Semgrep architectural and process audits"
 	@echo "  cpd           Check for copy-paste duplication (jscpd, threshold 3%)"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
@@ -57,11 +61,22 @@ help:
 check:
 	poetry run python ./scripts/check.py
 
-lint:
+lint: ruff format-check pyright semgrep cpd
+
+ruff:
 	poetry run ruff check scripts/ models/ tests/
 
+format-check:
+	poetry run ruff format --check scripts/ models/ tests/
+
+pyright:
+	poetry run pyright
+
+semgrep:
+	poetry run semgrep scan --config .semgrep.yml --error
+
 cpd:
-	npx jscpd .
+	npx jscpd --format python --min-tokens 50 --threshold 3 --ignore '**/.venv/**,**/typings/**' .
 
 test:
 	poetry run pytest tests/ -v

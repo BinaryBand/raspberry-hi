@@ -82,7 +82,11 @@ To mount external storage on the Pi before provisioning MinIO, run `make mount` 
 
 | Command | What it does |
 | --- | --- |
-| `make lint` | Run ruff over `scripts/`, `models/`, and `tests/` |
+| `make lint` | Run the full static quality gate: Ruff, format check, Pyright, Semgrep, and cpd |
+| `make ruff` | Run Ruff lint checks over `scripts/`, `models/`, and `tests/` |
+| `make format-check` | Run Ruff formatting checks over `scripts/`, `models/`, and `tests/` |
+| `make pyright` | Run Pyright type checks over the repository |
+| `make semgrep` | Run Semgrep audits for current architectural/process constraints |
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
 | `make test-roles` | Run Ansible role tests in Docker (requires Docker) |

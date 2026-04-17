@@ -34,6 +34,9 @@ jobs:
       - name: Run ruff
         run: make lint
 
+      - name: Run Semgrep
+        run: make semgrep
+
   test:
     name: Unit & stub tests
     runs-on: ubuntu-latest

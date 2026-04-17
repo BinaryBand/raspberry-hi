@@ -11,7 +11,19 @@ class TestCpd:
     def test_cpd(self):
         """Fail if jscpd reports copy-paste duplication above the threshold."""
         result = run_resolved(
-            ["npx", "jscpd", "."],
+            [
+                "npx",
+                "jscpd",
+                "--format",
+                "python",
+                "--min-tokens",
+                "50",
+                "--threshold",
+                "3",
+                "--ignore",
+                "**/.venv/**,**/typings/**",
+                ".",
+            ],
             capture_output=True,
             text=True,
         )
@@ -49,6 +61,19 @@ class TestPyright:
         """Fail if Pyright reports any type-checking violations."""
         result = run_resolved(
             ["poetry", "run", "pyright"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestSemgrep:
+    """Ensure the codebase passes the current Semgrep architecture gate."""
+
+    def test_semgrep(self):
+        """Fail if Semgrep reports any architecture or process violations."""
+        result = run_resolved(
+            ["poetry", "run", "semgrep", "scan", "--config", ".semgrep.yml", "--error"],
             capture_output=True,
             text=True,
         )
