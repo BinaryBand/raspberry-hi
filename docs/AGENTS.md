@@ -187,9 +187,9 @@ Edit with `make vault-edit`. Bootstrap with `make bootstrap`.
 | Don't | Why |
 | --- | --- |
 | Run `ansible-playbook` from `ANSIBLE_DIR` | Relative SSH key paths in `host_vars` resolve against CWD — they break from `ansible/` |
-| Set `minio_require_external_mount: false` in role defaults | This is a per-host opt-out; it belongs in `host_vars` so it's explicit and auditable |
+| Assume MinIO requires external storage | MinIO only requires a persistent `minio_data_path`; the storage medium is an operator choice |
 | Use `ansible_*` top-level facts | Deprecated since ansible-core 2.20; use `ansible_facts['key']` instead |
-| Remove `RequiresMountsFor` from the quadlet | Without it, MinIO starts before the external drive is mounted on slow boots |
+| Treat `make mount` as mandatory for MinIO | It is an optional helper for preparing external storage, not a hard requirement for the app |
 
 ---
 

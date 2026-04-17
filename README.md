@@ -72,7 +72,7 @@ make site
 Installs and configures everything on the Pi. Subsequent runs need no extra steps —
 the vault password file handles decryption automatically.
 
-To mount external storage on the Pi before provisioning MinIO, run `make mount` first. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH.
+If you want to prepare external storage on the Pi, run `make mount`. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH. MinIO only requires a persistent `minio_data_path`; it does not require external media.
 
 ---
 
@@ -102,6 +102,8 @@ To mount external storage on the Pi before provisioning MinIO, run `make mount` 
 | `make vault-edit` | Edit existing encrypted secrets |
 | `make site` | Full provision: base → Podman → storage |
 | `make minio` | Provision MinIO (purely declarative — reads credentials from vault, data path from `host_vars`) |
+| `make postgres` | Provision PostgreSQL for Baikal (reads credentials from vault and data path from `host_vars`) |
+| `make baikal` | Provision Baikal (runs PostgreSQL preflight first because Baikal depends on it) |
 | `make mount` | Interactively mount external storage |
 
 ### Operations

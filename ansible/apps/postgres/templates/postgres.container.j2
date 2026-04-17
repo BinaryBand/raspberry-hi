@@ -1,0 +1,17 @@
+[Unit]
+Description=PostgreSQL Database
+After=network.target
+
+[Container]
+Image={{ postgres_image }}
+PublishPort={{ postgres_port }}:5432
+Volume={{ postgres_data_path }}:/var/lib/postgresql/data
+EnvironmentFile={{ app_user_home }}/.config/postgres/postgres.env
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

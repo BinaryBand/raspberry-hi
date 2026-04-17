@@ -28,6 +28,11 @@
     - role: minio
       tags: [apps, minio]
 
+    # Run `make postgres` to provision PostgreSQL independently.
+    # It is also tagged with baikal because Baikal depends on it.
+    - role: postgres
+      tags: [apps, postgres, baikal]
+
     # Run `make baikal` to provision or re-provision Baikal independently.
     - role: baikal
       tags: [apps, baikal]

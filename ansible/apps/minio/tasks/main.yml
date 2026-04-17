@@ -5,8 +5,7 @@
     fail_msg: >-
       minio_data_path is not set for '{{ inventory_hostname }}'.
       Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        minio_data_path: /mnt/<your-mount>/minio
-      Then run `make mount` first if the mount does not exist yet.
+        minio_data_path: /srv/minio/data
 
 # 1. Directories: data path + app config.
 - name: Ensure MinIO data directory exists
@@ -66,7 +65,6 @@
     svc_name: "{{ minio_service_name }}"
     svc_user: "{{ ansible_user }}"
     svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"
-    svc_requires_mount: "{{ minio_data_path }}"
 
 # 4. Post-deployment: ensure mc is present then configure bucket and policy.
 - name: Setup MinIO buckets and public policy

@@ -1,0 +1,20 @@
+---
+- name: restart postgres (systemd)
+  listen: restart postgres
+  ansible.builtin.systemd:
+    name: "{{ postgres_service_name }}"
+    scope: user
+    state: restarted
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend == 'systemd'
+
+- name: restart postgres (script)
+  listen: restart postgres
+  ansible.builtin.command: "{{ app_user_home }}/bin/run-postgres.sh"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: service_adapter_backend != 'systemd'

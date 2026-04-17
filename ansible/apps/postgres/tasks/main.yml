@@ -1,0 +1,64 @@
+---
+- name: Assert postgres_data_path is set
+  ansible.builtin.assert:
+    that: postgres_data_path is not none
+    fail_msg: >-
+      postgres_data_path is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        postgres_data_path: /srv/postgres/data
+
+- name: Ensure PostgreSQL data directory exists
+  ansible.builtin.file:
+    path: "{{ postgres_data_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+  become: true
+
+- name: Ensure PostgreSQL config directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/postgres"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+  become: true
+
+- name: Write PostgreSQL environment file
+  ansible.builtin.template:
+    src: postgres.env.j2
+    dest: "{{ app_user_home }}/.config/postgres/postgres.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  notify: restart postgres
+  no_log: true
+
+- name: Ensure Podman quadlet directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
+- name: Install PostgreSQL Podman quadlet
+  ansible.builtin.template:
+    src: postgres.container.j2
+    dest: "{{ app_user_home }}/.config/containers/systemd/postgres.container"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart postgres
+
+- name: Register PostgreSQL with service_adapter
+  ansible.builtin.import_role:
+    name: service_adapter
+  vars:
+    svc_name: "{{ postgres_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-postgres.sh"

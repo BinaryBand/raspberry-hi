@@ -85,11 +85,51 @@ before Ansible or Fabric reaches a deeper failure mode.
 
 ---
 
+## App Dependency Policy
+
+Application roles may depend on other application roles when the dependent service is
+part of the same declared stack and is provisioned by this repository.
+
+- **Dependencies must be explicit.** If one app requires another, that relationship
+  belongs in role metadata rather than in operator memory or README-only sequencing.
+- **The dependency remains declarative.** The consumer app declares what it needs;
+  Ansible resolves ordering through role metadata and playbook tags.
+- **Operator entry points should still exist.** A dependency may be provisioned on its
+  own with a dedicated `make` target even when another app pulls it in transitively.
+
+The current example is Baikal depending on PostgreSQL:
+
+- [ansible/apps/baikal/meta/main.yml](ansible/apps/baikal/meta/main.yml) declares the
+  dependency on the `postgres` app role.
+- [ansible/site.yml](ansible/site.yml) tags both roles so `make postgres` works as an
+  explicit operator action and `make baikal` still includes the database path.
+
+This pattern is reserved for services that are part of the same repo-owned stack. It
+should not be used to hide external infrastructure assumptions.
+
+---
+
+## Storage Policy
+
+Application data paths must be explicitly declared, but the repository does not
+mandate a specific storage medium.
+
+- **Persistence is required.** App data should live at a declared path that survives
+  container restarts and reprovisioning.
+- **The medium is an operator choice.** A path may live on the root filesystem, an
+  external drive, or any other storage the operator considers appropriate.
+- **Mount workflows are optional helpers.** `make mount` exists to help prepare
+  external storage, but app roles must not assume that external media is mandatory.
+
+The governing rule is that Ansible owns the declared path, not the storage medium.
+
+---
+
 ## Repository Shape
 
 ```text
 ansible/
-  apps/            ← declarative roles (minio, baikal, …)
+  apps/            ← declarative roles (minio, postgres, baikal, …)
   roles/           ← declarative roles (storage, podman, auto-updates, …)
   inventory/
     hosts.ini
@@ -114,5 +154,6 @@ models/
 ```
 
 The governing rule is simple: Ansible declares and converges durable state; Python
-assists through narrow operational seams. The two may share models and files, but they
-must not compete for ownership of the system's intended state.
+assists through narrow operational seams. App-to-app dependencies may exist when they
+remain explicit and repo-owned, but the system must still have a single declarative
+source of truth.

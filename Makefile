@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio _vault_check _minio_preflight _baikal_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio postgres _vault_check _minio_preflight _baikal_preflight _postgres_preflight
 
 
 help:
@@ -46,6 +46,7 @@ help:
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
 	@echo "  site          Provision a device (HOST=rpi|rpi2|debian)"
 	@echo "  minio         Setup MinIO storage"
+	@echo "  postgres      Setup PostgreSQL for Baikal"
 	@echo "  baikal        Provision Baikal CalDAV/CardDAV server"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
@@ -109,13 +110,19 @@ mount: _vault_check
 _minio_preflight: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/preflight.py minio
 
+_postgres_preflight: _vault_check
+	HOST=$(HOST) poetry run python ./scripts/preflight.py postgres
+
 _baikal_preflight: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/preflight.py baikal
 
 minio: _minio_preflight
 	$(ANSIBLE_PLAY) --tags minio
 
-baikal: _baikal_preflight
+postgres: _postgres_preflight
+	$(ANSIBLE_PLAY) --tags postgres
+
+baikal: _postgres_preflight _baikal_preflight
 	$(ANSIBLE_PLAY) --tags baikal
 
 status:

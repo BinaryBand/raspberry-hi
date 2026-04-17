@@ -1,5 +1,5 @@
 var_hints:
-  minio_data_path: "storage path for MinIO data — run 'make mount' first if not yet mounted"
+  minio_data_path: "persistent path for MinIO data"
 
 vault_secrets:
   - key: minio_root_user
