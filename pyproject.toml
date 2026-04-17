@@ -42,10 +42,6 @@ addopts = "-m 'not e2e'"
 [tool.poetry]
 package-mode = false
 
-[tool.pyright]
-stubPath = "typings"
-typeCheckingMode = "basic"
-
 [tool.ruff]
 target-version = "py312"
 line-length = 100

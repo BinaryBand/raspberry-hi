@@ -47,3 +47,103 @@ rules:
       - pattern-either:
           - pattern: $F(["ansible-playbook", ...], ...)
           - pattern: $F(("ansible-playbook", ...), ...)
+
+  - id: python-must-not-run-ansible-runner
+    message: Python may assist with setup and validation, but ansible-runner orchestration is not part of this repo's current architecture.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-runner", ...], ...)
+          - pattern: $F(("ansible-runner", ...), ...)
+
+  - id: python-must-not-run-raw-ansible-outside-check
+    message: Raw ansible CLI usage is reserved for scripts/check.py reachability checks.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/check.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible", ...], ...)
+          - pattern: $F(("ansible", ...), ...)
+          - pattern: resolve_executable("ansible")
+
+  - id: python-ansible-vault-only-in-bootstrap
+    message: ansible-vault access is reserved for scripts/bootstrap.py.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/bootstrap.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-vault", ...], ...)
+          - pattern: $F(("ansible-vault", ...), ...)
+          - pattern: resolve_executable("ansible-vault")
+
+  - id: python-ansible-inventory-only-in-ansible-utils
+    message: ansible-inventory access is reserved for scripts/utils/ansible_utils.py.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/utils/ansible_utils.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-inventory", ...], ...)
+          - pattern: $F(("ansible-inventory", ...), ...)
+          - pattern: resolve_executable("ansible-inventory")
+
+  - id: python-sys-path-insert-only-in-mount
+    message: sys.path.insert is a temporary escape hatch and is only allowed in scripts/mount.py.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/mount.py
+    pattern: sys.path.insert(...)
+
+  - id: host-vars-no-inline-secret-keys
+    message: host_vars must not store secret-like keys or app credentials; keep secrets in group_vars/all/vault.yml.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|minio_root_password)\s*:'
+
+  - id: host-vars-become-password-must-use-vault-template
+    message: ansible_become_password in host_vars must use the shared become_passwords vault lookup.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    patterns:
+      - pattern-regex: '(?m)^\s*ansible_become_password\s*:'
+      - pattern-not-regex: "(?m)^\\s*ansible_become_password\\s*:\\s*\"\\{\\{ \\(become_passwords \\| default\\(\\{\\}\\)\\)\\.get\\(inventory_hostname, ''\\) \\}\\}\"\\s*$"

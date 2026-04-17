@@ -1,27 +1,29 @@
-# Architecture: Declarative Ansible + Standalone Python Scripts
+# Architecture: Declarative Ansible + Standalone Python
 
-## Goal
+## Constitutional Rule
 
-Keep Ansible and Python cleanly separated with no overlap:
+This repository separates durable declared state from interactive operational tooling.
 
-- **Ansible** is the single provisioning driver. It is purely declarative — it reads
-  state from `host_vars/` and the vault, and converges the Pi toward that state. It
-  never calls Python scripts, and Python scripts never call Ansible.
-- **Python scripts** handle interactive, one-shot operations (vault bootstrap, storage
-  mounting) that are unsuitable for a declarative model. They connect directly to the
-  Pi via Fabric and read connection details from the Ansible inventory/vault — they
-  do not invoke Ansible at all.
+- **Ansible** is the sole provisioning driver. It reads declared state from inventory
+  and the vault, and converges the host toward that state.
+- **Python** exists to support interactive, one-shot, or pre-flight operations that do
+  not fit a declarative playbook model.
+- **Ansible-owned state remains authoritative.** Python may read it, validate it, and
+  update it through narrow seams, but Python must not become a second persistent source
+  of truth.
+- **The boundary is intentional.** Ansible does not call Python entry points to decide
+  declared state, and Python does not orchestrate playbook execution.
 
 ---
 
-## Secrets — Ansible vault
+## Secret Policy
 
-Secrets live in `ansible/group_vars/all/vault.yml`, encrypted with Ansible Vault.
+Durable secrets live in [ansible/group_vars/all/vault.yml](ansible/group_vars/all/vault.yml), encrypted with Ansible Vault.
 
-The vault model (`models/services/vault.py`) holds:
+The vault model in [models/services/vault.py](models/services/vault.py) holds:
 
-- Static app credentials (`minio_root_user`, `minio_root_password`)
-- A `become_passwords` dict keyed by inventory hostname:
+- Static app credentials such as `minio_root_user` and `minio_root_password`
+- A `become_passwords` mapping keyed by inventory hostname:
 
   ```yaml
   become_passwords:
@@ -29,61 +31,61 @@ The vault model (`models/services/vault.py`) holds:
     rpi2: "..."
   ```
 
-Each `host_vars/<hostname>.yml` references the dict dynamically:
+Each host inventory file references that mapping dynamically:
 
 ```yaml
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 ```
 
-Adding a new host only requires a new entry in `become_passwords` — no model changes,
-no new vault keys, no template changes.
+This rule keeps sudo credentials centralized, auditable, and detached from per-host
+inventory files. Adding a new host requires a new `become_passwords` entry, not a new
+vault schema or a new secret location.
 
-`ansible/site.yml` has an `always`-tagged pre-task that asserts the current host has
-an entry in `become_passwords`, so provisioning fails fast with a clear message rather
-than a cryptic template error.
-
----
-
-## Python entry points
-
-### `scripts/bootstrap.py`
-
-First-time setup. Reads `hosts.ini` directly with `configparser` (no Ansible required),
-prompts for app credentials and per-host sudo passwords, and writes the encrypted vault
-file. Also handles migration of any legacy per-host vault keys (`rpi_become_password`,
-etc.) into the `become_passwords` dict.
-
-### `scripts/check.py`
-
-Pre-flight validation. Verifies the vault password file exists, decrypts the vault,
-checks all required secrets and `become_passwords` entries are populated, and pings
-the Pi. Supports `--vault-only` mode (skips Python/Ansible/Node/ping checks) for use
-as a fast Makefile prerequisite.
-
-### `scripts/mount.py`
-
-Interactive storage mounting. Reads connection details from `inventory_host_vars()`,
-reads the become password from the vault, opens a Fabric connection, and presents a
-TUI to pick and mount a block device. Writes an `fstab` entry for persistence.
-No Ansible involvement — a pure Python/Fabric/SSH operation.
+[ansible/site.yml](ansible/site.yml) includes an always-on assertion that the current
+host has a `become_passwords` entry. The policy is that provisioning should fail early
+with a clear inventory or vault error, not later with a template failure.
 
 ---
 
-## Makefile integration
+## Python Entry Point Policy
 
-The `_vault_check` target runs `check.py --vault-only` and is a prerequisite for all
-provisioning and mount targets:
+### [scripts/bootstrap.py](scripts/bootstrap.py)
+
+This script owns first-time vault setup. It may read [ansible/inventory/hosts.ini](ansible/inventory/hosts.ini),
+prompt for credentials, and write the encrypted vault. It is the approved seam for
+vault creation, vault migration, and durable secret updates.
+
+### [scripts/check.py](scripts/check.py)
+
+This script owns pre-flight validation. It may verify local prerequisites, decrypt the
+vault, assert required secret completeness, and perform a minimal reachability check.
+Its role is validation, not provisioning.
+
+### [scripts/mount.py](scripts/mount.py)
+
+This script owns interactive storage mounting. It may read inventory and vault data,
+open a Fabric session, and make direct remote changes that are operational rather than
+declarative. Its role is to perform one-shot storage work without turning Ansible into
+an interactive shell.
+
+---
+
+## Makefile Policy
+
+The Makefile remains the operator-facing entry point. The `_vault_check` target runs
+[scripts/check.py](scripts/check.py) in `--vault-only` mode before provisioning or mount
+targets:
 
 ```makefile
 site minio baikal mount: _vault_check
 ```
 
-This ensures secrets are present before Ansible or Fabric tries to use them, producing
-a helpful error message at the Make level rather than deep inside a playbook or script.
+The policy is that missing prerequisites should be rejected at the edge of the workflow,
+before Ansible or Fabric reaches a deeper failure mode.
 
 ---
 
-## Resulting shape
+## Repository Shape
 
 ```text
 ansible/
@@ -111,5 +113,6 @@ models/
   system/              ← BlockDevice, MountInfo data models
 ```
 
-Ansible is the provisioning driver. Python is the interactive toolbox. Neither calls
-the other.
+The governing rule is simple: Ansible declares and converges durable state; Python
+assists through narrow operational seams. The two may share models and files, but they
+must not compete for ownership of the system's intended state.
