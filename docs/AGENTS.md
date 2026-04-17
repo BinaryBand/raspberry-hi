@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provision and manage a Raspberry Pi media server using Ansible and Python. The primary service is MinIO object storage, running in a rootless Podman container backed by an external USB drive. Baikal provides CalDAV/CardDAV for calendar and contact sync.
+Provision and manage a Raspberry Pi media server using Ansible and Python. The main services are MinIO object storage and Baikal CalDAV/CardDAV, both running as rootless Podman containers.
 
 **Scope:** Infrastructure provisioning, storage configuration, and secret management.
 **Out of scope:** Application-level MinIO configuration, rclone restore workflows (see `docs/.notes.md`).
@@ -16,13 +16,12 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The p
 | Term | Meaning |
 | --- | --- |
 | `HOST` | Alias for the target Pi (`rpi` or `rpi2`). Defaults to `rpi`. Pass as `HOST=rpi2 make site`. |
-| `minio_data_path` | Filesystem path on the Pi where MinIO stores data. Must be on external storage. |
-| `minio_require_external_mount` | Boolean role default. If `true`, `make minio` aborts unless `minio_data_path` is on a non-root mount. |
+| `minio_data_path` | Filesystem path on the Pi where MinIO stores data. It must be persistent, but the storage medium is up to the operator. |
 | `app_user_home` | Home directory for `ansible_user` on the target host. Defined in `group_vars/all/vars.yml`. Used by app roles for config and quadlet paths. |
 | `service_adapter_backend` | Init system adapter used by app roles. Auto-detected from `ansible_facts['service_mgr']`; override in `host_vars` (`systemd`, `cron`, `manual`). |
 | `mc_install_method` | How mc is installed in the minio app. Set in `mc_adapter/defaults/main.yml` (`binary`, `package`, `skip`). |
 | `quadlet` | A systemd `.container` unit file that Podman uses to manage containers as services. |
-| `vault` | An Ansible Vault-encrypted YAML file (`ansible/group_vars/all/vault.yml`) storing MinIO credentials. |
+| `vault` | An Ansible Vault-encrypted YAML file (`ansible/group_vars/all/vault.yml`) storing durable app credentials and other secrets. |
 | `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/`. Override role defaults for a specific Pi. |
 
 ---
@@ -33,6 +32,7 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The p
 ansible/                  Playbooks and roles
   apps/
     minio/                MinIO object storage container (Linux only, tagged minio)
+    postgres/             PostgreSQL database for Baikal (Linux only, tagged postgres)
     baikal/               Baikal CalDAV/CardDAV server (Linux only, tagged baikal)
   roles/
     auto-updates/         Unattended security upgrades (apt/dnf/zypper/apk/pacman)
@@ -44,7 +44,7 @@ ansible/                  Playbooks and roles
     hosts.ini             Pi host aliases and IP addresses
     host_vars/rpi.yml     Per-host settings (ansible_user, minio_data_path, etc.)
   group_vars/all/
-    vault.yml             Encrypted MinIO credentials
+    vault.yml             Encrypted app credentials and other secrets
 
 models/                   Pydantic models for typed data shared across scripts
   system/
@@ -65,12 +65,6 @@ scripts/
     storage_flows.py      interactive TUI flows for picking/mounting storage
   bootstrap.py            make bootstrap — first-time vault + credential setup
   check.py                make check    — validates prerequisites
-
-ansible/
-  library/                Custom Ansible modules, executed via delegate_to: localhost
-    pick_device.py        make mount helper — interactive device picker
-    minio_preflight.py    make minio helper — ensures minio_data_path is on
-                          external storage; updates host_vars when needed
 
 tests/
   test_models.py          Unit tests for Pydantic model validation
@@ -158,18 +152,22 @@ make site                         # provisions base stack (skips all app roles)
 
 make minio                        # configure storage and provision MinIO
   └─ ansible-playbook site.yml --tags minio
-    └─ role: minio             # runs minio_preflight, then deploys quadlet and bucket setup
+       └─ role: minio             # deploys quadlet and bucket setup
+
+make postgres                     # provision PostgreSQL for Baikal
+  └─ ansible-playbook site.yml --tags postgres
+       └─ role: postgres          # deploys the database service for Baikal
 
 make baikal                       # provision Baikal CalDAV/CardDAV
   └─ ansible-playbook site.yml --tags baikal
-       └─ role: baikal            # creates data dirs, deploys quadlet, enables service
+       └─ role: baikal            # depends on postgres, then deploys Baikal
 
 make mount                        # mount a drive without provisioning
-  └─ ansible-playbook mount_storage.yml
-    └─ pick_device             # interactive device picker when device= is omitted
+  └─ poetry run python scripts/mount.py
+       └─ interactive device picker over SSH
 ```
 
-App roles (under `ansible/apps/`) are tagged with both `apps` and their own name (e.g. `[apps, minio]`). This means `make site` skips all of them, while individual `make <app>` targets still work. Future apps follow the same pattern.
+App roles are tagged with both `apps` and their own name (for example `[apps, minio]`). `make site` skips them by default, while `make <app>` still works.
 
 ---
 

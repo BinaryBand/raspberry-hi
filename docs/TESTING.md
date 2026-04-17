@@ -1,8 +1,7 @@
 # Testing Architecture
 
 Tests are split into three independent tiers. Each tier can run without the
-tiers above it — you don't need a Pi to run the unit tests, and you don't need
-Docker to run the E2E tests.
+tiers above it.
 
 ```bash
 make test          →  unit + stub  (always safe, no infra)
@@ -15,19 +14,16 @@ make test-e2e      →  live Pi      (requires Pi reachable over SSH)
 ## Tier 1 — Unit & Stub (`tests/`)
 
 Fast tests that run in the local virtualenv with no external dependencies.
-They cover all Python logic: models and utility functions.
 
 **What's tested:**
 
 | File | Covers |
 | --- | --- |
 | `test_models.py` | Pydantic validation, defaults, and field constraints for the shared models |
-| `test_minio_preflight.py` | Host-vars persistence used by the MinIO preflight module |
 | `test_storage_utils.py` | Mount filtering, device classification, and SSH-stub variants of `get_real_mounts` / `get_block_devices` |
 | `test_storage_flows.py` | `parse_path_hints` (pure function; interactive flows are E2E territory) |
 
-SSH-dependent functions are tested with `FakeConnection` — a stub that returns
-pre-configured JSON without opening a socket.
+SSH-dependent functions use `FakeConnection`, which returns canned JSON without opening a socket.
 
 ### Framework vs tests
 
@@ -41,17 +37,15 @@ tests/support/
   builders.py      mnt(), disk(), partition() factory functions
 ```
 
-`tests/conftest.py` is a thin adapter: it declares pytest fixtures that wrap
-`support/`, nothing more. This keeps framework code reusable and the fixture
-file easy to scan.
+`tests/conftest.py` is a thin adapter over `support/`.
 
 ---
 
 ## Tier 2 — Role Tests (`make test-roles`)
 
 Ansible roles are tested with [Molecule](https://molecule.readthedocs.io).
-Molecule creates an ephemeral Docker container, converges the role against it,
-runs a verify playbook, then destroys the container.
+Molecule creates an ephemeral Docker container, converges the role, runs a
+verify playbook, then destroys the container.
 
 Currently configured for the `storage` role
 (`ansible/roles/storage/molecule/default/`):
@@ -60,23 +54,18 @@ Currently configured for the `storage` role
 - **verify.yml** — uses `ansible.builtin.stat` to assert the directory exists,
   is mode `0750`, and is owned by `root`
 
-The Docker image (`geerlingguy/docker-debian12-ansible`) matches the Raspberry
-Pi's Debian base and has Ansible pre-installed, so no setup tasks are needed in
-converge.
+The Docker image (`geerlingguy/docker-debian12-ansible`) matches the Pi's Debian base.
 
-Roles that depend on systemd (minio, podman) cannot be fully tested this way
-without a systemd-capable container and belong in the E2E tier instead.
+Roles that depend on systemd (minio, podman) belong in the E2E tier instead.
 
 ---
 
 ## Tier 3 — E2E (`make test-e2e`)
 
 Tests in `tests/e2e/` run against a real Pi over SSH. They are tagged
-`@pytest.mark.e2e` and excluded from `make test` by default
-(`addopts = "-m 'not e2e'"` in `pyproject.toml`).
+`@pytest.mark.e2e` and excluded from `make test` by default.
 
-The `live_conn` fixture (defined in `tests/e2e/conftest.py`) reads `HOST` from
-the environment — the same convention used by the Makefile — and returns a live
+The `live_conn` fixture reads `HOST` from the environment and returns a live
 Fabric `Connection`:
 
 ```bash
@@ -85,8 +74,7 @@ HOST=rpi2 make test-e2e  # tests against rpi2
 ```
 
 Current E2E tests verify that `findmnt` and `lsblk` return plausible output
-from a real Pi: a root mount exists, all mounts have a source and fstype, and
-the SD card is correctly classified as a system device.
+from a real Pi.
 
 ---
 
