@@ -14,6 +14,7 @@ import io
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 from fabric import Config, Connection
 from utils.ansible_utils import ANSIBLE_DIR, ROOT, inventory_host_vars
@@ -26,7 +27,8 @@ def _become_password(hostname: str) -> str:
     from bootstrap import decrypt_vault_raw  # noqa: PLC0415
 
     raw = decrypt_vault_raw()
-    pwd = (raw.get("become_passwords") or {}).get(hostname, "")
+    become_passwords = cast(dict[str, str], raw.get("become_passwords") or {})
+    pwd = become_passwords.get(hostname, "")
     if not pwd:
         sys.exit(f"No become password in vault for '{hostname}'. Run: make bootstrap")
     return pwd

@@ -42,8 +42,10 @@ class FakeConnection:
         self,
         command: str,
         *,
-        hide: bool = False,
+        hide: bool | str = False,
         warn: bool = False,
+        echo: bool = False,
+        in_stream: object | None = None,
         **kwargs: object,
     ) -> FakeResult:
         """Stub for fabric.Connection.run()."""

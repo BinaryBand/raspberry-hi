@@ -13,6 +13,7 @@ import questionary
 from rich.console import Console
 
 from utils.storage_utils import (
+    RemoteConnection,
     display_devices,
     external_mounts,
     get_block_devices,
@@ -20,8 +21,6 @@ from utils.storage_utils import (
 )
 
 if TYPE_CHECKING:
-    from fabric import Connection
-
     from models import MountInfo
 
 console = Console()
@@ -53,7 +52,7 @@ def parse_path_hints(minio_data_path: str) -> tuple[str | None, str | None]:
 
 
 def flow_mount_new_device(
-    conn: Connection, label_hint: str | None = None
+    conn: RemoteConnection, label_hint: str | None = None
 ) -> tuple[str, str] | None:
     """List external block devices and prompt the user to select one.
 

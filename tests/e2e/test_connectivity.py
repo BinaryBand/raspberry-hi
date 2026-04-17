@@ -4,19 +4,20 @@ Run with: make test-e2e
 """
 
 import pytest
+from fabric import Connection
 
 from scripts.utils.storage_utils import get_block_devices, get_real_mounts
 
 
 @pytest.mark.e2e
-def test_root_mount_exists(live_conn):
+def test_root_mount_exists(live_conn: Connection) -> None:
     """Verify root mount is found in real system mounts."""
     mounts = get_real_mounts(live_conn)
     assert any(m.target == "/" for m in mounts), "No root mount found"
 
 
 @pytest.mark.e2e
-def test_real_mounts_have_source_and_fstype(live_conn):
+def test_real_mounts_have_source_and_fstype(live_conn: Connection) -> None:
     """Verify real mounts have source and fstype attributes."""
     mounts = get_real_mounts(live_conn)
     assert mounts, "findmnt returned no mounts"
@@ -26,7 +27,7 @@ def test_real_mounts_have_source_and_fstype(live_conn):
 
 
 @pytest.mark.e2e
-def test_block_devices_discoverable(live_conn):
+def test_block_devices_discoverable(live_conn: Connection) -> None:
     """Verify block devices are discoverable on the live system."""
     devices = get_block_devices(live_conn)
     assert devices, "lsblk returned no devices"
@@ -34,7 +35,7 @@ def test_block_devices_discoverable(live_conn):
 
 
 @pytest.mark.e2e
-def test_root_device_classified_as_system(live_conn):
+def test_root_device_classified_as_system(live_conn: Connection) -> None:
     """Verify the disk hosting the root filesystem is classified as a system device."""
     from scripts.utils.storage_utils import is_system_device
 

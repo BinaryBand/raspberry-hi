@@ -8,15 +8,36 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from fabric import Connection
-
     from models import BlockDevice, MountInfo
+
+
+class CommandResult(Protocol):
+    """Minimal result interface required from connection.run()."""
+
+    stdout: str
+    ok: bool
+
+
+class RemoteConnection(Protocol):
+    """Minimal connection interface required by storage helpers."""
+
+    def run(
+        self,
+        command: str,
+        *,
+        hide: bool | str = False,
+        warn: bool = False,
+        echo: bool = False,
+        in_stream: object | None = None,
+        **kwargs: object,
+    ) -> CommandResult: ...
+
 
 # Virtual/kernel filesystem prefixes - never user data.
 SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
@@ -59,7 +80,7 @@ console = Console()
 # ---------------------------------------------------------------------------
 
 
-def get_block_devices(conn: Connection) -> list[BlockDevice]:
+def get_block_devices(conn: RemoteConnection) -> list[BlockDevice]:
     """Return all block devices reported by lsblk on the remote host."""
     from models import BlockDevice
 
@@ -131,7 +152,7 @@ def display_devices(devices: list[BlockDevice]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_real_mounts(conn: Connection) -> list[MountInfo]:
+def get_real_mounts(conn: RemoteConnection) -> list[MountInfo]:
     """Return all real (non-virtual) mount points on the remote host."""
     from models import MountInfo
 
