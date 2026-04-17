@@ -1,9 +1,7 @@
 # 0. Guard: fail fast if required variables are not explicitly configured.
 - name: Assert minio_data_path is set
   ansible.builtin.assert:
-    that:
-      - minio_data_path is defined
-      - minio_data_path | length > 0
+    that: minio_data_path is not none
     fail_msg: >-
       minio_data_path is not set for '{{ inventory_hostname }}'.
       Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:

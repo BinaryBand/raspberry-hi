@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import yaml
+
 if TYPE_CHECKING:
     from fabric import Connection
 
@@ -14,6 +16,46 @@ if TYPE_CHECKING:
 # lib/ → scripts/ → project root
 ROOT = Path(__file__).resolve().parent.parent.parent
 ANSIBLE_DIR = ROOT / "ansible"
+
+
+# ---------------------------------------------------------------------------
+# Role introspection
+# ---------------------------------------------------------------------------
+
+
+def role_required_vars(role_path: Path) -> list[str]:
+    """Return variable names whose default is null (~) in a role's defaults/main.yml.
+
+    Null is the sentinel for "required — no default." Python reads this to know
+    what to prompt for; Ansible asserts the same vars are not none at runtime.
+    Neither side maintains its own list.
+    """
+    defaults_file = role_path / "defaults" / "main.yml"
+    if not defaults_file.exists():
+        return []
+    data = yaml.safe_load(defaults_file.read_text()) or {}
+    return [k for k, v in data.items() if v is None]
+
+
+def read_host_vars_raw(hostname: str) -> dict:
+    """Return the raw host_vars dict for *hostname*, or {} if the file is missing."""
+    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{hostname}.yml"
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text()) or {}
+
+
+def write_host_vars_raw(hostname: str, updates: dict) -> None:
+    """Merge *updates* into host_vars/<hostname>.yml, preserving comments and formatting."""
+    from ruamel.yaml import YAML
+
+    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{hostname}.yml"
+    ryaml = YAML()
+    ryaml.preserve_quotes = True
+    ryaml.width = 4096
+    data = ryaml.load(path) if path.exists() else {}
+    data.update(updates)
+    ryaml.dump(data, path)
 
 
 # ---------------------------------------------------------------------------
