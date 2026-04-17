@@ -1,4 +1,25 @@
-# 1. App-specific config: directories and credentials.
+# 0. Guard: fail fast if required variables are not explicitly configured.
+- name: Assert minio_data_path is set
+  ansible.builtin.assert:
+    that:
+      - minio_data_path is defined
+      - minio_data_path | length > 0
+    fail_msg: >-
+      minio_data_path is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        minio_data_path: /mnt/<your-mount>/minio
+      Then run `make mount` first if the mount does not exist yet.
+
+# 1. Directories: data path + app config.
+- name: Ensure MinIO data directory exists
+  ansible.builtin.file:
+    path: "{{ minio_data_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
+  become: true
+
 - name: Ensure MinIO config directory exists
   ansible.builtin.file:
     path: "{{ app_user_home }}/.config/minio"

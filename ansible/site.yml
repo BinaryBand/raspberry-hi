@@ -21,10 +21,6 @@
       tags: [podman]
       become: true
 
-    - role: storage
-      tags: [storage]
-      become: true
-
     # App roles live under ansible/apps/ and are excluded from `make site` by default.
     # They are tagged with both [apps] and their own name so they can be run individually.
 
