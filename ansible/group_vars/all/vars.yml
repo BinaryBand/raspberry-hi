@@ -1,6 +1,6 @@
 # Home directory for ansible_user — used by app roles for config and quadlet paths.
 # ansible_user_dir is a gathered fact set to the connecting user's actual home directory.
-app_user_home: "{{ ansible_user_dir }}"
+app_user_home: "{{ ansible_facts['user_dir'] }}"
 
 # Let Ansible detect the Python interpreter rather than pinning a version.
 ansible_python_interpreter: auto_silent

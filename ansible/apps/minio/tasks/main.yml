@@ -19,7 +19,16 @@
   notify: restart minio
   no_log: true
 
-# 2. Deploy container unit (app owns the template; service_adapter owns the directory).
+# 2. Deploy container unit.
+- name: Ensure Podman quadlet directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
 - name: Install MinIO Podman quadlet
   ansible.builtin.template:
     src: minio.container.j2

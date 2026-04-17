@@ -30,7 +30,16 @@
   register: _baikal_pull
   changed_when: "'Copying' in _baikal_pull.stdout"
 
-# 3. Deploy container unit (app owns the template; service_adapter owns the directory).
+# 3. Deploy container unit.
+- name: Ensure Podman quadlet directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
 - name: Install Baikal Podman quadlet
   ansible.builtin.template:
     src: baikal.container.j2
