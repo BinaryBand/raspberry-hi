@@ -22,7 +22,7 @@ baikal_base_uri: ""
 baikal_invite_from: noreply@localhost
 
 baikal_db_backend: pgsql
-baikal_db_host: "host.containers.internal:{{ postgres_port }}"
+baikal_db_host: "{{ postgres_service_name }}"
 baikal_db_name: "{{ postgres_database }}"
 baikal_db_user: "{{ postgres_user }}"
 baikal_db_password: "{{ postgres_password }}"

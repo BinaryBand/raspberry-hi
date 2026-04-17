@@ -6,7 +6,6 @@ Usage:
   poetry run python scripts/check.py --vault-only  fast vault-only check (Makefile prereq)
 """
 
-import subprocess
 import sys
 
 from utils.ansible_utils import ANSIBLE_DIR
@@ -119,7 +118,7 @@ def main() -> None:
             timeout=30,
         )
         pi_ok = ping.returncode == 0
-    except subprocess.TimeoutExpired:
+    except any:
         pi_ok = False
     all_ok &= check(
         "Host reachable",

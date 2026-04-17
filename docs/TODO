@@ -25,6 +25,7 @@
 ## Features -
 
 - [ ] Add prompts for some default vars (Ansible -> Python).
+- [ ] Centralize volume directory.
 - [ ] Create a backup and restore plan.
 - [ ] Add app clean-up protocol.
 - [ ] Setup reverse-proxy management.

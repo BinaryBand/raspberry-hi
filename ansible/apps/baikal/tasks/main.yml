@@ -173,6 +173,20 @@
   when: _baikal_schema_check.stdout | trim != 't'
   no_log: true
 
+- name: Disable Baikal install tool after declarative provisioning
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - sh
+      - -c
+      - >-
+        touch {{ baikal_data_path }}/INSTALL_DISABLED &&
+        chown {{ baikal_runtime_uid }}:{{ baikal_runtime_gid }} {{ baikal_data_path }}/INSTALL_DISABLED
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+
 # 3. Deploy container unit.
 - name: Ensure Podman quadlet directory exists
   ansible.builtin.file:

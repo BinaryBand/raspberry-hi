@@ -7,7 +7,14 @@ postgres_port: 5432
 postgres_database: baikal
 postgres_user: baikal
 postgres_service_name: postgres
+postgres_hba_host_path: "{{ app_user_home }}/.config/postgres/pg_hba.conf"
+postgres_hba_container_path: /etc/postgresql/pg_hba.conf
 
 # UID/GID of the postgres user inside the official postgres alpine image.
 postgres_runtime_uid: 70
 postgres_runtime_gid: 70
+
+# Podman named network for container-to-container communication.
+# Consumers (e.g. baikal) join this network to reach postgres by name.
+postgres_network_name: postgres
+postgres_network_subnet: 10.89.1.0/24

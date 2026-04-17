@@ -54,30 +54,14 @@
     mode: "0700"
   become: true
 
-- name: Check whether pg_hba.conf exists
-  ansible.builtin.stat:
-    path: "{{ postgres_data_path }}/pg_hba.conf"
+- name: Install PostgreSQL pg_hba.conf
+  ansible.builtin.template:
+    src: postgres.hba.conf.j2
+    dest: "{{ postgres_hba_host_path }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
   become: true
-  register: _postgres_hba
-
-- name: Allow password auth from the host's own addresses
-  ansible.builtin.lineinfile:
-    path: "{{ postgres_data_path }}/pg_hba.conf"
-    regexp: '^host\s+all\s+all\s+samehost\s+'
-    line: 'host    all             all             samehost                scram-sha-256'
-    insertafter: EOF
-  become: true
-  when: _postgres_hba.stat.exists
-  notify: restart postgres
-
-- name: Allow password auth from rootless Podman host access network
-  ansible.builtin.lineinfile:
-    path: "{{ postgres_data_path }}/pg_hba.conf"
-    regexp: '^host\s+all\s+all\s+169\.254\.0\.0/16\s+'
-    line: 'host    all             all             169.254.0.0/16         scram-sha-256'
-    insertafter: EOF
-  become: true
-  when: _postgres_hba.stat.exists
   notify: restart postgres
 
 - name: Write PostgreSQL environment file
@@ -99,6 +83,16 @@
     group: "{{ ansible_user }}"
     mode: "0755"
   become: true
+
+- name: Install PostgreSQL Podman network quadlet
+  ansible.builtin.template:
+    src: postgres.network.j2
+    dest: "{{ app_user_home }}/.config/containers/systemd/{{ postgres_network_name }}.network"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart postgres
 
 - name: Install PostgreSQL Podman quadlet
   ansible.builtin.template:
