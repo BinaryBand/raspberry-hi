@@ -19,7 +19,6 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The m
 | `minio_data_path` | Filesystem path on the Pi where MinIO stores data. It must be persistent, but the storage medium is up to the operator. |
 | `app_user_home` | Home directory for `ansible_user` on the target host. Defined in `group_vars/all/vars.yml`. Used by app roles for config and quadlet paths. |
 | `service_adapter_backend` | Init system adapter used by app roles. Auto-detected from `ansible_facts['service_mgr']`; override in `host_vars` (`systemd`, `cron`, `manual`). |
-| `mc_install_method` | How mc is installed in the minio app. Set in `mc_adapter/defaults/main.yml` (`binary`, `package`, `skip`). |
 | `quadlet` | A systemd `.container` unit file that Podman uses to manage containers as services. |
 | `vault` | An Ansible Vault-encrypted YAML file (`ansible/group_vars/all/vault.yml`) storing durable app credentials and other secrets. |
 | `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/`. Override role defaults for a specific Pi. |
@@ -37,9 +36,7 @@ ansible/                  Playbooks and roles
   roles/
     auto-updates/         Unattended security upgrades (apt/dnf/zypper/apk/pacman)
     podman/               Rootless container runtime (apt/dnf)
-    storage/              Creates the minio_data_path directory
     service_adapter/      Port: service lifecycle management (systemd/cron/manual)
-    mc_adapter/           Port: MinIO client installation (binary/package/skip)
   inventory/
     hosts.ini             Pi host aliases and IP addresses
     host_vars/rpi.yml     Per-host settings (ansible_user, minio_data_path, etc.)
@@ -53,7 +50,7 @@ models/                   Pydantic models for typed data shared across scripts
   ansible/
     hostvars.py           HostVars      — ansible-inventory output
   services/
-    vault.py              VaultSecrets  — MinIO credentials
+    vault.py              VaultSecrets  — App credentials and other secrets
   __init__.py             Re-exports all models — import sites use `from models import X`
 
 scripts/
@@ -115,7 +112,7 @@ Add new models to `models/` and export from `models/__init__.py`.
 - `rpi`  — 192.168.0.33 (default)
 - `rpi2` — 192.168.0.35
 
-All make targets accept `HOST=rpi2 make <target>`. Python scripts read it via `os.environ.get("HOST", "rpi")`.
+All make targets accept `HOST=rpi2 make <target>`.
 
 ### Platform constraints
 
@@ -123,7 +120,6 @@ All make targets accept `HOST=rpi2 make <target>`. Python scripts read it via `o
 | --- | --- | --- |
 | Package manager | `auto-updates`, `podman` roles | Assert/skip with message (controlled by `*_fail_on_unsupported`) |
 | Service backend | `service_adapter` role | Assert if `service_adapter_backend` not in supported list; auto-detected from facts |
-| Linux (`/proc`, `/sys` paths) | `storage` role, storage scripts | Implicit — no guard, will fail at runtime |
 
 **Service backends:** App roles (`minio`, `baikal`) are decoupled from init-system details via `service_adapter`. The backend is auto-detected from `ansible_facts['service_mgr']` but can be overridden in `host_vars`:
 
@@ -137,7 +133,7 @@ For OpenRC/runit targets: set `service_adapter_backend: manual`, wire the deploy
 
 Always use `ansible_facts['key']` instead of top-level `ansible_*` variables.
 Example: `ansible_facts['pkg_mgr']`, not `ansible_pkg_mgr`.
-The top-level form triggers deprecation warnings in ansible-core ≥ 2.20.
+The top-level form triggers deprecation warnings.
 
 ---
 
@@ -147,8 +143,7 @@ The top-level form triggers deprecation warnings in ansible-core ≥ 2.20.
 make site                         # provisions base stack (skips all app roles)
   └─ ansible-playbook site.yml --skip-tags apps
        ├─ role: auto-updates
-       ├─ role: podman
-       └─ role: storage           # creates minio_data_path directory
+       └─ role: podman
 
 make minio                        # configure storage and provision MinIO
   └─ ansible-playbook site.yml --tags minio

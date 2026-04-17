@@ -1,11 +1,10 @@
 # Testing Architecture
 
-Tests are split into three independent tiers. Each tier can run without the
+Tests are split into two independent tiers. Each tier can run without the
 tiers above it.
 
 ```bash
 make test          →  unit + stub  (always safe, no infra)
-make test-roles    →  Molecule     (requires Docker)
 make test-e2e      →  live Pi      (requires Pi reachable over SSH)
 ```
 
@@ -41,26 +40,7 @@ tests/support/
 
 ---
 
-## Tier 2 — Role Tests (`make test-roles`)
-
-Ansible roles are tested with [Molecule](https://molecule.readthedocs.io).
-Molecule creates an ephemeral Docker container, converges the role, runs a
-verify playbook, then destroys the container.
-
-Currently configured for the `storage` role
-(`ansible/roles/storage/molecule/default/`):
-
-- **converge.yml** — runs the role with `minio_data_path: /tmp/minio-test/data`
-- **verify.yml** — uses `ansible.builtin.stat` to assert the directory exists,
-  is mode `0750`, and is owned by `root`
-
-The Docker image (`geerlingguy/docker-debian12-ansible`) matches the Pi's Debian base.
-
-Roles that depend on systemd (minio, podman) belong in the E2E tier instead.
-
----
-
-## Tier 3 — E2E (`make test-e2e`)
+## Tier 2 — E2E (`make test-e2e`)
 
 Tests in `tests/e2e/` run against a real Pi over SSH. They are tagged
 `@pytest.mark.e2e` and excluded from `make test` by default.
@@ -85,5 +65,4 @@ from a real Pi.
 | A pure function or Pydantic model | `tests/test_*.py` |
 | A function that calls `conn.run()` | `tests/test_*.py` with `FakeConnection` |
 | A function that reads/writes files | `tests/test_*.py` with `tmp_path` + `monkeypatch` |
-| An Ansible role | `ansible/roles/<role>/molecule/default/` |
 | Full SSH behavior against real hardware | `tests/e2e/` with `@pytest.mark.e2e` |
