@@ -5,8 +5,8 @@ After=network.target
 [Container]
 Image={{ baikal_image }}
 PublishPort={{ baikal_port }}:80
-Volume={{ baikal_config_path }}:/var/www/baikal/config
-Volume={{ baikal_data_path }}:/var/www/baikal/Specific
+Volume={{ baikal_config_path }}:/var/www/baikal/config:U
+Volume={{ baikal_data_path }}:/var/www/baikal/Specific:U
 
 [Service]
 Restart=on-failure

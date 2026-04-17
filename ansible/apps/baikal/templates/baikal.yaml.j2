@@ -1,0 +1,20 @@
+system:
+  configured_version: {{ baikal_configured_version | to_json }}
+  timezone: {{ baikal_timezone | to_json }}
+  card_enabled: {{ baikal_card_enabled | to_json }}
+  cal_enabled: {{ baikal_cal_enabled | to_json }}
+  dav_auth_type: {{ baikal_dav_auth_type | to_json }}
+  admin_passwordhash: {{ ('admin:' ~ baikal_auth_realm ~ ':' ~ baikal_admin_password) | hash('sha256') | to_json }}
+  failed_access_message: {{ baikal_failed_access_message | to_json }}
+  auth_realm: {{ baikal_auth_realm | to_json }}
+  base_uri: {{ baikal_base_uri | to_json }}
+  invite_from: {{ baikal_invite_from | to_json }}
+
+database:
+  sqlite_file: {{ (baikal_data_path ~ '/db/db.sqlite') | to_json }}
+  backend: {{ baikal_db_backend | to_json }}
+  encryption_key: {{ baikal_encryption_key | to_json }}
+  pgsql_host: {{ baikal_db_host | to_json }}
+  pgsql_dbname: {{ baikal_db_name | to_json }}
+  pgsql_username: {{ baikal_db_user | to_json }}
+  pgsql_password: {{ baikal_db_password | to_json }}

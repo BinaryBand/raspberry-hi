@@ -1,3 +1,11 @@
 var_hints:
   baikal_config_path: "directory for Baikal config files and app settings"
   baikal_data_path: "directory for Baikal persistent data files"
+
+vault_secrets:
+  - key: baikal_admin_password
+    label: Baikal admin password
+    hidden: true
+  - key: baikal_encryption_key
+    label: Baikal encryption key (stable random string)
+    hidden: true

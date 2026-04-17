@@ -5,7 +5,7 @@ After=network.target
 [Container]
 Image={{ postgres_image }}
 PublishPort={{ postgres_port }}:5432
-Volume={{ postgres_data_path }}:/var/lib/postgresql/data
+Volume={{ postgres_data_path }}:/var/lib/postgresql/data:U
 EnvironmentFile={{ app_user_home }}/.config/postgres/postgres.env
 
 [Service]

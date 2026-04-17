@@ -11,4 +11,23 @@ baikal_port: 8088
 baikal_config_path: /srv/baikal/config
 baikal_data_path: /srv/baikal/data
 
+baikal_configured_version: "0.10.1"
+baikal_timezone: Europe/Paris
+baikal_card_enabled: true
+baikal_cal_enabled: true
+baikal_dav_auth_type: Digest
+baikal_failed_access_message: "user %u authentication failure for Baikal"
+baikal_auth_realm: BaikalDAV
+baikal_base_uri: ""
+baikal_invite_from: noreply@localhost
+
+baikal_db_backend: pgsql
+baikal_db_host: "host.containers.internal:{{ postgres_port }}"
+baikal_db_name: "{{ postgres_database }}"
+baikal_db_user: "{{ postgres_user }}"
+baikal_db_password: "{{ postgres_password }}"
+
+baikal_runtime_uid: 101
+baikal_runtime_gid: 101
+
 baikal_service_name: baikal

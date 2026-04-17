@@ -11,10 +11,36 @@
   ansible.builtin.file:
     path: "{{ postgres_data_path }}"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0700"
   become: true
+  become_user: "{{ ansible_user }}"
+
+- name: Check PostgreSQL data directory owner in podman user namespace
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - stat
+      - -c
+      - "%u"
+      - "{{ postgres_data_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _postgres_data_uid
+  changed_when: false
+
+- name: Fix PostgreSQL data directory ownership for rootless podman
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - chown
+      - -R
+      - "70:70"
+      - "{{ postgres_data_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _postgres_data_uid.stdout | trim != '70'
+  notify: restart postgres
 
 - name: Ensure PostgreSQL config directory exists
   ansible.builtin.file:
@@ -24,6 +50,32 @@
     group: "{{ ansible_user }}"
     mode: "0700"
   become: true
+
+- name: Check whether pg_hba.conf exists
+  ansible.builtin.stat:
+    path: "{{ postgres_data_path }}/pg_hba.conf"
+  become: true
+  register: _postgres_hba
+
+- name: Allow password auth from the host's own addresses
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_data_path }}/pg_hba.conf"
+    regexp: '^host\s+all\s+all\s+samehost\s+'
+    line: 'host    all             all             samehost                scram-sha-256'
+    insertafter: EOF
+  become: true
+  when: _postgres_hba.stat.exists
+  notify: restart postgres
+
+- name: Allow password auth from rootless Podman host access network
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_data_path }}/pg_hba.conf"
+    regexp: '^host\s+all\s+all\s+169\.254\.0\.0/16\s+'
+    line: 'host    all             all             169.254.0.0/16         scram-sha-256'
+    insertafter: EOF
+  become: true
+  when: _postgres_hba.stat.exists
+  notify: restart postgres
 
 - name: Write PostgreSQL environment file
   ansible.builtin.template:

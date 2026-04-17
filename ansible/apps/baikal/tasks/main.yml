@@ -18,6 +18,54 @@
     mode: "0750"
   become: true
 
+- name: Install Baikal application config
+  ansible.builtin.template:
+    src: baikal.yaml.j2
+    dest: "{{ baikal_config_path }}/baikal.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  notify: restart baikal
+  no_log: true
+
+- name: Check Baikal writable directory owners in podman user namespace
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - stat
+      - -c
+      - "%u:%g"
+      - "{{ item }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  loop:
+    - "{{ baikal_config_path }}"
+    - "{{ baikal_data_path }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _baikal_dir_owners
+  changed_when: false
+
+- name: Fix Baikal writable directory ownership for rootless podman
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - chown
+      - -R
+      - "{{ baikal_runtime_uid }}:{{ baikal_runtime_gid }}"
+      - "{{ baikal_dir_owner.item }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  loop: "{{ _baikal_dir_owners.results }}"
+  loop_control:
+    loop_var: baikal_dir_owner
+    label: "{{ baikal_dir_owner.item }}"
+  when: baikal_dir_owner.stdout | trim != (baikal_runtime_uid | string ~ ':' ~ baikal_runtime_gid | string)
+  notify: restart baikal
+
 # 2. Pre-pull the image to avoid systemd timing out on slow connections.
 - name: Pull Baikal container image
   ansible.builtin.command:
@@ -29,6 +77,99 @@
   become_user: "{{ ansible_user }}"
   register: _baikal_pull
   changed_when: "'Copying' in _baikal_pull.stdout"
+
+- name: Check whether Baikal PostgreSQL database exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - "PGPASSWORD={{ baikal_db_password }}"
+      - "{{ postgres_image }}"
+      - psql
+      - -tAc
+      - "SELECT 1 FROM pg_database WHERE datname='{{ baikal_db_name }}'"
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ baikal_db_user }}"
+      - -d
+      - postgres
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_database_check
+  changed_when: false
+  no_log: false
+
+- name: Create Baikal PostgreSQL database
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - "PGPASSWORD={{ baikal_db_password }}"
+      - "{{ postgres_image }}"
+      - createdb
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ baikal_db_user }}"
+      - "{{ baikal_db_name }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _baikal_database_check.stdout | trim != '1'
+  no_log: true
+
+- name: Check whether Baikal PostgreSQL schema exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - "PGPASSWORD={{ baikal_db_password }}"
+      - "{{ postgres_image }}"
+      - psql
+      - -tAc
+      - "SELECT to_regclass('public.users') IS NOT NULL"
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ baikal_db_user }}"
+      - -d
+      - "{{ baikal_db_name }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_schema_check
+  changed_when: false
+  no_log: false
+
+- name: Initialize Baikal PostgreSQL schema
+  ansible.builtin.shell: |
+    set -o pipefail
+    podman run --rm --entrypoint cat "{{ baikal_image }}" /var/www/baikal/Core/Resources/Db/PgSQL/db.sql | \
+      podman run --rm --network host -i -e PGPASSWORD="{{ baikal_db_password }}" "{{ postgres_image }}" \
+      psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "{{ postgres_port }}" -U "{{ baikal_db_user }}" -d "{{ baikal_db_name }}"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _baikal_schema_check.stdout | trim != 't'
+  no_log: true
 
 # 3. Deploy container unit.
 - name: Ensure Podman quadlet directory exists
