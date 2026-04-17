@@ -92,7 +92,7 @@ mount: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/mount.py
 
 _minio_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/minio_preflight.py
+	HOST=$(HOST) poetry run python ./scripts/preflight.py minio
 
 minio: _minio_preflight
 	$(ANSIBLE_PLAY) --tags minio
