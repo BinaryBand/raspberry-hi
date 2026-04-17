@@ -201,6 +201,7 @@ When asked to evaluate this project, score it 1–5 across the following dimensi
 | --- | --- |
 | **Portability** | Does the project handle multiple OS/architectures cleanly? Are there hard dependencies that limit where it can run? |
 | **Simplicity** | Is the project structure flat and navigable? Are responsibilities well-separated? Is complexity justified? |
+| **Maintainability** | Is the code modular enough to change one part without breaking others? Are dependencies pinned and upgradeable? Do tests catch regressions meaningfully? |
 | **Usability** | Is it easy for a new user to get started? Are commands discoverable? Is error handling helpful? |
 | **Best practice** | Are secrets, types, linting, and testing handled correctly? Does it follow conventions for its toolchain? |
 

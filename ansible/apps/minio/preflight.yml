@@ -1,0 +1,10 @@
+var_hints:
+  minio_data_path: "storage path for MinIO data — run 'make mount' first if not yet mounted"
+
+vault_secrets:
+  - key: minio_root_user
+    label: MinIO root username
+    hidden: false
+  - key: minio_root_password
+    label: MinIO root password
+    hidden: true
