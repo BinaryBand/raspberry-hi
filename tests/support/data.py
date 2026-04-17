@@ -4,9 +4,53 @@ These mirror the exact structure returned by lsblk -J and findmnt -J on a
 Raspberry Pi with one SD card (system) and one external USB drive.
 """
 
-from __future__ import annotations
-
 import json
+
+_SYSTEM_DISK = {
+    "name": "mmcblk0",
+    "size": "32G",
+    "type": "disk",
+    "mountpoint": None,
+    "label": None,
+    "fstype": None,
+    "children": [
+        {
+            "name": "mmcblk0p1",
+            "size": "500M",
+            "type": "part",
+            "mountpoint": "/boot/firmware",
+            "label": "bootfs",
+            "fstype": "vfat",
+        },
+        {
+            "name": "mmcblk0p2",
+            "size": "31G",
+            "type": "part",
+            "mountpoint": "/",
+            "label": "rootfs",
+            "fstype": "ext4",
+        },
+    ],
+}
+
+_USB_DISK = {
+    "name": "sda",
+    "size": "1T",
+    "type": "disk",
+    "mountpoint": None,
+    "label": None,
+    "fstype": None,
+    "children": [
+        {
+            "name": "sda1",
+            "size": "1T",
+            "type": "part",
+            "mountpoint": "/mnt/usb",
+            "label": "storage",
+            "fstype": "ext4",
+        },
+    ],
+}
 
 # findmnt -J -o TARGET,SOURCE,FSTYPE,SIZE --real
 FINDMNT_OUTPUT = json.dumps(
@@ -29,50 +73,10 @@ FINDMNT_OUTPUT = json.dumps(
 LSBLK_OUTPUT = json.dumps(
     {
         "blockdevices": [
-            {
-                "name": "mmcblk0",
-                "size": "32G",
-                "type": "disk",
-                "mountpoint": None,
-                "label": None,
-                "fstype": None,
-                "children": [
-                    {
-                        "name": "mmcblk0p1",
-                        "size": "500M",
-                        "type": "part",
-                        "mountpoint": "/boot/firmware",
-                        "label": "bootfs",
-                        "fstype": "vfat",
-                    },
-                    {
-                        "name": "mmcblk0p2",
-                        "size": "31G",
-                        "type": "part",
-                        "mountpoint": "/",
-                        "label": "rootfs",
-                        "fstype": "ext4",
-                    },
-                ],
-            },
-            {
-                "name": "sda",
-                "size": "1T",
-                "type": "disk",
-                "mountpoint": None,
-                "label": None,
-                "fstype": None,
-                "children": [
-                    {
-                        "name": "sda1",
-                        "size": "1T",
-                        "type": "part",
-                        "mountpoint": "/mnt/usb",
-                        "label": "storage",
-                        "fstype": "ext4",
-                    },
-                ],
-            },
+            _SYSTEM_DISK,
+            _USB_DISK,
         ]
     }
 )
+
+SYSTEM_ONLY_LSBLK_OUTPUT = json.dumps({"blockdevices": [_SYSTEM_DISK]})

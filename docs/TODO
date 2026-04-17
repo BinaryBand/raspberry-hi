@@ -36,9 +36,9 @@
 - [x] Enforce redundancy constraints. (jscpd) *
 - [x] Plan and enforce initial architectural constraints. (Semgrep)
   - [ ] Expand the ruleset as the Python ↔ Ansible constitution hardens.
-  - [ ] Enforce the rule that durable declared state remains Ansible-owned: writes to `ansible/inventory/host_vars/*.yml` must stay behind dedicated helpers, and writes to `ansible/group_vars/all/vault.yml` must stay in `scripts/bootstrap.py`.
-  - [ ] Enforce the rule that inventory topology stays complete and auditable: each host declared in `ansible/inventory/hosts.ini` must have a matching `ansible/inventory/host_vars/<host>.yml`, and orphaned `host_vars/*.yml` files must be rejected.
-  - [ ] Enforce the rule that durable secrets live only in `ansible/group_vars/all/vault.yml`: app credentials, sudo passwords, and other long-lived secrets must not be stored in `host_vars`, extra vault files, or ad hoc inventory data.
+  - [x] Enforce the rule that durable declared state remains Ansible-owned: writes to `ansible/inventory/host_vars/*.yml` must stay behind dedicated helpers, and writes to `ansible/group_vars/all/vault.yml` must stay in `scripts/bootstrap.py`.
+  - [ ] Enforce the rule that inventory topology stays complete and auditable: each host declared in `ansible/inventory/hosts.ini` must have a matching `ansible/inventory/host_vars/<host>.yml`, and orphaned `host_vars/*.yml` files must be rejected. (needs a test, not Semgrep)
+  - [x] Enforce the rule that durable secrets live only in `ansible/group_vars/all/vault.yml`: app credentials, sudo passwords, and other long-lived secrets must not be stored in `host_vars`, extra vault files, or ad hoc inventory data.
 - [ ] Codify and gate docs/AGENTS.md:'Success rubric' violations.
 
 * * *

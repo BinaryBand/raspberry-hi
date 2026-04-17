@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio _vault_check _minio_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio _vault_check _minio_preflight _baikal_preflight
 
 
 help:
@@ -109,10 +109,13 @@ mount: _vault_check
 _minio_preflight: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/preflight.py minio
 
+_baikal_preflight: _vault_check
+	HOST=$(HOST) poetry run python ./scripts/preflight.py baikal
+
 minio: _minio_preflight
 	$(ANSIBLE_PLAY) --tags minio
 
-baikal: _vault_check
+baikal: _baikal_preflight
 	$(ANSIBLE_PLAY) --tags baikal
 
 status:

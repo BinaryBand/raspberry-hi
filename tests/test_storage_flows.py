@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock, patch
 
 from scripts.utils.storage_flows import (
@@ -12,6 +11,7 @@ from scripts.utils.storage_flows import (
 )
 from tests.support.builders import mnt, partition
 from tests.support.connections import FakeConnection
+from tests.support.data import SYSTEM_ONLY_LSBLK_OUTPUT
 
 # ---------------------------------------------------------------------------
 # parse_path_hints
@@ -48,40 +48,6 @@ class TestParsePathHints:
 # Helpers
 # ---------------------------------------------------------------------------
 
-# A connection that returns only system disks — no external devices.
-_SYSTEM_ONLY_LSBLK = json.dumps(
-    {
-        "blockdevices": [
-            {
-                "name": "mmcblk0",
-                "size": "32G",
-                "type": "disk",
-                "mountpoint": None,
-                "label": None,
-                "fstype": None,
-                "children": [
-                    {
-                        "name": "mmcblk0p1",
-                        "size": "500M",
-                        "type": "part",
-                        "mountpoint": "/boot/firmware",
-                        "label": "bootfs",
-                        "fstype": "vfat",
-                    },
-                    {
-                        "name": "mmcblk0p2",
-                        "size": "31G",
-                        "type": "part",
-                        "mountpoint": "/",
-                        "label": "rootfs",
-                        "fstype": "ext4",
-                    },
-                ],
-            }
-        ]
-    }
-)
-
 # The external partition returned by LSBLK_OUTPUT after device filtering.
 _USB_PARTITION = partition("sda1", mountpoint="/mnt/usb", fstype="ext4", label="storage")
 
@@ -96,7 +62,7 @@ class TestFlowMountNewDevice:
 
     def test_returns_none_when_no_external_devices(self) -> None:
         """Verify None is returned when no external devices are found."""
-        conn = FakeConnection({"lsblk": _SYSTEM_ONLY_LSBLK})
+        conn = FakeConnection({"lsblk": SYSTEM_ONLY_LSBLK_OUTPUT})
         assert flow_mount_new_device(conn) is None
 
     @patch("scripts.utils.storage_flows.questionary")

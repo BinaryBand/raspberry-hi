@@ -136,6 +136,60 @@ rules:
         - /ansible/inventory/host_vars/*.yml
     pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|minio_root_password)\s*:'
 
+  - id: python-ruamel-yaml-only-in-ansible-utils
+    message: Direct ruamel.yaml usage is reserved for write_host_vars_raw in ansible_utils.py. Writes to host_vars must go through that helper.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/utils/ansible_utils.py
+    pattern-either:
+      - pattern: from ruamel.yaml import $X
+      - pattern: import ruamel.yaml
+
+  - id: group-vars-no-plain-text-secrets
+    message: Durable secrets must live in vault.yml, not plain group_vars files.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/group_vars/**/*.yml
+      exclude:
+        - /ansible/group_vars/all/vault.yml
+    pattern-regex: '(?im)^\s*(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key)\s*:'
+
+  - id: python-no-preflights-module-import
+    message: App preflight specs have moved to ansible/apps/<app>/preflight.yml. Do not import from a preflights Python package.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: importlib.import_module("preflights.$APP")
+          - pattern: importlib.import_module(f"preflights.{$APP}")
+
+  - id: python-no-inline-preflight-specs
+    message: VAR_HINTS and VAULT_SECRETS belong in ansible/apps/<app>/preflight.yml, not Python. The adapters in scripts/preflight.py load them from there.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+    pattern-either:
+      - pattern: VAR_HINTS = {...}
+      - pattern: VAULT_SECRETS = [...]
+
   - id: host-vars-become-password-must-use-vault-template
     message: ansible_become_password in host_vars must use the shared become_passwords vault lookup.
     severity: ERROR
