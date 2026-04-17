@@ -18,8 +18,4 @@ mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
 
-# When true (default), provisioning fails if minio_data_path is not on an
-# external mount — encouraging you to run 'make mount' first. Set to false
-# in host_vars to store MinIO data on the root filesystem instead.
-minio_require_external_mount: true
 

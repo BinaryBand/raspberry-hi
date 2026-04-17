@@ -4,7 +4,7 @@ Ansible + Python tools for managing a Raspberry Pi.
 
 ## Requirements
 
-- Python 3.12+ (`pyenv install 3.12` or your distro's package manager)
+- Python 3.12+
 - Poetry (`pipx install poetry`)
 - Node.js 18+ / npx (for `make cpd` — ships with Node.js)
 - SSH key already on the Pi
@@ -36,7 +36,7 @@ Then create `ansible/inventory/host_vars/rpi.yml` with its connection details:
 # Use an mDNS name (rpi.local) or a raw IP (192.168.0.x).
 # mDNS survives DHCP changes without editing this file.
 ansible_host: rpi.local
-ansible_user: youruser
+ansible_user: user
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
 ```
@@ -50,8 +50,7 @@ with the repo. Run the interactive bootstrap script to set everything up:
 make bootstrap
 ```
 
-This will prompt you for a vault password (saved locally, never committed) and your
-MinIO credentials plus any missing per-host sudo passwords, then write the
+This will prompt you for a vault password (saved locally, never committed) and your MinIO credentials plus any missing per-host sudo passwords, then write the
 encrypted vault file.
 
 To update secrets later: `make vault-edit`
@@ -73,15 +72,7 @@ make site
 Installs and configures everything on the Pi. Subsequent runs need no extra steps —
 the vault password file handles decryption automatically.
 
-**MinIO external storage:** `make minio` checks whether `minio_data_path` is on an
-external mount before provisioning the MinIO role. If not, it prompts you to pick an
-existing external mount and a subdirectory for the data path.
-
-If no external mount exists yet, run `make mount` first. That command now launches the
-Ansible playbook directly and uses a custom `pick_device` module on the control node to
-drive the interactive selection.
-
-You can also run `make mount` at any time to (re-)mount external storage independently.
+To mount external storage on the Pi before provisioning MinIO, run `make mount` first. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH.
 
 ---
 
@@ -91,7 +82,7 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 
 | Command | What it does |
 | --- | --- |
-| `make lint` | Run ruff over `ansible/library`, `scripts/`, `models/`, and `tests/` |
+| `make lint` | Run ruff over `scripts/`, `models/`, and `tests/` |
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
 | `make test-roles` | Run Ansible role tests in Docker (requires Docker) |
@@ -106,7 +97,7 @@ You can also run `make mount` at any time to (re-)mount external storage indepen
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
 | `make site` | Full provision: base → Podman → storage |
-| `make minio` | Validate MinIO storage placement, update `host_vars` if needed, then provision MinIO |
+| `make minio` | Provision MinIO (purely declarative — reads credentials from vault, data path from `host_vars`) |
 | `make mount` | Interactively mount external storage |
 
 ### Operations
@@ -138,7 +129,7 @@ rpi2
 ```yaml
 # host_vars/rpi2.yml
 ansible_host: rpi2.local
-ansible_user: youruser
+ansible_user: user
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
 ```

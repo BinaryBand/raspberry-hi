@@ -1,270 +1,115 @@
-# Architecture: Python-as-Toolbox for Ansible
+# Architecture: Declarative Ansible + Standalone Python Scripts
 
 ## Goal
 
-Invert the current driver relationship. Today Python scripts are the primary entry points — they call Ansible as a subprocess. The target shape makes Ansible the single driver; Python lives in `ansible/library/` as custom modules that Ansible calls when it needs interactive TUI logic.
+Keep Ansible and Python cleanly separated with no overlap:
 
-This also fixes the immediate `sudo: a password is required` failures on both `rpi` and `debian` by storing per-host become passwords in the vault.
+- **Ansible** is the single provisioning driver. It is purely declarative — it reads
+  state from `host_vars/` and the vault, and converges the Pi toward that state. It
+  never calls Python scripts, and Python scripts never call Ansible.
+- **Python scripts** handle interactive, one-shot operations (vault bootstrap, storage
+  mounting) that are unsuitable for a declarative model. They connect directly to the
+  Pi via Fabric and read connection details from the Ansible inventory/vault — they
+  do not invoke Ansible at all.
 
 ---
 
-## Phase 1 — Fix become passwords
+## Secrets — Ansible vault
 
-Both hosts need their sudo passwords in the vault so Ansible can become root
-without prompting on the command line.
+Secrets live in `ansible/group_vars/all/vault.yml`, encrypted with Ansible Vault.
 
-### `models/services/vault.py`
+The vault model (`models/services/vault.py`) holds:
 
-Add two optional fields:
+- Static app credentials (`minio_root_user`, `minio_root_password`)
+- A `become_passwords` dict keyed by inventory hostname:
 
-```python
-rpi_become_password: Optional[str] = None
-debian_become_password: Optional[str] = None
-```
+  ```yaml
+  become_passwords:
+    rpi: "..."
+    rpi2: "..."
+  ```
 
-### `scripts/bootstrap.py` — `SECRETS` list
-
-Add after the existing minio entries:
-
-```python
-{"key": "rpi_become_password",    "label": "rpi sudo password",    "hidden": True},
-{"key": "debian_become_password", "label": "Debian sudo password", "hidden": True},
-```
-
-### `ansible/inventory/host_vars/rpi.yml`
+Each `host_vars/<hostname>.yml` references the dict dynamically:
 
 ```yaml
-ansible_become_password: "{{ rpi_become_password }}"
+ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 ```
 
-### `ansible/inventory/host_vars/debian.yml`
+Adding a new host only requires a new entry in `become_passwords` — no model changes,
+no new vault keys, no template changes.
 
-```yaml
-ansible_become_password: "{{ debian_become_password }}"
-```
-
-Run `make bootstrap` after — it prompts only for the two new missing secrets.
+`ansible/site.yml` has an `always`-tagged pre-task that asserts the current host has
+an entry in `become_passwords`, so provisioning fails fast with a clear message rather
+than a cryptic template error.
 
 ---
 
-## Phase 2 — Python-as-toolbox architecture
+## Python entry points
 
-### Key decision: keep `scripts/utils/` in place
+### `scripts/bootstrap.py`
 
-`scripts/utils/storage_utils.py` and `storage_flows.py` stay where they are. The Makefile already exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts`, and modules running via `delegate_to: localhost` inherit the calling process environment. No `ansible/module_utils/` directory, no shims, no test import changes needed.
+First-time setup. Reads `hosts.ini` directly with `configparser` (no Ansible required),
+prompts for app credentials and per-host sudo passwords, and writes the encrypted vault
+file. Also handles migration of any legacy per-host vault keys (`rpi_become_password`,
+etc.) into the `become_passwords` dict.
 
-### New files
+### `scripts/check.py`
 
-```text
-ansible/
-  library/
-    pick_device.py        ← NEW: replaces scripts/pick_storage.py
-    minio_preflight.py    ← NEW: replaces scripts/setup_minio_storage.py
-```
+Pre-flight validation. Verifies the vault password file exists, decrypts the vault,
+checks all required secrets and `become_passwords` entries are populated, and pings
+the Pi. Supports `--vault-only` mode (skips Python/Ansible/Node/ping checks) for use
+as a fast Makefile prerequisite.
 
-Ansible auto-discovers `library/` adjacent to the playbook. Add
-`library = ./library` to `ansible/ansible.cfg` to make it explicit.
+### `scripts/mount.py`
 
----
-
-### `ansible/library/pick_device.py`
-
-Custom Ansible module. Called with `delegate_to: localhost` so `questionary`
-runs on the control node. Accepts SSH connection params as module arguments
-(passed from hostvars by the playbook), opens its own Fabric connection to
-run `lsblk`, presents the TUI, and returns `{device, label}`.
-
-```
-argument_spec:
-  host:       str, required
-  user:       str, required
-  key:        str, no_log (path to SSH private key)
-  port:       int, default 22
-  label_hint: str, optional
-
-returns: {device: "/dev/sda1", label: "minio_data", changed: false}
-```
-
-Imports `flow_mount_new_device` from `utils.storage_flows` — same function
-that `pick_storage.py` used, no logic duplication.
+Interactive storage mounting. Reads connection details from `inventory_host_vars()`,
+reads the become password from the vault, opens a Fabric connection, and presents a
+TUI to pick and mount a block device. Writes an `fstab` entry for persistence.
+No Ansible involvement — a pure Python/Fabric/SSH operation.
 
 ---
 
-### `ansible/library/minio_preflight.py`
+## Makefile integration
 
-Custom Ansible module. Called from the minio role with `delegate_to: localhost`
-when `minio_require_external_mount` is true.
-
-```
-argument_spec:
-  host:              str, required
-  user:              str, required
-  key:               str, no_log
-  port:              int, default 22
-  current_data_path: str, required  (value of minio_data_path)
-  host_vars_file:    str, required  (absolute path to write updated path back)
-
-returns: {data_path: "/mnt/minio/data", changed: bool}
-```
-
-Logic:
-
-1. SSH in, call `get_real_mounts()` + `mount_covering()` to check if
-   `current_data_path` is already on an external mount → if yes, return
-   `{changed: false}` immediately (idempotent).
-2. If not on external mount and no external mounts exist → `fail_json` with
-   "run `make mount` first".
-3. Otherwise: `questionary.select` from available external mounts, then
-   `questionary.text` for subdirectory.
-4. Write the new path back to `host_vars_file` (passed by Ansible as
-   `{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml`).
-5. Return `{changed: true, data_path: new_path}`.
-
-Inlines its own `update_host_vars()` (10 lines of YAML read/write) — no
-shared utility needed.
-
----
-
-### `ansible/mount_storage.yml` — updated
-
-Add a conditional pre-task using `pick_device`. The `device` and `label`
-extra vars still work for scripted/non-interactive use; the module only
-fires when they are absent.
-
-```yaml
-- name: Pick device to mount
-  pick_device:
-    host: "{{ ansible_host }}"
-    user: "{{ ansible_user }}"
-    key:  "{{ ansible_ssh_private_key_file | default(omit) }}"
-    port: "{{ ansible_port | default(22) }}"
-  delegate_to: localhost
-  register: _picked
-  when: device is not defined
-
-- name: Set device and label from selection
-  ansible.builtin.set_fact:
-    device: "{{ _picked.device }}"
-    label:  "{{ _picked.label }}"
-  when: device is not defined
-```
-
-Remove the comment at the top about passing `-e device=... label=...` —
-that usage becomes optional rather than required.
-
----
-
-### `ansible/apps/minio/tasks/main.yml` — updated
-
-Add as the first task block (before config dirs):
-
-```yaml
-- name: Ensure MinIO data path is on external storage
-  minio_preflight:
-    host:              "{{ ansible_host }}"
-    user:              "{{ ansible_user }}"
-    key:               "{{ ansible_ssh_private_key_file | default(omit) }}"
-    port:              "{{ ansible_port | default(22) }}"
-    current_data_path: "{{ minio_data_path }}"
-    host_vars_file:    "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-  delegate_to: localhost
-  register: _preflight
-  when: minio_require_external_mount | bool
-
-- name: Apply preflight data path
-  ansible.builtin.set_fact:
-    minio_data_path: "{{ _preflight.data_path }}"
-  when:
-    - minio_require_external_mount | bool
-    - _preflight is not skipped
-```
-
----
-
-### Makefile — simplified
+The `_vault_check` target runs `check.py --vault-only` and is a prerequisite for all
+provisioning and mount targets:
 
 ```makefile
-mount:
-    ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/mount_storage.yml \
-      -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
-
-minio:
-    $(ANSIBLE_PLAY) --tags minio
+site minio baikal mount: _vault_check
 ```
 
-`make mount` no longer shells into Python first. `make minio` is a single
-Ansible call — the preflight runs inline as a task.
-
----
-
-### `ansible/ansible.cfg` — add library path
-
-```ini
-library = ./library
-```
-
----
-
-## Phase 3 — Cleanup
-
-### Files to delete
-
-| File | Reason |
-| ------ | -------- |
-| `scripts/pick_storage.py` | Replaced by `ansible/library/pick_device.py` |
-| `scripts/setup_minio_storage.py` | Replaced by `ansible/library/minio_preflight.py` |
-| `models/services/minio.py` | Only used by `setup_minio_storage.py` |
-| `tests/test_ansible_utils.py` | Tests functions that are deleted |
-
-### `scripts/utils/ansible_utils.py` — stripped
-
-Remove: `run_playbook`, `read_role_defaults`, `read_host_vars`,
-`write_host_vars`, `update_host_vars`.
-
-Keep: `ROOT`, `ANSIBLE_DIR`, `inventory_host_vars`, `make_connection`.
-(`inventory_host_vars` and `make_connection` are still used by
-`tests/e2e/conftest.py`.)
-
-### `models/__init__.py` — remove MinioConfig
-
-```python
-from .ansible.hostvars import HostVars
-from .services.vault import VaultSecrets
-from .system.blockdevice import BlockDevice
-from .system.mount import MountInfo
-
-__all__ = ["BlockDevice", "HostVars", "MountInfo", "VaultSecrets"]
-```
-
-### `tests/test_models.py` — remove MinioConfig test class
+This ensures secrets are present before Ansible or Fabric tries to use them, producing
+a helpful error message at the Make level rather than deep inside a playbook or script.
 
 ---
 
 ## Resulting shape
 
-```
+```text
 ansible/
-  library/
-    pick_device.py        ← Python, called by Ansible
-    minio_preflight.py    ← Python, called by Ansible
-  apps/ roles/ ...        ← unchanged
+  apps/            ← declarative roles (minio, baikal, …)
+  roles/           ← declarative roles (storage, podman, auto-updates, …)
+  inventory/
+    hosts.ini
+    host_vars/     ← per-host connection details + become_password reference
+  group_vars/all/
+    vault.yml      ← encrypted secrets (become_passwords dict + app creds)
+  site.yml         ← single entry point with always-on vault assert
 
 scripts/
-  bootstrap.py            ← kept (vault bootstrap is pre-Ansible)
-  check.py                ← kept (validates Ansible can run)
+  bootstrap.py     ← vault setup (pre-Ansible, no Ansible subprocess)
+  check.py         ← pre-flight checks including vault completeness
+  mount.py         ← interactive storage mount via Fabric
   utils/
-    ansible_utils.py      ← stripped (ROOT, ANSIBLE_DIR, inventory helpers)
-    exec_utils.py         ← unchanged
-    storage_utils.py      ← unchanged, imported by library modules
-    storage_flows.py      ← unchanged, imported by library modules
+    ansible_utils.py   ← inventory parsing helpers (no playbook invocation)
+    storage_utils.py   ← SSH helpers: lsblk, mount detection
+    storage_flows.py   ← TUI flows for device selection
 
 models/
-  services/vault.py       ← kept + expanded
-  ansible/hostvars.py     ← kept (used by e2e tests)
-  system/                 ← unchanged
-  # services/minio.py     ← deleted
+  services/vault.py    ← Pydantic model for vault secrets
+  ansible/hostvars.py  ← Pydantic model for host_vars
+  system/              ← BlockDevice, MountInfo data models
 ```
 
-Ansible is now the single entry point. Python provides focused toolbox
-modules — interactive device selection and storage preflight — that Ansible
-calls as tasks, with no Python-calls-Ansible inversion.
+Ansible is the provisioning driver. Python is the interactive toolbox. Neither calls
+the other.

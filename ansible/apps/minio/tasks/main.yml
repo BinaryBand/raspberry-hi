@@ -1,24 +1,3 @@
----
-- name: Ensure MinIO data path is on external storage
-  minio_preflight:
-    host: "{{ ansible_host }}"
-    user: "{{ ansible_user }}"
-    key: "{{ ansible_ssh_private_key_file | default(omit) }}"
-    port: "{{ ansible_port | default(22) }}"
-    current_data_path: "{{ minio_data_path }}"
-    host_vars_file: "{{ inventory_dir }}/host_vars/{{ inventory_hostname }}.yml"
-  delegate_to: localhost
-  become: false
-  register: _preflight
-  when: minio_require_external_mount | bool
-
-- name: Apply preflight data path
-  ansible.builtin.set_fact:
-    minio_data_path: "{{ _preflight.data_path }}"
-  when:
-    - minio_require_external_mount | bool
-    - _preflight is not skipped
-
 # 1. App-specific config: directories and credentials.
 - name: Ensure MinIO config directory exists
   ansible.builtin.file:

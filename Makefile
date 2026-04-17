@@ -59,7 +59,7 @@ check:
 	poetry run python ./scripts/check.py
 
 lint:
-	poetry run ruff check ansible/library scripts/ models/ tests/
+	poetry run ruff check scripts/ models/ tests/
 
 cpd:
 	npx jscpd .
@@ -92,8 +92,7 @@ _vault_check:
 	@poetry run python ./scripts/check.py --vault-only
 
 mount: _vault_check
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/mount_storage.yml \
-	  -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
+	HOST=$(HOST) poetry run python ./scripts/mount.py
 
 minio: _vault_check
 	$(ANSIBLE_PLAY) --tags minio
