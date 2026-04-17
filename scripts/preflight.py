@@ -20,7 +20,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import questionary
 from utils.ansible_utils import (
@@ -29,6 +29,12 @@ from utils.ansible_utils import (
     role_required_vars,
     write_host_vars_raw,
 )
+
+if TYPE_CHECKING:
+    from bootstrap import SecretSpec
+
+
+StoreData = dict[str, Any]
 
 # ---------------------------------------------------------------------------
 # Ports
@@ -42,8 +48,8 @@ class VarRequirements(Protocol):
 
 
 class VarStore(Protocol):
-    def read(self, hostname: str) -> dict: ...
-    def write(self, hostname: str, updates: dict) -> None: ...
+    def read(self, hostname: str) -> StoreData: ...
+    def write(self, hostname: str, updates: StoreData) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +69,7 @@ class AnsibleRoleAdapter:
         self._hints: dict[str, str] = {}
         try:
             mod = importlib.import_module(f"preflights.{app}")
-            self._hints = getattr(mod, "VAR_HINTS", {})
+            self._hints = cast(dict[str, str], getattr(mod, "VAR_HINTS", {}))
         except ModuleNotFoundError:
             pass
 
@@ -81,10 +87,10 @@ class VaultSecretsAdapter:
     """Reads required vault secrets from preflights/<app>.py VAULT_SECRETS list."""
 
     def __init__(self, app: str) -> None:
-        self._specs: list = []
+        self._specs: list[SecretSpec] = []
         try:
             mod = importlib.import_module(f"preflights.{app}")
-            self._specs = getattr(mod, "VAULT_SECRETS", [])
+            self._specs = cast(list[SecretSpec], getattr(mod, "VAULT_SECRETS", []))
         except ModuleNotFoundError:
             pass
 
@@ -101,22 +107,22 @@ class VaultSecretsAdapter:
 class HostVarsAdapter:
     """Reads and writes host_vars/<hostname>.yml, preserving comments and formatting."""
 
-    def read(self, hostname: str) -> dict:
+    def read(self, hostname: str) -> StoreData:
         return read_host_vars_raw(hostname)
 
-    def write(self, hostname: str, updates: dict) -> None:
+    def write(self, hostname: str, updates: StoreData) -> None:
         write_host_vars_raw(hostname, updates)
 
 
 class VaultStore:
     """Reads and writes secrets to the Ansible vault."""
 
-    def read(self, hostname: str) -> dict:
+    def read(self, hostname: str) -> StoreData:
         from bootstrap import decrypt_vault_raw
 
         return decrypt_vault_raw()
 
-    def write(self, hostname: str, updates: dict) -> None:
+    def write(self, hostname: str, updates: StoreData) -> None:
         from bootstrap import decrypt_vault_raw, encrypt_vault
 
         raw = decrypt_vault_raw()
@@ -145,7 +151,7 @@ def run_preflight(
         return
 
     print(f"  [WARN]  Missing required vars for '{hostname}' — please set them now.")
-    updates: dict = {}
+    updates: StoreData = {}
     for var in missing:
         hint = requirements.hint(var)
         label = f"  {var}" + (f" ({hint})" if hint else "") + ":"

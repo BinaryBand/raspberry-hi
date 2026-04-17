@@ -9,6 +9,7 @@
     "mountpoint",
     "Pydantic",
     "pyproject",
+    "ryaml",
     "virtualenv"
   ],
   "python.testing.pytestArgs": ["tests"],

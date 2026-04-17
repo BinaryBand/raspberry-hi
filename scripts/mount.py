@@ -37,7 +37,7 @@ def main() -> None:
     hvars = inventory_host_vars(hostname)
     become_pwd = _become_password(hostname)
 
-    connect_kwargs: dict = {}
+    connect_kwargs: dict[str, str] = {}
     if hvars.ansible_ssh_private_key_file:
         key_path = Path(hvars.ansible_ssh_private_key_file)
         if not key_path.is_absolute():

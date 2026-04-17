@@ -17,11 +17,12 @@ import getpass
 import sys
 import tempfile
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import yaml
 from utils.ansible_utils import ANSIBLE_DIR
 from utils.exec_utils import run_resolved
+from utils.yaml_utils import yaml_mapping
 
 from models import VaultSecrets
 
@@ -34,6 +35,9 @@ class SecretSpec(TypedDict):
     key: str
     label: str
     hidden: bool
+
+
+RawVaultData = dict[str, Any]
 
 
 def abort(msg: str) -> None:
@@ -72,7 +76,7 @@ def setup_vault_password() -> None:
     print(f"Vault password saved to {VAULT_PASSWORD_FILE}\n")
 
 
-def decrypt_vault_raw() -> dict:
+def decrypt_vault_raw() -> RawVaultData:
     """Decrypt the vault file and return its raw contents as a dict."""
     result = run_resolved(
         [
@@ -89,7 +93,7 @@ def decrypt_vault_raw() -> dict:
     )
     if result.returncode != 0:
         abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
-    return yaml.safe_load(result.stdout) or {}
+    return yaml_mapping(yaml.safe_load(result.stdout), source=VAULT_FILE)
 
 
 def decrypt_vault() -> VaultSecrets:
@@ -97,7 +101,7 @@ def decrypt_vault() -> VaultSecrets:
     return VaultSecrets.model_validate(decrypt_vault_raw())
 
 
-def encrypt_vault(data: dict) -> None:
+def encrypt_vault(data: RawVaultData) -> None:
     """Write *data* to an encrypted vault file."""
     plaintext = yaml.dump(data, default_flow_style=False)
 
@@ -125,7 +129,7 @@ def encrypt_vault(data: dict) -> None:
         tmp_path.unlink(missing_ok=True)
 
 
-def migrate_legacy_become_keys(raw: dict) -> tuple[dict, bool]:
+def migrate_legacy_become_keys(raw: RawVaultData) -> tuple[RawVaultData, bool]:
     """Migrate old per-host `<host>_become_password` keys to the `become_passwords` dict.
 
     Returns the updated raw dict and a flag indicating whether migration occurred.
@@ -171,7 +175,7 @@ def main() -> None:
     setup_vault_password()
 
     if VAULT_FILE.exists():
-        raw: dict = decrypt_vault_raw()
+        raw = decrypt_vault_raw()
         raw, migrated = migrate_legacy_become_keys(raw)
         if migrated:
             print("Migrated legacy per-host become_password keys to become_passwords dict.\n")

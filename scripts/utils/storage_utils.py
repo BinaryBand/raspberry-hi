@@ -95,7 +95,7 @@ def get_external_devices(
 ) -> list[BlockDevice]:
     """Filter *devices* down to mountable partitions on non-system disks."""
     policy = mount_policy or DEFAULT_MOUNT_POLICY
-    external = []
+    external: list[BlockDevice] = []
     for device in devices:
         if device.type != "disk" or is_system_device(device, policy):
             continue
