@@ -38,6 +38,7 @@ from utils.ansible_utils import (
 class VarRequirements(Protocol):
     def required(self) -> list[str]: ...
     def hint(self, var: str) -> str: ...
+    def hidden(self, var: str) -> bool: ...
 
 
 class VarStore(Protocol):
@@ -72,6 +73,30 @@ class AnsibleRoleAdapter:
     def hint(self, var: str) -> str:
         return self._hints.get(var, "")
 
+    def hidden(self, var: str) -> bool:
+        return False
+
+
+class VaultSecretsAdapter:
+    """Reads required vault secrets from preflights/<app>.py VAULT_SECRETS list."""
+
+    def __init__(self, app: str) -> None:
+        self._specs: list = []
+        try:
+            mod = importlib.import_module(f"preflights.{app}")
+            self._specs = getattr(mod, "VAULT_SECRETS", [])
+        except ModuleNotFoundError:
+            pass
+
+    def required(self) -> list[str]:
+        return [s["key"] for s in self._specs]
+
+    def hint(self, var: str) -> str:
+        return next((s["label"] for s in self._specs if s["key"] == var), "")
+
+    def hidden(self, var: str) -> bool:
+        return next((s["hidden"] for s in self._specs if s["key"] == var), False)
+
 
 class HostVarsAdapter:
     """Reads and writes host_vars/<hostname>.yml, preserving comments and formatting."""
@@ -81,6 +106,20 @@ class HostVarsAdapter:
 
     def write(self, hostname: str, updates: dict) -> None:
         write_host_vars_raw(hostname, updates)
+
+
+class VaultStore:
+    """Reads and writes secrets to the Ansible vault."""
+
+    def read(self, hostname: str) -> dict:
+        from bootstrap import decrypt_vault_raw
+        return decrypt_vault_raw()
+
+    def write(self, hostname: str, updates: dict) -> None:
+        from bootstrap import decrypt_vault_raw, encrypt_vault
+        raw = decrypt_vault_raw()
+        raw.update(updates)
+        encrypt_vault(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +147,11 @@ def run_preflight(
     for var in missing:
         hint = requirements.hint(var)
         label = f"  {var}" + (f" ({hint})" if hint else "") + ":"
-        value = questionary.text(label).ask()
+        value = (
+            questionary.password(label).ask()
+            if requirements.hidden(var)
+            else questionary.text(label).ask()
+        )
         if not value:
             sys.exit(f"  [FAIL]  {var} is required. Aborting.")
         updates[var] = value
@@ -136,6 +179,13 @@ def main() -> None:
     app = sys.argv[1]
     hostname = os.environ.get("HOST", "rpi")
 
+    # Vault secrets first — credentials must exist before Ansible runs.
+    run_preflight(
+        hostname=hostname,
+        requirements=VaultSecretsAdapter(app),
+        store=VaultStore(),
+    )
+    # Host vars second — infrastructure config specific to this host.
     run_preflight(
         hostname=hostname,
         requirements=AnsibleRoleAdapter(_resolve_role_path(app), app),

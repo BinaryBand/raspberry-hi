@@ -101,14 +101,7 @@ class TestVaultSecrets:
     def test_all_fields_optional(self):
         """Ensure all fields are optional."""
         v = VaultSecrets()
-        assert v.minio_root_user is None
-        assert v.minio_root_password is None
         assert v.become_passwords is None
-
-    def test_construction_with_values(self):
-        """Verify construction with provided values."""
-        v = VaultSecrets(minio_root_user="admin", minio_root_password="secret")  # noqa: S106
-        assert v.minio_root_user == "admin"
 
     def test_become_passwords_dict(self):
         """Verify become_passwords stores per-host passwords as a dict."""
@@ -116,6 +109,7 @@ class TestVaultSecrets:
         assert v.become_passwords == {"rpi": "pass1", "debian": "pass2"}
 
     def test_extra_fields_allowed(self):
-        """Ensure extra model fields are allowed."""
+        """Ensure app secrets stored in the vault are accessible as extra fields."""
         v = VaultSecrets.model_validate({"minio_root_user": "admin", "other_secret": "x"})
-        assert v.minio_root_user == "admin"
+        assert v.model_extra["minio_root_user"] == "admin"
+        assert v.model_extra["other_secret"] == "x"

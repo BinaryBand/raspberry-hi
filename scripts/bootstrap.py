@@ -17,7 +17,7 @@ import getpass
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, TypedDict
+from typing import Dict, TypedDict
 
 import yaml
 from utils.ansible_utils import ANSIBLE_DIR
@@ -30,17 +30,10 @@ VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
 INVENTORY_FILE = ANSIBLE_DIR / "inventory" / "hosts.ini"
 
 
-# Static secrets that don't depend on host count.
 class SecretSpec(TypedDict):
     key: str
     label: str
     hidden: bool
-
-
-SECRETS: List[SecretSpec] = [
-    {"key": "minio_root_user", "label": "MinIO root username", "hidden": False},
-    {"key": "minio_root_password", "label": "MinIO root password", "hidden": True},
-]
 
 
 def abort(msg: str) -> None:
@@ -154,27 +147,6 @@ def migrate_legacy_become_keys(raw: dict) -> tuple[dict, bool]:
     return updated, True
 
 
-def prompt_missing_static(secrets: VaultSecrets) -> Dict[str, str]:
-    """Prompt for any static secrets not already present."""
-    missing = [s for s in SECRETS if not getattr(secrets, s["key"], None)]
-    if not missing:
-        return {}
-
-    print("Enter the following credentials (they will be encrypted in the vault):\n")
-    new_entries: Dict[str, str] = {}
-    for s in missing:
-        while True:
-            value = (
-                getpass.getpass(f"{s['label']}: ")
-                if s["hidden"]
-                else input(f"{s['label']}: ").strip()
-            )
-            if value:
-                break
-            print("  Value cannot be empty — try again.")
-        new_entries[s["key"]] = value
-    return new_entries
-
 
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:
     """Prompt for become passwords for any hosts not yet in the vault dict."""
@@ -210,30 +182,27 @@ def main() -> None:
         raw = {}
         migrated = False
 
-    # Prompt for missing static secrets.
-    new_static = prompt_missing_static(existing)
-
     # Prompt for missing per-host become passwords.
     hosts = discover_hosts()
     current_become = dict(existing.become_passwords or {})
     new_become = prompt_missing_become_passwords(current_become, hosts)
 
-    if not new_static and not new_become and not migrated:
+    if not new_become and not migrated:
         print("All secrets are present — nothing to do.")
         print("To update a value, run: make vault-edit")
         return
 
     # Merge and save.
     updated_become = {**current_become, **new_become}
-    updated = {**raw, **new_static, "become_passwords": updated_become}
+    updated = {**raw, "become_passwords": updated_become}
     encrypt_vault(updated)
 
-    added_keys = list(new_static.keys()) + [f"become_passwords.{h}" for h in new_become]
+    added_keys = [f"become_passwords.{h}" for h in new_become]
     if added_keys:
         print(f"\nVault updated ({', '.join(added_keys)}).")
     else:
         print("\nVault migrated successfully.")
-    print("Run 'make check' then 'make site' to provision.\n")
+    print("Run 'make check' then 'make minio' (or other app targets) to provision.\n")
 
 
 if __name__ == "__main__":

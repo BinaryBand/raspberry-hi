@@ -24,8 +24,8 @@ def check(label: str, ok: bool, fix: str = "") -> bool:
 
 
 def check_vault_secrets() -> bool:
-    """Verify the vault is decryptable and all required secrets are present."""
-    from bootstrap import SECRETS, decrypt_vault, discover_hosts
+    """Verify the vault is decryptable and become passwords are set for all hosts."""
+    from bootstrap import decrypt_vault, discover_hosts
 
     if not VAULT_PASSWORD_FILE.exists():
         return check(
@@ -36,17 +36,16 @@ def check_vault_secrets() -> bool:
 
     secrets = decrypt_vault()
 
-    missing_static = [s["key"] for s in SECRETS if not getattr(secrets, s["key"], None)]
-
     hosts = discover_hosts()
     become_pwds = secrets.become_passwords or {}
     missing_hosts = [h for h in hosts if not become_pwds.get(h)]
 
-    missing = missing_static + [f"become_passwords.{h}" for h in missing_hosts]
     return check(
         "Vault secrets complete",
-        not missing,
-        f"run `make bootstrap` to add: {', '.join(missing)}" if missing else "",
+        not missing_hosts,
+        f"run `make bootstrap` to add: {', '.join(f'become_passwords.{h}' for h in missing_hosts)}"
+        if missing_hosts
+        else "",
     )
 
 
