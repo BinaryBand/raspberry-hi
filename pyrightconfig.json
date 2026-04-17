@@ -1,0 +1,21 @@
+{
+  "typeCheckingMode": "strict",
+  "include": ["models", "scripts", "tests", "typings"],
+  "exclude": [
+    "runbook/analysis",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    ".venv"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "stubPath": "typings",
+  "reportMissingImports": true,
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["models", "scripts"]
+    }
+  ]
+}

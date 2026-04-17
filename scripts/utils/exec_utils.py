@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-from typing import Iterable, List
+from typing import Any, Iterable, List, cast
 
 
 def resolve_executable(name: str) -> str:
@@ -32,7 +32,7 @@ def resolve_executable(name: str) -> str:
     return path
 
 
-def run_resolved(cmd: Iterable[str], /, **kwargs) -> subprocess.CompletedProcess:
+def run_resolved(cmd: Iterable[str], /, **kwargs: Any) -> subprocess.CompletedProcess[Any]:
     """Resolve the command's executable and call ``subprocess.run``.
 
     The first element of *cmd* is resolved with :func:`resolve_executable`.
@@ -46,4 +46,4 @@ def run_resolved(cmd: Iterable[str], /, **kwargs) -> subprocess.CompletedProcess
     exe = cmd_list[0]
     resolved = resolve_executable(exe)
     full_cmd = [resolved] + cmd_list[1:]
-    return subprocess.run(full_cmd, **kwargs)  # noqa: S603
+    return cast(subprocess.CompletedProcess[Any], subprocess.run(full_cmd, **kwargs))  # noqa: S603

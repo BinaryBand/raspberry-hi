@@ -40,3 +40,18 @@ class TestRuff:
             text=True,
         )
         assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestPyright:
+    """Ensure the codebase passes the current Pyright gate."""
+
+    PATHS = ["models/", "tests/support/"]
+
+    def test_pyright(self):
+        """Fail if Pyright reports any type-checking violations."""
+        result = run_resolved(
+            ["poetry", "run", "pyright", *self.PATHS],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr

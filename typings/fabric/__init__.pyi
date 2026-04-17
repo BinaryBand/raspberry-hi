@@ -1,5 +1,8 @@
 from typing import Any, Optional, Union
 
+class Config:
+    def __init__(self, *, overrides: Optional[dict[str, Any]] = None, **kwargs: Any) -> None: ...
+
 class Result:
     ok: bool
     stdout: str

@@ -17,7 +17,7 @@ import getpass
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 import yaml
 from utils.ansible_utils import ANSIBLE_DIR
@@ -145,7 +145,6 @@ def migrate_legacy_become_keys(raw: dict) -> tuple[dict, bool]:
     updated = {k: v for k, v in raw.items() if not k.endswith("_become_password")}
     updated["become_passwords"] = become_pwds
     return updated, True
-
 
 
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:

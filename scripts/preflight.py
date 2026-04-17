@@ -113,10 +113,12 @@ class VaultStore:
 
     def read(self, hostname: str) -> dict:
         from bootstrap import decrypt_vault_raw
+
         return decrypt_vault_raw()
 
     def write(self, hostname: str, updates: dict) -> None:
         from bootstrap import decrypt_vault_raw, encrypt_vault
+
         raw = decrypt_vault_raw()
         raw.update(updates)
         encrypt_vault(raw)

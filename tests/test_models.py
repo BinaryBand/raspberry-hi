@@ -111,5 +111,6 @@ class TestVaultSecrets:
     def test_extra_fields_allowed(self):
         """Ensure app secrets stored in the vault are accessible as extra fields."""
         v = VaultSecrets.model_validate({"minio_root_user": "admin", "other_secret": "x"})
+        assert v.model_extra is not None
         assert v.model_extra["minio_root_user"] == "admin"
-        assert v.model_extra["other_secret"] == "x"
+        assert v.model_extra["other_secret"] == "x"  # noqa: S105
