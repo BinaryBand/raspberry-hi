@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import cast
 
 from fabric import Config, Connection
+from mount_orchestrator import MountOrchestrator
 from utils.ansible_utils import ANSIBLE_DIR, ROOT, inventory_host_vars
-from utils.storage_flows import flow_mount_new_device
+from utils.info_port import RemoteInfoPort
+from utils.prompter import QuestionaryPrompter
 
 
 def _become_password(hostname: str) -> str:
@@ -54,7 +56,8 @@ def main() -> None:
         config=Config(overrides={"sudo": {"password": become_pwd}}),
     )
 
-    result = flow_mount_new_device(conn)
+    orchestrator = MountOrchestrator(info=RemoteInfoPort(), prompter=QuestionaryPrompter())
+    result = orchestrator.mount_new_device(conn)
     if not result:
         sys.exit("No device selected.")
 

@@ -24,9 +24,11 @@
 
 ## Features -
 
+- [ ] Add prompts for some default vars (Ansible -> Python).
 - [ ] Create a backup and restore plan.
-- [ ] Manage timed tasks via a centralized, declarative file/directory.
+- [ ] Add app clean-up protocol.
 - [ ] Setup reverse-proxy management.
+- [ ] Manage timed tasks via a centralized, declarative file/directory.
 
 ## Style
 

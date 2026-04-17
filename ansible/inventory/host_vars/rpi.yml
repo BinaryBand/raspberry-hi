@@ -7,3 +7,4 @@ ansible_ssh_private_key_file: config/.ed25519
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 
 minio_data_path: /mnt/external/minio
+postgres_data_path: /postgres
