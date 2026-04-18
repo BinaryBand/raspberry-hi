@@ -95,7 +95,6 @@ If you want to prepare external storage on the Pi, run `make mount`. That comman
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
 | `make ansible-lint` | Run ansible-lint over `ansible/` |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
-| `make test-roles` | Run Ansible role tests in Docker (requires Docker) |
 | `make test-e2e` | Run live Pi tests (requires a reachable Pi) |
 
 ### Provisioning
