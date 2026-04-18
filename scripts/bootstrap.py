@@ -134,28 +134,6 @@ def encrypt_vault(data: RawVaultData, output: Path | None = None) -> None:
         tmp_path.unlink(missing_ok=True)
 
 
-def migrate_legacy_become_keys(raw: RawVaultData) -> tuple[RawVaultData, bool]:
-    """Migrate old per-host `<host>_become_password` keys to the `become_passwords` dict.
-
-    Returns the updated raw dict and a flag indicating whether migration occurred.
-    """
-    legacy = {
-        k: v for k, v in raw.items() if k.endswith("_become_password") and k != "become_passwords"
-    }
-    if not legacy:
-        return raw, False
-
-    become_pwds: dict[str, str] = dict(raw.get("become_passwords") or {})
-    for key, value in legacy.items():
-        host = key[: -len("_become_password")]
-        if host not in become_pwds and value:
-            become_pwds[host] = value
-
-    updated = {k: v for k, v in raw.items() if not k.endswith("_become_password")}
-    updated["become_passwords"] = become_pwds
-    return updated, True
-
-
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:
     """Prompt for become passwords for any hosts not yet in the vault dict."""
     missing = [h for h in hosts if not existing.get(h)]
@@ -181,21 +159,17 @@ def main() -> None:
 
     if VAULT_FILE.exists():
         raw = decrypt_vault_raw()
-        raw, migrated = migrate_legacy_become_keys(raw)
-        if migrated:
-            print("Migrated legacy per-host become_password keys to become_passwords dict.\n")
         existing = VaultSecrets.model_validate(raw)
     else:
         existing = VaultSecrets()
         raw = {}
-        migrated = False
 
     # Prompt for missing per-host become passwords.
     hosts = discover_hosts()
     current_become = dict(existing.become_passwords or {})
     new_become = prompt_missing_become_passwords(current_become, hosts)
 
-    if not new_become and not migrated:
+    if not new_become:
         print("All secrets are present — nothing to do.")
         print("To update a value, run: make vault-edit")
         return
@@ -206,10 +180,7 @@ def main() -> None:
     encrypt_vault(updated)
 
     added_keys = [f"become_passwords.{h}" for h in new_become]
-    if added_keys:
-        print(f"\nVault updated ({', '.join(added_keys)}).")
-    else:
-        print("\nVault migrated successfully.")
+    print(f"\nVault updated ({', '.join(added_keys)}).")
     print("Run 'make check' then 'make minio' (or other app targets) to provision.\n")
 
 

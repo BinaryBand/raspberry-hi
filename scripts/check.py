@@ -118,7 +118,7 @@ def main() -> None:
             timeout=30,
         )
         pi_ok = ping.returncode == 0
-    except any:
+    except Exception:
         pi_ok = False
     all_ok &= check(
         "Host reachable",
