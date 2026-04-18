@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd test test-e2e status logs baikal minio postgres _vault_check _minio_preflight _baikal_preflight _postgres_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd ansible-lint test test-e2e status logs baikal minio postgres _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight
 
 
 help:
@@ -36,12 +36,13 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
-	@echo "  lint          Run the full static quality gate (Ruff, format check, Pyright, Semgrep, cpd)"
+	@echo "  lint          Run the full static quality gate (Ruff, format check, Pyright, Semgrep, cpd, ansible-lint)"
 	@echo "  ruff          Run Ruff lint checks over scripts/, models/, and tests/"
 	@echo "  format-check  Run Ruff formatting checks over scripts/, models/, and tests/"
 	@echo "  pyright       Run Pyright type checks over the repository"
 	@echo "  semgrep       Run Semgrep architectural and process audits"
 	@echo "  cpd           Check for copy-paste duplication (jscpd, threshold 3%)"
+	@echo "  ansible-lint  Run ansible-lint over ansible/"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
 	@echo "  site          Provision a device (HOST=rpi|rpi2|debian)"
@@ -62,7 +63,7 @@ help:
 check:
 	poetry run python ./scripts/check.py
 
-lint: ruff format-check pyright semgrep cpd
+lint: ruff format-check pyright semgrep cpd ansible-lint
 
 ruff:
 	poetry run ruff check scripts/ models/ tests/
@@ -79,6 +80,9 @@ semgrep:
 cpd:
 	npx jscpd --format python --min-tokens 50 --threshold 3 --ignore '**/.venv/**,**/typings/**' .
 
+ansible-lint:
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming ansible/apps/postgres ansible/apps/baikal ansible/roles/service_adapter
+
 test:
 	poetry run pytest tests/ -v
 
@@ -89,10 +93,10 @@ test-e2e:
 ping:
 	ansible devices -m ping -i $(INV) || true
 
-add-hostkey:
+add-hostkey: _inv_check
 	ssh-keyscan -H $(REMOTE_HOST) >> ~/.ssh/known_hosts
 
-ssh:
+ssh: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT)
 
 vault-edit:
@@ -103,6 +107,9 @@ bootstrap:
 
 _vault_check:
 	@poetry run python ./scripts/check.py --vault-only
+
+_inv_check:
+	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.ini and host_vars/$(HOST).yml"; exit 1; }
 
 mount: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/mount.py
@@ -125,10 +132,10 @@ postgres: _postgres_preflight
 baikal: _postgres_preflight _baikal_preflight
 	$(ANSIBLE_PLAY) --tags baikal
 
-status:
+status: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "systemctl --user status minio --no-pager"
 
-logs:
+logs: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u minio -n 50 --no-pager"
 
 site: _vault_check

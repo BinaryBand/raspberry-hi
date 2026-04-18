@@ -1,5 +1,5 @@
 ---
-- name: restart postgres (systemd)
+- name: Restart postgres (systemd)
   listen: restart postgres
   ansible.builtin.systemd:
     name: "{{ postgres_service_name }}"
@@ -12,9 +12,10 @@
   become_user: "{{ ansible_user }}"
   when: service_adapter_backend == 'systemd'
 
-- name: restart postgres (script)
+- name: Restart postgres (script)
   listen: restart postgres
   ansible.builtin.command: "{{ app_user_home }}/bin/run-postgres.sh"
   become: true
   become_user: "{{ ansible_user }}"
+  changed_when: true
   when: service_adapter_backend != 'systemd'

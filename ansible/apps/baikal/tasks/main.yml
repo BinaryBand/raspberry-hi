@@ -171,6 +171,7 @@
   become: true
   become_user: "{{ ansible_user }}"
   when: _baikal_schema_check.stdout | trim != 't'
+  changed_when: true
   no_log: true
 
 - name: Disable Baikal install tool after declarative provisioning

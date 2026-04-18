@@ -1,5 +1,5 @@
 ---
-- name: restart baikal (systemd)
+- name: Restart baikal (systemd)
   listen: restart baikal
   ansible.builtin.systemd:
     name: "{{ baikal_service_name }}"
@@ -12,9 +12,10 @@
   become_user: "{{ ansible_user }}"
   when: service_adapter_backend == 'systemd'
 
-- name: restart baikal (script)
+- name: Restart baikal (script)
   listen: restart baikal
   ansible.builtin.command: "{{ app_user_home }}/bin/run-baikal.sh"
   become: true
   become_user: "{{ ansible_user }}"
+  changed_when: true
   when: service_adapter_backend != 'systemd'

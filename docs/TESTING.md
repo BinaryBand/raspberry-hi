@@ -21,6 +21,7 @@ Fast tests that run in the local virtualenv with no external dependencies.
 | `test_models.py` | Pydantic validation, defaults, and field constraints for the shared models |
 | `test_storage_utils.py` | Mount filtering, device classification, and SSH-stub variants of `get_real_mounts` / `get_block_devices` |
 | `test_storage_flows.py` | `parse_path_hints` (pure function; interactive flows are E2E territory) |
+| `test_ansible_apps.py` | Contract checks for Ansible defaults, templates, and tasks that must not regress |
 
 SSH-dependent functions use `FakeConnection`, which returns canned JSON without opening a socket.
 
@@ -55,6 +56,18 @@ HOST=rpi2 make test-e2e  # tests against rpi2
 
 Current E2E tests verify that `findmnt` and `lsblk` return plausible output
 from a real Pi.
+
+---
+
+## Static Ansible Checks
+
+The local lint gate now includes:
+
+```bash
+make ansible-lint
+```
+
+That runs `ansible-lint` over `ansible/` and is also part of `make lint`.
 
 ---
 

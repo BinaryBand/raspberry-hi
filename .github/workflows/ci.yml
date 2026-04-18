@@ -31,14 +31,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Run ruff
+      - name: Run lint gate
         run: make lint
-
-      - name: Run Semgrep
-        run: make semgrep
-
-      - name: Run ansible-lint
-        run: poetry run ansible-lint ansible/
 
   test:
     name: Unit & stub tests

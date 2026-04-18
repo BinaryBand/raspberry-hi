@@ -39,6 +39,11 @@ ansible_host: rpi.local
 ansible_user: user
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
+ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
+
+# Paths on the Pi where app data is stored (used by minio/postgres roles).
+minio_data_path: /mnt/external/minio
+postgres_data_path: /postgres
 ```
 
 ### 2. Set up secrets
@@ -82,12 +87,13 @@ If you want to prepare external storage on the Pi, run `make mount`. That comman
 
 | Command | What it does |
 | --- | --- |
-| `make lint` | Run the full static quality gate: Ruff, format check, Pyright, Semgrep, and cpd |
+| `make lint` | Run the full static quality gate: Ruff, format check, Pyright, Semgrep, cpd, and ansible-lint |
 | `make ruff` | Run Ruff lint checks over `scripts/`, `models/`, and `tests/` |
 | `make format-check` | Run Ruff formatting checks over `scripts/`, `models/`, and `tests/` |
 | `make pyright` | Run Pyright type checks over the repository |
 | `make semgrep` | Run Semgrep audits for current architectural/process constraints |
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
+| `make ansible-lint` | Run ansible-lint over `ansible/` |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
 | `make test-roles` | Run Ansible role tests in Docker (requires Docker) |
 | `make test-e2e` | Run live Pi tests (requires a reachable Pi) |

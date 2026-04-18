@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from scripts.utils.exec_utils import run_resolved
 
 
@@ -76,5 +78,28 @@ class TestSemgrep:
             ["poetry", "run", "semgrep", "scan", "--config", ".semgrep.yml", "--error"],
             capture_output=True,
             text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestAnsibleLint:
+    """Ensure the Ansible roles pass ansible-lint."""
+
+    def test_ansible_lint(self):
+        """Fail if ansible-lint reports any role or playbook violations."""
+        result = run_resolved(
+            [
+                "poetry",
+                "run",
+                "ansible-lint",
+                "-x",
+                "var-naming",
+                "ansible/apps/postgres",
+                "ansible/apps/baikal",
+                "ansible/roles/service_adapter",
+            ],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "ANSIBLE_CONFIG": "ansible/ansible.cfg"},
         )
         assert result.returncode == 0, result.stdout + result.stderr

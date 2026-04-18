@@ -21,7 +21,7 @@
     mode: "0755"
   become: true
 
-- name: Schedule {{ svc_name }} via @reboot cron
+- name: Schedule service via @reboot cron {{ svc_name }}
   ansible.builtin.cron:
     name: "{{ svc_name }}-start"
     special_time: reboot

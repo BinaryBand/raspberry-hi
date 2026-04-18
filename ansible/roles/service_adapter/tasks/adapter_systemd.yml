@@ -33,7 +33,7 @@
   changed_when: true
   when: _svc_linger_status.stdout | default('') != 'yes'
 
-- name: Enable and start {{ svc_name }} service
+- name: Enable and start service {{ svc_name }}
   ansible.builtin.systemd:
     name: "{{ svc_name }}"
     scope: user
