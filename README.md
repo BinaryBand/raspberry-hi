@@ -48,15 +48,13 @@ postgres_data_path: /postgres
 
 ### 2. Set up secrets
 
-Secrets (MinIO credentials) are stored in an Ansible Vault encrypted file that travels
-with the repo. Run the interactive bootstrap script to set everything up:
+Secrets (MinIO credentials) are stored in an Ansible Vault encrypted file that travels with the repo. Run the interactive bootstrap script to set everything up:
 
 ```bash
 make bootstrap
 ```
 
-This will prompt you for a vault password (saved locally, never committed) and your MinIO credentials plus any missing per-host sudo passwords, then write the
-encrypted vault file.
+This will prompt you for a vault password (saved locally, never committed) and your MinIO credentials plus any missing per-host sudo passwords, then write the encrypted vault file.
 
 To update secrets later: `make vault-edit`
 
@@ -74,8 +72,7 @@ Verifies that the vault password file exists and the Pi is reachable.
 make site
 ```
 
-Installs and configures everything on the Pi. Subsequent runs need no extra steps —
-the vault password file handles decryption automatically.
+Installs and configures everything on the Pi. Subsequent runs need no extra steps — the vault password file handles decryption automatically.
 
 If you want to prepare external storage on the Pi, run `make mount`. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH. MinIO only requires a persistent `minio_data_path`; it does not require external media.
 
@@ -164,8 +161,7 @@ target:          # name of the command
   shell command  # multiple lines run in sequence
 ```
 
-The `.PHONY` line tells Make these are commands, not filenames — without it, Make would skip
-the target if a file with that name happened to exist.
+The `.PHONY` line tells Make these are commands, not filenames — without it, Make would skip the target if a file with that name happened to exist.
 
 ---
 

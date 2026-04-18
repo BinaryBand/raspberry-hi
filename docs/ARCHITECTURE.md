@@ -36,8 +36,7 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 
 This keeps sudo credentials centralized and out of `host_vars`.
 
-[ansible/site.yml](ansible/site.yml) includes an always-on assertion that the current
-host has a `become_passwords` entry, so provisioning fails early with a clear error.
+[ansible/site.yml](ansible/site.yml) includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error.
 
 ---
 
@@ -45,26 +44,21 @@ host has a `become_passwords` entry, so provisioning fails early with a clear er
 
 ### [scripts/bootstrap.py](scripts/bootstrap.py)
 
-This script owns first-time vault setup. It may read [ansible/inventory/hosts.ini](ansible/inventory/hosts.ini),
-prompt for credentials, and write the encrypted vault.
+This script owns first-time vault setup. It may read [ansible/inventory/hosts.ini](ansible/inventory/hosts.ini), prompt for credentials, and write the encrypted vault.
 
 ### [scripts/check.py](scripts/check.py)
 
-This script owns pre-flight validation. It may verify local prerequisites, decrypt the
-vault, assert required secret completeness, and perform a minimal reachability check.
+This script owns pre-flight validation. It may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
 
 ### [scripts/mount.py](scripts/mount.py)
 
-This script owns interactive storage mounting. It may read inventory and vault data,
-open a Fabric session, and make direct remote changes.
+This script owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
 
 ---
 
 ## Makefile Policy
 
-The Makefile is the operator-facing entry point. The `_vault_check` target runs
-[scripts/check.py](scripts/check.py) in `--vault-only` mode before provisioning or mount
-targets:
+The Makefile is the operator-facing entry point. The `_vault_check` target runs [scripts/check.py](scripts/check.py) in `--vault-only` mode before provisioning or mount targets:
 
 ```makefile
 site minio baikal mount: _vault_check
@@ -76,8 +70,7 @@ Missing prerequisites should be rejected at the edge of the workflow.
 
 ## App Dependency Policy
 
-Application roles may depend on other app roles when the dependent service is part of
-the same declared stack.
+Application roles may depend on other app roles when the dependent service is part of the same declared stack.
 
 - **Dependencies must be explicit** in role metadata.
 - **The dependency remains declarative.** Ansible resolves ordering through metadata
@@ -98,8 +91,7 @@ This pattern is for repo-owned services, not hidden external prerequisites.
 
 ## Storage Policy
 
-Application data paths must be explicitly declared, but the storage medium is an
-operator choice.
+Application data paths must be explicitly declared, but the storage medium is an operator choice.
 
 - **Persistence is required.**
 - **The medium is an operator choice.**
@@ -137,5 +129,4 @@ models/
   system/              ← BlockDevice, MountInfo data models
 ```
 
-Ansible declares and converges durable state. Python assists through narrow seams.
-App-to-app dependencies may exist when they stay explicit and repo-owned.
+Ansible declares and converges durable state. Python assists through narrow seams. App-to-app dependencies may exist when they stay explicit and repo-owned.

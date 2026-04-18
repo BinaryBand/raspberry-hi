@@ -1,7 +1,6 @@
 # Testing Architecture
 
-Tests are split into two independent tiers. Each tier can run without the
-tiers above it.
+Tests are split into two independent tiers. Each tier can run without the tiers above it.
 
 ```bash
 make test          →  unit + stub  (always safe, no infra)
@@ -27,8 +26,7 @@ SSH-dependent functions use `FakeConnection`, which returns canned JSON without 
 
 ### Framework vs tests
 
-The test framework lives in `tests/support/` and has no pytest dependency of
-its own — it is plain Python that tests import:
+The test framework lives in `tests/support/` and has no pytest dependency of its own — it is plain Python that tests import:
 
 ```text
 tests/support/
@@ -43,19 +41,16 @@ tests/support/
 
 ## Tier 2 — E2E (`make test-e2e`)
 
-Tests in `tests/e2e/` run against a real Pi over SSH. They are tagged
-`@pytest.mark.e2e` and excluded from `make test` by default.
+Tests in `tests/e2e/` run against a real Pi over SSH. They are tagged `@pytest.mark.e2e` and excluded from `make test` by default.
 
-The `live_conn` fixture reads `HOST` from the environment and returns a live
-Fabric `Connection`:
+The `live_conn` fixture reads `HOST` from the environment and returns a live Fabric `Connection`:
 
 ```bash
 make test-e2e            # tests against rpi (default)
 HOST=rpi2 make test-e2e  # tests against rpi2
 ```
 
-Current E2E tests verify that `findmnt` and `lsblk` return plausible output
-from a real Pi.
+Current E2E tests verify that `findmnt` and `lsblk` return plausible output from a real Pi.
 
 ---
 

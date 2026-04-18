@@ -87,8 +87,7 @@ Makefile                  All user-facing commands — run `make help` for full 
 
 ### Python imports
 
-The Makefile exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts` so local Python
-entry points and custom Ansible modules can import project packages directly:
+The Makefile exports `PYTHONPATH=$(CURDIR):$(CURDIR)/scripts` so local Python entry points and custom Ansible modules can import project packages directly:
 
 ```python
 from models import HostVars
