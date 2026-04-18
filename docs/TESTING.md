@@ -65,9 +65,11 @@ The local lint gate now includes:
 
 ```bash
 make ansible-lint
+make vulture
 ```
 
-That runs `ansible-lint` over `ansible/` and is also part of `make lint`.
+Those run `ansible-lint` over `ansible/` and Vulture over `scripts/`, `models/`, and `tests/`.
+Vulture findings with confidence greater than or equal to 80% fail the gate. Both are also part of `make lint`.
 
 ---
 

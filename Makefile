@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd ansible-lint test test-e2e status logs baikal minio postgres _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd vulture ansible-lint test test-e2e status logs baikal minio postgres _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight
 
 
 help:
@@ -42,6 +42,7 @@ help:
 	@echo "  pyright       Run Pyright type checks over the repository"
 	@echo "  semgrep       Run Semgrep architectural and process audits"
 	@echo "  cpd           Check for copy-paste duplication (jscpd, threshold 3%)"
+	@echo "  vulture       Check for unused Python code (min confidence 80%)"
 	@echo "  ansible-lint  Run ansible-lint over ansible/"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
@@ -63,7 +64,7 @@ help:
 check:
 	poetry run python ./scripts/check.py
 
-lint: ruff format-check pyright semgrep cpd ansible-lint
+lint: ruff format-check pyright semgrep cpd vulture ansible-lint
 
 ruff:
 	poetry run ruff check scripts/ models/ tests/
@@ -79,6 +80,9 @@ semgrep:
 
 cpd:
 	npx jscpd --format python --min-tokens 50 --threshold 3 --ignore '**/.venv/**,**/typings/**' .
+
+vulture:
+	poetry run vulture --min-confidence 80 scripts/ models/ tests/
 
 ansible-lint:
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming ansible/apps/postgres ansible/apps/baikal ansible/roles/service_adapter

@@ -86,6 +86,21 @@ class TestSemgrep:
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+class TestVulture:
+    """Ensure the codebase passes the current Vulture dead-code gate."""
+
+    PATHS = ["scripts/", "models/", "tests/"]
+
+    def test_vulture(self):
+        """Fail if Vulture reports unused code at or above 80% confidence."""
+        result = run_resolved(
+            ["poetry", "run", "vulture", "--min-confidence", "80", *self.PATHS],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
 class TestAnsibleLint:
     """Ensure the Ansible roles pass ansible-lint."""
 

@@ -36,7 +36,9 @@ class RemoteConnection(Protocol):
         echo: bool = False,
         in_stream: object | None = None,
         **kwargs: object,
-    ) -> CommandResult: ...
+    ) -> CommandResult:
+        _ = (hide, warn, echo, in_stream, kwargs)
+        raise NotImplementedError
 
 
 # Virtual/kernel filesystem prefixes - never user data.

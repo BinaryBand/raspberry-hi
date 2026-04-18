@@ -49,6 +49,7 @@ class FakeConnection:
         **kwargs: object,
     ) -> FakeResult:
         """Stub for fabric.Connection.run()."""
+        _ = (hide, warn, echo, in_stream, kwargs)
         for prefix, value in self._responses.items():
             if command.startswith(prefix):
                 if isinstance(value, tuple):
