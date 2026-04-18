@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-from models import MountInfo
 from scripts.mount_orchestrator import MountOrchestrator
 from scripts.utils.info_port import InfoPort
 from scripts.utils.prompter import Prompter
@@ -32,11 +31,6 @@ class FakeInfo:
         del conn
         return [DummyDevice("sdb1", "usb")]
 
-    def list_mounts(self, conn: RemoteConnection) -> list[MountInfo]:
-        """Return no mounts because mount selection is not under test here."""
-        del conn
-        return []
-
 
 class FakePrompter:
     """Minimal Prompter implementation for orchestration tests."""
@@ -49,11 +43,6 @@ class FakePrompter:
         """Accept the default label chosen by the orchestrator."""
         assert default == "usb"
         return "chosen"
-
-    def choose_mount(self, mounts: list[MountInfo]) -> str | None:
-        """Unused in these tests because only new-device flow is exercised."""
-        del mounts
-        return None
 
 
 def test_mount_new_device_success() -> None:

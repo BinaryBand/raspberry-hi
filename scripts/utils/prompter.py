@@ -13,7 +13,7 @@ import questionary
 from rich.console import Console
 
 if TYPE_CHECKING:
-    from models import BlockDevice, MountInfo
+    from models import BlockDevice
 
 console = Console()
 
@@ -22,8 +22,6 @@ class Prompter(Protocol):
     def choose_device(self, devices: list["BlockDevice"]) -> "BlockDevice | None": ...
 
     def ask_label(self, default: str | None) -> str | None: ...
-
-    def choose_mount(self, mounts: list["MountInfo"]) -> str | None: ...
 
 
 class QuestionaryPrompter:
@@ -55,20 +53,4 @@ class QuestionaryPrompter:
         return questionary.text(
             "Mount point label (will mount at /mnt/<label>):",
             default=default or "",
-        ).ask()
-
-    def choose_mount(self, mounts: list["MountInfo"]) -> str | None:
-        if not mounts:
-            return None
-
-        choices = [
-            questionary.Choice(
-                title=(f"{fs.target}  ({fs.source or '?'}, {fs.fstype or '?'}, {fs.size or '?'})"),
-                value=fs.target,
-            )
-            for fs in mounts
-        ]
-
-        return questionary.select(
-            "Select the mount point to use for MinIO data:", choices=choices
         ).ask()
