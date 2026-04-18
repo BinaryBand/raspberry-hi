@@ -46,6 +46,7 @@ class VarRequirements(Protocol):
     def required(self) -> list[str]: ...
     def hint(self, var: str) -> str: ...
     def hidden(self, var: str) -> bool: ...
+    def default(self, var: str) -> str | None: ...
 
 
 class VarStore(Protocol):
@@ -68,10 +69,18 @@ class AnsibleRoleAdapter:
     def __init__(self, role_path: Path) -> None:
         self._role_path = role_path
         self._hints: dict[str, str] = {}
+        self._defaults: dict[str, str] = {}
         preflight_path = role_path / "preflight.yml"
         if preflight_path.exists():
             data = yaml_mapping(yaml.safe_load(preflight_path.read_text()), source=preflight_path)
-            self._hints = cast("dict[str, str]", data.get("var_hints", {}))
+            for k, v in cast("dict[str, Any]", data.get("var_hints", {})).items():
+                if isinstance(v, dict):
+                    hint_entry = cast("dict[str, str]", v)
+                    self._hints[k] = hint_entry.get("hint", "")
+                    if d := hint_entry.get("default"):
+                        self._defaults[k] = d
+                else:
+                    self._hints[k] = v
 
     def required(self) -> list[str]:
         return role_required_vars(self._role_path)
@@ -81,6 +90,9 @@ class AnsibleRoleAdapter:
 
     def hidden(self, var: str) -> bool:
         return False
+
+    def default(self, var: str) -> str | None:
+        return self._defaults.get(var)
 
 
 class VaultSecretsAdapter:
@@ -101,6 +113,9 @@ class VaultSecretsAdapter:
 
     def hidden(self, var: str) -> bool:
         return next((s["hidden"] for s in self._specs if s["key"] == var), False)
+
+    def default(self, var: str) -> str | None:
+        return None
 
 
 class HostVarsAdapter:
@@ -159,7 +174,7 @@ def run_preflight(
         value = (
             questionary.password(label).ask()
             if requirements.hidden(var)
-            else questionary.text(label).ask()
+            else questionary.text(label, default=requirements.default(var) or "").ask()
         )
         if not value:
             sys.exit(f"  [FAIL]  {var} is required. Aborting.")

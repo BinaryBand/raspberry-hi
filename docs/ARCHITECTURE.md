@@ -89,8 +89,8 @@ The current example is Baikal depending on PostgreSQL:
 
 - [ansible/apps/baikal/meta/main.yml](ansible/apps/baikal/meta/main.yml) declares the
   dependency on the `postgres` app role.
-- [ansible/site.yml](ansible/site.yml) tags both roles so `make postgres` works as an
-  explicit operator action and `make baikal` still includes the database path.
+- PostgreSQL is exposed through its published host port, and Baikal reaches it via
+  `host.containers.internal` rather than a repo-managed custom Podman bridge.
 
 This pattern is for repo-owned services, not hidden external prerequisites.
 

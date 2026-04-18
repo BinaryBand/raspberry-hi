@@ -1,6 +1,10 @@
 var_hints:
-  baikal_config_path: "directory for Baikal config files and app settings"
-  baikal_data_path: "directory for Baikal persistent data files"
+  baikal_config_path:
+    hint: "directory for Baikal config files and app settings"
+    default: /home/raspberry-hi/baikal/config
+  baikal_data_path:
+    hint: "directory for Baikal persistent data files"
+    default: /home/raspberry-hi/baikal/data
 
 vault_secrets:
   - key: baikal_admin_password

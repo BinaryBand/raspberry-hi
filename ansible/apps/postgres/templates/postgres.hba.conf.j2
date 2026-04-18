@@ -6,9 +6,7 @@ local   all             all                                     trust
 # Loopback — for Ansible provisioning tasks that connect via --network host
 host    all             all             127.0.0.1/32            scram-sha-256
 host    all             all             ::1/128                 scram-sha-256
+host    all             all             {{ ansible_default_ipv4.address }}/32    scram-sha-256
 
 # Rootless Podman pasta host-access network
 host    all             all             169.254.0.0/16          scram-sha-256
-
-# Podman named network — container-to-container connections
-host    all             all             {{ postgres_network_subnet }}    scram-sha-256

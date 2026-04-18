@@ -84,15 +84,11 @@
     mode: "0755"
   become: true
 
-- name: Install PostgreSQL Podman network quadlet
-  ansible.builtin.template:
-    src: postgres.network.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/{{ postgres_network_name }}.network"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
+- name: Remove legacy PostgreSQL Podman network quadlet
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd/postgres.network"
+    state: absent
   become: true
-  notify: restart postgres
 
 - name: Install PostgreSQL Podman quadlet
   ansible.builtin.template:
@@ -111,3 +107,6 @@
     svc_name: "{{ postgres_service_name }}"
     svc_user: "{{ ansible_user }}"
     svc_run_script: "{{ app_user_home }}/bin/run-postgres.sh"
+
+- name: Apply pending PostgreSQL handler changes
+  ansible.builtin.meta: flush_handlers

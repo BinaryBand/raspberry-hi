@@ -5,7 +5,6 @@ After=network.target
 [Container]
 Image={{ postgres_image }}
 ContainerName={{ postgres_service_name }}
-Network={{ postgres_network_name }}.network
 Exec=postgres -c hba_file={{ postgres_hba_container_path }}
 PublishPort={{ postgres_port }}:5432
 Volume={{ postgres_data_path }}:/var/lib/postgresql/data:U

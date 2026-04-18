@@ -1,5 +1,7 @@
 var_hints:
-  minio_data_path: "persistent path for MinIO data"
+  minio_data_path:
+    hint: "persistent path for MinIO data"
+    default: /home/raspberry-hi/minio
 
 vault_secrets:
   - key: minio_root_user

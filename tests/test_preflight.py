@@ -66,6 +66,55 @@ class TestAnsibleRoleAdapter:
 
         assert adapter.required() == []
 
+    def test_dict_hint_with_default(self, tmp_path: Path) -> None:
+        """Dict-style hint entry exposes both hint text and prompt default."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(
+            tmp_path,
+            {
+                "var_hints": {
+                    "data_path": {
+                        "hint": "where to store data",
+                        "default": "/home/raspberry-hi/app",
+                    }
+                }
+            },
+        )
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.hint("data_path") == "where to store data"
+        assert adapter.default("data_path") == "/home/raspberry-hi/app"
+
+    def test_dict_hint_without_default(self, tmp_path: Path) -> None:
+        """Dict-style hint with no default field returns None for default."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(tmp_path, {"var_hints": {"data_path": {"hint": "where to store data"}}})
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.hint("data_path") == "where to store data"
+        assert adapter.default("data_path") is None
+
+    def test_string_hint_returns_none_default(self, tmp_path: Path) -> None:
+        """Plain string hint (legacy format) returns None for default."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(tmp_path, {"var_hints": {"data_path": "where to store data"}})
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.hint("data_path") == "where to store data"
+        assert adapter.default("data_path") is None
+
+    def test_default_for_unknown_var_returns_none(self, tmp_path: Path) -> None:
+        """default() returns None for vars not listed in var_hints."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(tmp_path, {"var_hints": {}})
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.default("data_path") is None
+
 
 class TestVaultSecretsAdapter:
     """Tests for VaultSecretsAdapter — reads vault secret specs from the role."""
