@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import configparser
 import os
+from pathlib import Path
 
 from scripts.utils.exec_utils import run_resolved
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestCpd:
@@ -84,6 +88,13 @@ class TestSemgrep:
 
 class TestAnsibleLint:
     """Ensure the Ansible roles pass ansible-lint."""
+
+    def test_ansible_config_does_not_require_local_vault_password(self):
+        """Global Ansible config must not depend on a developer-only vault file."""
+        config = configparser.ConfigParser()
+        config.read(ROOT / "ansible" / "ansible.cfg")
+
+        assert "vault_password_file" not in config["defaults"]
 
     def test_ansible_lint(self):
         """Fail if ansible-lint reports any role or playbook violations."""
