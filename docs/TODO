@@ -3,7 +3,6 @@
 ## Architecture
 
 - [x] Organize ./model files with intuitive directories. *
-- [ ] Prefer `Makefile → Ansible` and declarative programming.
 - [x] `Makefile → Python → Ansible` if you need: synthesis (auto-fill declarations), richer validation, or reusable composition.
   - [x] ... and then organize and *abstract-ify* ./scripts.
 - [x] Port/adapter pattern for `ansible/apps` — apps declare what they need; adapter roles handle how. *
@@ -35,7 +34,7 @@
 
 - [x] Standardize typing constraints. (Pyright) *
 - [ ] Enforce complexity constraints. (Lizard) -
-- [ ] Enforce utility gate constraints. (Vulture)
+- [x] Enforce utility gate constraints. (Vulture)
 - [x] Enforce redundancy constraints. (jscpd) *
 - [x] Plan and enforce initial architectural constraints. (Semgrep)
   - [ ] Expand the ruleset as the Python ↔ Ansible constitution hardens.

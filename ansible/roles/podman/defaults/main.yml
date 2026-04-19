@@ -4,3 +4,6 @@ podman_fail_on_unsupported: true
 podman_supported_managers:
   - apt
   - dnf
+  - apk
+  - pacman
+  - zypper

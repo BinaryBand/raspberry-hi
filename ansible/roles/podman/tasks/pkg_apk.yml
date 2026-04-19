@@ -1,0 +1,6 @@
+---
+- name: Install Podman (apk)
+  community.general.apk:
+    name: podman
+    state: present
+    update_cache: true
