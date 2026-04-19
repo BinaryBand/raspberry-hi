@@ -201,7 +201,9 @@ def main() -> None:
     if len(sys.argv) < 2:
         sys.exit("Usage: preflight.py <app>")
     app = sys.argv[1]
-    hostname = os.environ.get("HOST", "rpi")
+    hostname = os.environ.get("HOST")
+    if not hostname:
+        sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
     role_path = _resolve_role_path(app)
 
     # Vault secrets first — credentials must exist before Ansible runs.

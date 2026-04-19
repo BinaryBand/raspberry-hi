@@ -75,7 +75,7 @@ class TestAnsibleRoleAdapter:
                 "var_hints": {
                     "data_path": {
                         "hint": "where to store data",
-                        "default": "/home/raspberry-hi/app",
+                        "default": "/home/linux-hi/app",
                     }
                 }
             },
@@ -84,7 +84,7 @@ class TestAnsibleRoleAdapter:
         adapter = AnsibleRoleAdapter(tmp_path)
 
         assert adapter.hint("data_path") == "where to store data"
-        assert adapter.default("data_path") == "/home/raspberry-hi/app"
+        assert adapter.default("data_path") == "/home/linux-hi/app"
 
     def test_dict_hint_without_default(self, tmp_path: Path) -> None:
         """Dict-style hint with no default field returns None for default."""

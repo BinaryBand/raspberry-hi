@@ -3,9 +3,9 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [project]
-name = "raspberry-hi"
+name = "linux-hi"
 version = "0.1.0"
-description = "Raspberry Pi management tools"
+description = "Ansible + Python tools for provisioning Linux systems"
 authors = [
     { name = "BinaryBand", email = "BinaryBand@users.noreply.github.com" },
 ]

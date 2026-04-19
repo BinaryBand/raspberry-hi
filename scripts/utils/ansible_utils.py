@@ -65,7 +65,7 @@ def write_host_vars_raw(hostname: str, updates: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def inventory_host_vars(host: str = "rpi") -> HostVars:
+def inventory_host_vars(host: str) -> HostVars:
     """Return merged host vars from ansible-inventory for *host*."""
     from models import HostVars
 

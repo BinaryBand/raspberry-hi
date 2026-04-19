@@ -38,7 +38,9 @@ def _become_password(hostname: str) -> str:
 
 
 def main() -> None:
-    hostname = os.environ.get("HOST", "rpi")
+    hostname = os.environ.get("HOST")
+    if not hostname:
+        sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
     hvars = inventory_host_vars(hostname)
     become_pwd = _become_password(hostname)
 

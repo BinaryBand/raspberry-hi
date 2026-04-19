@@ -1,8 +1,8 @@
-# raspberry-hi — Agent Guide
+# linux-hi — Agent Guide
 
 ## Purpose
 
-Provision and manage a Raspberry Pi media server using Ansible and Python. The main services are MinIO object storage and Baikal CalDAV/CardDAV, both running as rootless Podman containers.
+Provision and manage a Linux host using Ansible and Python. The main services are MinIO object storage and Baikal CalDAV/CardDAV, both running as rootless Podman containers.
 
 **Scope:** Infrastructure provisioning, storage configuration, and secret management.
 **Out of scope:** Application-level MinIO configuration, rclone restore workflows (see `docs/.notes.md`).
@@ -15,13 +15,13 @@ Provision and manage a Raspberry Pi media server using Ansible and Python. The m
 
 | Term | Meaning |
 | --- | --- |
-| `HOST` | Alias for the target Pi (`rpi` or `rpi2`). Defaults to `rpi`. Pass as `HOST=rpi2 make site`. |
-| `minio_data_path` | Filesystem path on the Pi where MinIO stores data. It must be persistent, but the storage medium is up to the operator. |
+| `HOST` | Alias for the target host. Defaults to `rpi` (the first inventory host). Pass as `HOST=myserver make site`. |
+| `minio_data_path` | Filesystem path on the host where MinIO stores data. It must be persistent, but the storage medium is up to the operator. |
 | `app_user_home` | Home directory for `ansible_user` on the target host. Defined in `group_vars/all/vars.yml`. Used by app roles for config and quadlet paths. |
 | `service_adapter_backend` | Init system adapter used by app roles. Auto-detected from `ansible_facts['service_mgr']`; override in `host_vars` (`systemd`, `cron`, `manual`). |
 | `quadlet` | A systemd `.container` unit file that Podman uses to manage containers as services. |
 | `vault` | An Ansible Vault-encrypted YAML file (`ansible/group_vars/all/vault.yml`) storing durable app credentials and other secrets. |
-| `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/`. Override role defaults for a specific Pi. |
+| `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/`. Override role defaults for a specific host. |
 
 ---
 
@@ -38,7 +38,7 @@ ansible/                  Playbooks and roles
     podman/               Rootless container runtime (apt/dnf)
     service_adapter/      Port: service lifecycle management (systemd/cron/manual)
   inventory/
-    hosts.ini             Pi host aliases and IP addresses
+    hosts.ini             Host aliases and connection details
     host_vars/rpi.yml     Per-host settings (ansible_user, minio_data_path, etc.)
   group_vars/all/
     vault.yml             Encrypted app credentials and other secrets
@@ -70,10 +70,10 @@ tests/
   conftest.py             Shared pytest fixtures (findmnt_conn, lsblk_conn)
   support/
     builders.py           Helper constructors for test data (e.g. mnt())
-    connections.py        FakeConnection — stubs fabric SSH without a real Pi
+    connections.py        FakeConnection — stubs fabric SSH without a live host
     data.py               Canned JSON fixtures (lsblk, findmnt output)
   e2e/
-    test_connectivity.py  Live Pi tests (require HOST to be reachable)
+    test_connectivity.py  Live host tests (require HOST to be reachable)
     conftest.py           e2e-specific fixtures (live_conn)
 
 typings/fabric/             Type stubs for the fabric SSH library
@@ -106,12 +106,9 @@ See `inventory_host_vars()`.
 Use models (`MountInfo`, `HostVars`, `BlockDevice`) wherever data has a known shape.
 Add new models to `models/` and export from `models/__init__.py`.
 
-### Multi-Pi support
+### Multi-host support
 
-- `rpi`  — 192.168.0.33 (default)
-- `rpi2` — 192.168.0.35
-
-All make targets accept `HOST=rpi2 make <target>`.
+All make targets accept `HOST=<alias> make <target>`. The default is `rpi` (the first host in `hosts.ini`).
 
 ### Platform constraints
 
@@ -122,7 +119,7 @@ All make targets accept `HOST=rpi2 make <target>`.
 
 **Service backends:** App roles (`minio`, `baikal`) are decoupled from init-system details via `service_adapter`. The backend is auto-detected from `ansible_facts['service_mgr']` but can be overridden in `host_vars`:
 
-- `systemd` (default on Pi OS) — Podman quadlets, `loginctl enable-linger`, `systemctl --user`
+- `systemd` (default on most distros) — Podman quadlets, `loginctl enable-linger`, `systemctl --user`
 - `cron` — deploys a `podman run` script, schedules it via `@reboot` cron; no restart-on-failure
 - `manual` — deploys the run script only; operator wires it into their init system
 

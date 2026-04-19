@@ -1,13 +1,13 @@
-# raspberry-hi
+# linux-hi
 
-Ansible + Python tools for managing a Raspberry Pi.
+Ansible + Python tools for provisioning any Linux system over SSH.
 
 ## Requirements
 
 - Python 3.12+
 - Poetry (`pipx install poetry`)
 - Node.js 18+ / npx (for `make cpd` — ships with Node.js)
-- SSH key already on the Pi
+- SSH key already on the target host
 
 All other dependencies — Ansible, Fabric, Pydantic, etc. — are managed by Poetry:
 
@@ -21,9 +21,9 @@ All commands below should be run from the project root (`./`).
 
 ## First-time setup
 
-### 1. Configure your Pi
+### 1. Configure your host
 
-Add your Pi to `ansible/inventory/hosts.ini`:
+Add your host to `ansible/inventory/hosts.ini`:
 
 ```ini
 [devices]
@@ -33,15 +33,15 @@ rpi
 Then create `ansible/inventory/host_vars/rpi.yml` with its connection details:
 
 ```yaml
-# Use an mDNS name (rpi.local) or a raw IP (192.168.0.x).
-# mDNS survives DHCP changes without editing this file.
+# ansible_host accepts a hostname, an mDNS name (host.local), or a raw IP (192.168.0.x).
+# mDNS survives DHCP address changes without editing this file.
 ansible_host: rpi.local
 ansible_user: user
 ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 
-# Paths on the Pi where app data is stored (used by minio/postgres roles).
+# Paths on the host where app data is stored (used by minio/postgres roles).
 minio_data_path: /mnt/external/minio
 postgres_data_path: /postgres
 ```
@@ -64,7 +64,7 @@ To update secrets later: `make vault-edit`
 make check
 ```
 
-Verifies that the vault password file exists and the Pi is reachable.
+Verifies that the vault password file exists and the target host is reachable.
 
 ### 4. Provision
 
@@ -72,9 +72,9 @@ Verifies that the vault password file exists and the Pi is reachable.
 make site
 ```
 
-Installs and configures everything on the Pi. Subsequent runs need no extra steps — the vault password file handles decryption automatically.
+Installs and configures everything on the host. Subsequent runs need no extra steps — the vault password file handles decryption automatically.
 
-If you want to prepare external storage on the Pi, run `make mount`. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH. MinIO only requires a persistent `minio_data_path`; it does not require external media.
+If you want to prepare external storage on the host, run `make mount`. That command is a standalone Python/Fabric script — it reads connection details from the Ansible inventory and the vault, then interactively picks and mounts a device over SSH. MinIO only requires a persistent `minio_data_path`; it does not require external media.
 
 ---
 
@@ -92,14 +92,14 @@ If you want to prepare external storage on the Pi, run `make mount`. That comman
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
 | `make ansible-lint` | Run ansible-lint over `ansible/` |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
-| `make test-e2e` | Run live Pi tests (requires a reachable Pi) |
+| `make test-e2e` | Run live host tests (requires a reachable host) |
 
 ### Provisioning
 
 | Command | What it does |
 | --- | --- |
 | `make check` | Validate all prerequisites before provisioning |
-| `make ping` | Check Pi is reachable |
+| `make ping` | Check host is reachable |
 | `make bootstrap` | First-time setup: create vault password and encrypt secrets |
 | `make vault-edit` | Edit existing encrypted secrets |
 | `make site` | Full provision: base → Podman → storage |
@@ -112,9 +112,9 @@ If you want to prepare external storage on the Pi, run `make mount`. That comman
 
 | Command | What it does |
 | --- | --- |
-| `make status` | Show MinIO service status on the Pi |
-| `make logs` | Tail the last 50 lines of MinIO logs from the Pi |
-| `make ssh` | Open a shell on the Pi |
+| `make status` | Show MinIO service status on the host |
+| `make logs` | Tail the last 50 lines of MinIO logs from the host |
+| `make ssh` | Open a shell on the host |
 
 ### Tags — run a subset of roles
 
@@ -123,7 +123,7 @@ cd ansible && ansible-playbook site.yml --tags minio
 cd ansible && ansible-playbook site.yml --tags "podman,storage"
 ```
 
-### Multiple Pis
+### Multiple hosts
 
 Add each host to `ansible/inventory/hosts.ini` and create a matching `host_vars/` file:
 
@@ -142,7 +142,7 @@ ansible_port: 22
 ansible_ssh_private_key_file: config/.your-key
 ```
 
-Then target a specific Pi with `HOST`:
+Then target a specific host with `HOST`:
 
 ```bash
 HOST=rpi2 make site

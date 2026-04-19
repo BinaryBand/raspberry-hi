@@ -1,7 +1,7 @@
 ANSIBLE_DIR := ansible
 
-# Default host alias (matches ansible/inventory/hosts.ini).
-# Override for a specific host: HOST=rpi2 make site
+# Default host alias — set to the first host in ansible/inventory/hosts.ini.
+# Override per-run: HOST=myserver make site
 HOST ?= rpi
 
 # Single inventory call — emits "host user port key" on one line so Make can
@@ -45,23 +45,23 @@ help:
 	@echo "  vulture       Check for unused Python code (min confidence 80%)"
 	@echo "  ansible-lint  Run ansible-lint over ansible/"
 	@echo "  test          Run unit + stub tests (no infra needed)"
-	@echo "  test-e2e      Run live Pi tests (requires Pi up, HOST=rpi)"
-	@echo "  site          Provision a device (HOST=rpi|rpi2|debian)"
+	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
+	@echo "  site          Provision a host (HOST=rpi|rpi2|debian)"
 	@echo "  minio         Setup MinIO storage"
 	@echo "  postgres      Setup PostgreSQL for Baikal"
 	@echo "  baikal        Provision Baikal CalDAV/CardDAV server"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
-	@echo "  ssh           Open a shell on the Pi"
+	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
-	@echo "  add-hostkey   Trust the Pi's SSH host key (run before first site)"
+	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
 	@echo ""
-	@echo "  cleanup       Purge an app and all its data from the device (APP=minio|baikal|postgres)"
+	@echo "  cleanup       Purge an app and all its data from the host (APP=minio|baikal|postgres)"
 	@echo ""
-	@echo "  status        Show MinIO service status on the Pi"
-	@echo "  logs          Tail MinIO logs from the Pi"
+	@echo "  status        Show MinIO service status on the host"
+	@echo "  logs          Tail MinIO logs from the host"
 	@echo ""
-	@echo "  HOST defaults to 'rpi'; override with: HOST=rpi2 make site"
+	@echo "  HOST defaults to 'rpi'; override with: HOST=myserver make site"
 
 check:
 	poetry run python ./scripts/check.py

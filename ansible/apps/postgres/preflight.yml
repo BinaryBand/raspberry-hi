@@ -1,7 +1,7 @@
 var_hints:
   postgres_data_path:
     hint: "storage path for PostgreSQL data files"
-    default: /home/raspberry-hi/postgres
+    default: /home/linux-hi/postgres
 
 vault_secrets:
   - key: postgres_password

@@ -4,7 +4,7 @@ Tests are split into two independent tiers. Each tier can run without the tiers 
 
 ```bash
 make test          →  unit + stub  (always safe, no infra)
-make test-e2e      →  live Pi      (requires Pi reachable over SSH)
+make test-e2e      →  live host    (requires host reachable over SSH)
 ```
 
 ---
@@ -50,7 +50,7 @@ make test-e2e            # tests against rpi (default)
 HOST=rpi2 make test-e2e  # tests against rpi2
 ```
 
-Current E2E tests verify that `findmnt` and `lsblk` return plausible output from a real Pi.
+Current E2E tests verify that `findmnt` and `lsblk` return plausible output from a real host.
 
 ---
 

@@ -138,7 +138,7 @@ class TestGetRealMounts:
     def test_mount_info_fields_populated(self, findmnt_conn: FakeConnection) -> None:
         """Verify mount info fields are correctly populated."""
         usb = next(m for m in get_real_mounts(findmnt_conn) if m.target == "/mnt/usb")
-        assert usb.source == "/dev/sda1"
+        assert usb.source == "/dev/sdb1"
         assert usb.fstype == "ext4"
         assert usb.size == "1T"
 
@@ -157,9 +157,9 @@ class TestGetBlockDevices:
 
     def test_children_are_parsed(self, lsblk_conn: FakeConnection) -> None:
         """Verify child devices are parsed."""
-        sd_card = get_block_devices(lsblk_conn)[0]
-        assert sd_card.children is not None
-        assert len(sd_card.children) == 2
+        system_disk = get_block_devices(lsblk_conn)[0]
+        assert system_disk.children is not None
+        assert len(system_disk.children) == 2
 
 
 class TestGetExternalDevices:
@@ -168,13 +168,13 @@ class TestGetExternalDevices:
     def test_excludes_system_disk(self, lsblk_conn: FakeConnection) -> None:
         """Verify system disk is excluded."""
         names = [d.name for d in get_external_devices(get_block_devices(lsblk_conn))]
-        assert "mmcblk0p1" not in names
-        assert "mmcblk0p2" not in names
+        assert "sda1" not in names
+        assert "sda2" not in names
 
     def test_includes_usb_partition(self, lsblk_conn: FakeConnection) -> None:
         """Verify USB partition is included."""
         names = [d.name for d in get_external_devices(get_block_devices(lsblk_conn))]
-        assert "sda1" in names
+        assert "sdb1" in names
 
     def test_supports_custom_mount_policy(self) -> None:
         """Verify disk classification can be overridden by a custom policy."""

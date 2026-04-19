@@ -153,7 +153,7 @@ def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) 
 
 
 def main() -> None:
-    print("=== raspberry-hi bootstrap ===\n")
+    print("=== linux-hi bootstrap ===\n")
 
     setup_vault_password()
 
