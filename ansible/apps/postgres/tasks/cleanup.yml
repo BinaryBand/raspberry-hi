@@ -1,0 +1,45 @@
+---
+# Guard: refuse to remove postgres while baikal still depends on it.
+- name: Check whether Baikal quadlet is still deployed
+  ansible.builtin.stat:
+    path: "{{ app_user_home }}/.config/containers/systemd/baikal.container"
+  register: _baikal_quadlet_stat
+  become: true
+
+- name: Abort if Baikal is still deployed
+  ansible.builtin.fail:
+    msg: >-
+      Baikal is still deployed (baikal.container quadlet exists on {{ inventory_hostname }}).
+      Run 'make cleanup APP=baikal' first to avoid breaking Baikal.
+  when: _baikal_quadlet_stat.stat.exists
+
+# 1. Stop service and remove boot integration.
+- name: Deregister PostgreSQL service
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: teardown
+  vars:
+    svc_name: "{{ postgres_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-postgres.sh"
+
+# 2. Remove the container if it is still running.
+- name: Remove PostgreSQL container
+  ansible.builtin.command:
+    argv: [podman, rm, --force, --ignore, "{{ postgres_service_name }}"]
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+# 3. Remove config and data directories.
+- name: Remove PostgreSQL config directory
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/postgres"
+    state: absent
+  become: true
+
+- name: Remove PostgreSQL data directory
+  ansible.builtin.file:
+    path: "{{ postgres_data_path }}"
+    state: absent
+  become: true

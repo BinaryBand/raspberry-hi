@@ -1,0 +1,12 @@
+---
+- name: Remove run script for {{ svc_name }}
+  ansible.builtin.file:
+    path: "{{ svc_run_script }}"
+    state: absent
+  become: true
+
+- name: Remind operator to verify manual teardown for {{ svc_name }}
+  ansible.builtin.debug:
+    msg: >-
+      Run script for '{{ svc_name }}' removed.
+      If you wired it into an init system manually, remove that entry now.

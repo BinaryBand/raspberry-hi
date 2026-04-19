@@ -44,6 +44,37 @@ class TestBaikalContracts:
         assert "INSTALL_DISABLED" in tasks
 
 
+class TestCleanupContracts:
+    """Guardrails for the cleanup playbook and per-app teardown tasks."""
+
+    def test_cleanup_playbook_requires_cleanup_app(self) -> None:
+        """cleanup.yml must assert that cleanup_app is defined before doing anything."""
+        playbook = _read_text("ansible/cleanup.yml")
+
+        assert "cleanup_app is defined" in playbook
+
+    def test_cleanup_playbook_has_confirmation_prompt(self) -> None:
+        """cleanup.yml must pause for confirmation before destructive steps."""
+        playbook = _read_text("ansible/cleanup.yml")
+
+        assert "ansible.builtin.pause" in playbook
+        assert "PERMANENTLY DELETE" in playbook
+
+    def test_postgres_cleanup_aborts_if_baikal_still_deployed(self) -> None:
+        """Postgres cleanup must refuse to run if the baikal quadlet still exists."""
+        tasks = _read_text("ansible/apps/postgres/tasks/cleanup.yml")
+
+        assert "baikal.container" in tasks
+        assert "ansible.builtin.fail" in tasks
+
+    def test_baikal_cleanup_drops_database(self) -> None:
+        """Baikal cleanup must drop the baikal database from the postgres container."""
+        tasks = _read_text("ansible/apps/baikal/tasks/cleanup.yml")
+
+        assert "dropdb" in tasks
+        assert "postgres_service_name" in tasks
+
+
 class TestPostgresContracts:
     """Guardrails for PostgreSQL network and auth wiring."""
 
@@ -51,7 +82,7 @@ class TestPostgresContracts:
         """The managed HBA file must allow rootless host-access traffic."""
         template = _read_text("ansible/apps/postgres/templates/postgres.hba.conf.j2")
 
-        assert "{{ ansible_default_ipv4.address }}/32" in template
+        assert "{{ ansible_facts['default_ipv4']['address'] }}/32" in template
         assert "169.254.0.0/16" in template
 
     def test_postgres_container_uses_managed_hba_file_without_custom_network(self) -> None:

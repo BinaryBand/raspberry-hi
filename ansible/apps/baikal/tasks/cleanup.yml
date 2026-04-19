@@ -1,0 +1,52 @@
+---
+# 1. Stop service and remove boot integration.
+- name: Deregister Baikal service
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: teardown
+  vars:
+    svc_name: "{{ baikal_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
+
+# 2. Remove the container if it is still running.
+- name: Remove Baikal container
+  ansible.builtin.command:
+    argv: [podman, rm, --force, --ignore, "{{ baikal_service_name }}"]
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+# 3. Drop the Baikal database from the running postgres container.
+#    Uses podman exec so local socket trust auth applies — no password needed.
+#    Soft-fail: if postgres is already stopped, the database goes with it when
+#    postgres is cleaned up separately.
+- name: Drop Baikal PostgreSQL database
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - dropdb
+      - --if-exists
+      - -U
+      - postgres
+      - "{{ baikal_db_name }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_dropdb
+  failed_when: false
+  changed_when: _baikal_dropdb.rc == 0
+
+# 4. Remove config and data directories.
+- name: Remove Baikal config directory
+  ansible.builtin.file:
+    path: "{{ baikal_config_path }}"
+    state: absent
+  become: true
+
+- name: Remove Baikal data directory
+  ansible.builtin.file:
+    path: "{{ baikal_data_path }}"
+    state: absent
+  become: true

@@ -28,7 +28,7 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd vulture ansible-lint test test-e2e status logs baikal minio postgres _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd vulture ansible-lint test test-e2e status logs baikal minio postgres cleanup _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight _cleanup_preflight
 
 
 help:
@@ -55,6 +55,8 @@ help:
 	@echo "  ssh           Open a shell on the Pi"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the Pi's SSH host key (run before first site)"
+	@echo ""
+	@echo "  cleanup       Purge an app and all its data from the device (APP=minio|baikal|postgres)"
 	@echo ""
 	@echo "  status        Show MinIO service status on the Pi"
 	@echo "  logs          Tail MinIO logs from the Pi"
@@ -141,6 +143,16 @@ status: _inv_check
 
 logs: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u minio -n 50 --no-pager"
+
+_cleanup_preflight: _vault_check
+	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make cleanup APP=minio"; exit 1; }
+
+cleanup: _cleanup_preflight
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/cleanup.yml \
+		-i $(INV) \
+		--vault-password-file $(VAULT_PASS) \
+		--limit $(HOST) \
+		-e cleanup_app=$(APP)
 
 site: _vault_check
 	$(ANSIBLE_PLAY) --skip-tags apps

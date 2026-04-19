@@ -1,0 +1,32 @@
+---
+- name: Get UID of {{ svc_user }}
+  ansible.builtin.command: "id -u {{ svc_user }}"
+  register: _svc_user_uid_out
+  changed_when: false
+
+- name: Set _svc_user_uid fact
+  ansible.builtin.set_fact:
+    _svc_user_uid: "{{ _svc_user_uid_out.stdout }}"
+
+- name: Stop and disable service {{ svc_name }}
+  ansible.builtin.systemd:
+    name: "{{ svc_name }}"
+    scope: user
+    state: stopped
+    enabled: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
+  failed_when: false
+
+- name: Remove Podman quadlet for {{ svc_name }}
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd/{{ svc_name }}.container"
+    state: absent
+  become: true
+
+- name: Reload systemd user daemon after removing quadlet for {{ svc_name }}
+  ansible.builtin.systemd:
+    scope: user
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
