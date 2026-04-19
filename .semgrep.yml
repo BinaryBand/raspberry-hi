@@ -214,3 +214,29 @@ rules:
     patterns:
       - pattern-regex: '(?m)^\s*ansible_become_password\s*:'
       - pattern-not-regex: "(?m)^\\s*ansible_become_password\\s*:\\s*\"\\{\\{ \\(become_passwords \\| default\\(\\{\\}\\)\\)\\.get\\(inventory_hostname, ''\\) \\}\\}\"\\s*$"
+
+  - id: ansible-image-no-latest-tag
+    message: >-
+      Container images must be pinned to a specific version tag, not ':latest'.
+      Unpinned images silently change between deployments and break reproducibility.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/apps/*/defaults/main.yml
+        - /ansible/apps/*/templates/*.container.j2
+    pattern-regex: ':latest\b'
+
+  - id: ansible-facts-top-level-injection
+    message: >-
+      Use ansible_facts['key'] bracket notation instead of top-level injected fact variables.
+      Top-level injection (INJECT_FACTS_AS_VARS) is deprecated and will be removed in Ansible 2.24.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/**/*.j2
+    pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'
+

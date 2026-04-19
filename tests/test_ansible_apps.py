@@ -104,6 +104,84 @@ class TestAnsibleStructureContracts:
 
         assert "include_vars:" not in playbook
 
+    def test_all_app_main_tasks_call_service_adapter(self) -> None:
+        """Every app tasks/main.yml must register with service_adapter.
+
+        Without service_adapter registration the service silently fails to start on boot
+        regardless of whether the container and quadlet are correctly deployed.
+        """
+        for tasks_file in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/main.yml")):
+            app_name = tasks_file.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/tasks/main.yml")
+            assert "name: service_adapter" in content, (
+                f"{app_name}/tasks/main.yml must register with service_adapter"
+            )
+
+    def test_all_app_cleanup_tasks_call_service_adapter_teardown(self) -> None:
+        """Every app tasks/cleanup.yml must call service_adapter teardown.
+
+        Skipping teardown leaves orphaned systemd units or cron entries on the host
+        after cleanup, causing the service to restart on next boot despite being removed.
+        """
+        for cleanup_file in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/cleanup.yml")):
+            app_name = cleanup_file.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/tasks/cleanup.yml")
+            assert "tasks_from: teardown" in content, (
+                f"{app_name}/tasks/cleanup.yml must call service_adapter with tasks_from: teardown"
+            )
+
+    def test_all_app_quadlets_have_network_ordering(self) -> None:
+        """All Podman quadlet templates must include After=network.target.
+
+        Without this ordering directive, containerised services may attempt to start
+        before networking is available, causing silent connection failures at boot.
+        """
+        for quadlet in sorted((ANSIBLE_DIR / "apps").glob("*/templates/*.container.j2")):
+            app_name = quadlet.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/templates/{quadlet.name}")
+            assert "After=network.target" in content, (
+                f"{app_name}/{quadlet.name} must have After=network.target"
+            )
+
+    def test_all_app_quadlets_have_install_section(self) -> None:
+        """All Podman quadlet templates must include WantedBy=default.target.
+
+        Without it the service does not autostart on boot after a host reboot.
+        """
+        for quadlet in sorted((ANSIBLE_DIR / "apps").glob("*/templates/*.container.j2")):
+            app_name = quadlet.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/templates/{quadlet.name}")
+            assert "WantedBy=default.target" in content, (
+                f"{app_name}/{quadlet.name} must have WantedBy=default.target"
+            )
+
+    def test_all_app_quadlets_have_restart_policy(self) -> None:
+        """All Podman quadlet templates must include Restart=on-failure.
+
+        Without a restart policy the container does not recover from crashes or
+        host reboots, leaving the service silently down.
+        """
+        for quadlet in sorted((ANSIBLE_DIR / "apps").glob("*/templates/*.container.j2")):
+            app_name = quadlet.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/templates/{quadlet.name}")
+            assert "Restart=on-failure" in content, (
+                f"{app_name}/{quadlet.name} must have Restart=on-failure"
+            )
+
+    def test_all_0600_task_files_have_no_log(self) -> None:
+        """Any app tasks/main.yml that deploys a mode 0600 file must also set no_log: true.
+
+        mode 0600 files contain credentials. Without no_log the secret value is
+        printed in plain text in Ansible's task output and any attached log sinks.
+        """
+        for tasks_file in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/main.yml")):
+            app_name = tasks_file.parent.parent.name
+            content = _read_text(f"ansible/apps/{app_name}/tasks/main.yml")
+            if 'mode: "0600"' in content:
+                assert "no_log: true" in content, (
+                    f"{app_name}/tasks/main.yml deploys a mode 0600 file but has no no_log: true"
+                )
+
 
 class TestPostgresContracts:
     """Guardrails for PostgreSQL network and auth wiring."""

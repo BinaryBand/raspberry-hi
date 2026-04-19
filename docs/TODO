@@ -25,6 +25,7 @@
 
 - [x] Add prompts for some default vars (Ansible -> Python).
 - [x] Centralize volume directory.
+- [ ] Manage inventory via cli.
 - [ ] Add app clean-up protocol.
 - [ ] Create a backup and restore plan.
 - [ ] Setup reverse-proxy management.
