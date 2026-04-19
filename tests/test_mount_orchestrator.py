@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-from scripts.mount_orchestrator import MountOrchestrator
+from scripts.internal.mount_orchestrator import MountOrchestrator
 from scripts.utils.info_port import InfoPort
 from scripts.utils.prompter import Prompter
 from scripts.utils.storage_utils import RemoteConnection

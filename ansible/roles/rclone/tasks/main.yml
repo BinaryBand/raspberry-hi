@@ -1,0 +1,31 @@
+---
+- name: Verify rclone_config secret is present
+  ansible.builtin.assert:
+    that: rclone_config is defined and rclone_config | length > 0
+    fail_msg: >-
+      rclone_config is not set in vault.
+      Run 'make rclone' to capture your local rclone config into the vault.
+
+- name: Install rclone
+  ansible.builtin.package:
+    name: rclone
+    state: present
+  become: true
+
+- name: Ensure rclone config directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/rclone"
+    state: directory
+    mode: "0700"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  become: true
+
+- name: Deploy rclone config
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: "{{ rclone_config_path }}"
+    mode: "0600"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  become: true

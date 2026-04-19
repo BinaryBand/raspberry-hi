@@ -54,6 +54,10 @@ This script owns pre-flight validation. It may verify local prerequisites, decry
 
 This script owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
 
+### [scripts/rclone.py](scripts/rclone.py)
+
+This script owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` from the local machine and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened — vault access goes through `bootstrap.py` helpers.
+
 ---
 
 ## Makefile Policy
@@ -118,10 +122,14 @@ scripts/
   bootstrap.py     ← vault setup (pre-Ansible, no Ansible subprocess)
   check.py         ← pre-flight checks including vault completeness
   mount.py         ← interactive storage mount via Fabric
+  rclone.py        ← capture local rclone config into vault
+  internal/
+    mount_orchestrator.py  ← orchestration: InfoPort + Prompter composition
+    rclone_controller.py   ← orchestration: vault read/write + overwrite confirm
   utils/
     ansible_utils.py   ← inventory parsing helpers (no playbook invocation)
     storage_utils.py   ← SSH helpers: lsblk, mount detection
-    storage_flows.py   ← TUI flows for device selection
+    rclone_utils.py    ← rclone config parsing (INI, offline)
 
 models/
   services/vault.py    ← Pydantic model for vault secrets

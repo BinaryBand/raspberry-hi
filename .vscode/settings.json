@@ -8,19 +8,23 @@
     "monkeypatch",
     "mountpoint",
     "Pydantic",
-    "pyproject",
     "ryaml",
-    "Semgrep",
-    "virtualenv"
+    "Semgrep"
   ],
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "ansible.validation.lint.enabled": false,
-  "makefile.configureOnOpen": false,
   "files.exclude": {
     "**/__pycache__": true,
     "**/.pytest_cache": true,
     "**/.ruff_cache": true
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.ruff": "explicit",
+    "source.organizeImports.ruff": "explicit"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }

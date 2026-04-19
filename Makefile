@@ -1,5 +1,6 @@
 ANSIBLE_DIR := ansible
 APPS        := minio postgres baikal
+ROLES       := service_adapter rclone
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site
@@ -33,7 +34,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey \
         lint ruff format-check pyright semgrep cpd vulture ansible-lint \
-        test test-e2e status logs cleanup \
+        test test-e2e status logs cleanup rclone \
         _vault_check _inv_check _cleanup_preflight \
         $(APPS) $(_APP_PREFLIGHTS)
 
@@ -56,6 +57,7 @@ help:
 	@echo "  site          Provision a host (HOST=rpi|rpi2|debian)"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
+	@echo "  rclone        Capture local rclone config into the vault"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
@@ -93,7 +95,8 @@ vulture:
 
 ansible-lint:
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming \
-		$(foreach app,$(APPS),ansible/apps/$(app)) ansible/roles/service_adapter
+		$(foreach app,$(APPS),ansible/apps/$(app)) \
+		$(foreach role,$(ROLES),ansible/roles/$(role))
 
 test:
 	poetry run pytest tests/ -v
@@ -124,6 +127,9 @@ _inv_check:
 
 mount: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/mount.py
+
+rclone: _vault_check
+	poetry run python ./scripts/rclone.py
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check

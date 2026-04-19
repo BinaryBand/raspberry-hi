@@ -47,6 +47,7 @@ class VarRequirements(Protocol):
     def hint(self, var: str) -> str: ...
     def hidden(self, var: str) -> bool: ...
     def default(self, var: str) -> str | None: ...
+    def var_type(self, var: str) -> str | None: ...
 
 
 class VarStore(Protocol):
@@ -70,6 +71,7 @@ class AnsibleRoleAdapter:
         self._role_path = role_path
         self._hints: dict[str, str] = {}
         self._defaults: dict[str, str] = {}
+        self._types: dict[str, str] = {}
         preflight_path = role_path / "preflight.yml"
         if preflight_path.exists():
             data = yaml_mapping(yaml.safe_load(preflight_path.read_text()), source=preflight_path)
@@ -79,6 +81,8 @@ class AnsibleRoleAdapter:
                     self._hints[k] = hint_entry.get("hint", "")
                     if d := hint_entry.get("default"):
                         self._defaults[k] = d
+                    if t := hint_entry.get("type"):
+                        self._types[k] = t
                 else:
                     self._hints[k] = v
 
@@ -93,6 +97,9 @@ class AnsibleRoleAdapter:
 
     def default(self, var: str) -> str | None:
         return self._defaults.get(var)
+
+    def var_type(self, var: str) -> str | None:
+        return self._types.get(var) or None
 
 
 class VaultSecretsAdapter:
@@ -115,6 +122,9 @@ class VaultSecretsAdapter:
         return next((s["hidden"] for s in self._specs if s["key"] == var), False)
 
     def default(self, var: str) -> str | None:
+        return None
+
+    def var_type(self, var: str) -> str | None:
         return None
 
 
@@ -151,6 +161,22 @@ class VaultStore:
 # ---------------------------------------------------------------------------
 
 
+def _pick_rclone_remote(label: str) -> str | None:
+    """Present existing vault rclone remotes as a selection prompt."""
+    from bootstrap import decrypt_vault_raw
+    from utils.rclone_utils import list_remotes
+
+    raw = decrypt_vault_raw()
+    config_text = str(raw.get("rclone_config") or "")
+    remotes = list_remotes(config_text)
+
+    if not remotes:
+        print("  [WARN]  No rclone remotes found in vault. Run 'make rclone' to configure one.")
+        sys.exit(1)
+
+    return questionary.select(label, choices=remotes).ask()
+
+
 def run_preflight(
     hostname: str,
     requirements: VarRequirements,
@@ -171,11 +197,13 @@ def run_preflight(
     for var in missing:
         hint = requirements.hint(var)
         label = f"  {var}" + (f" ({hint})" if hint else "") + ":"
-        value = (
-            questionary.password(label).ask()
-            if requirements.hidden(var)
-            else questionary.text(label, default=requirements.default(var) or "").ask()
-        )
+        var_type = requirements.var_type(var)
+        if var_type == "rclone_remote":
+            value = _pick_rclone_remote(label)
+        elif requirements.hidden(var):
+            value = questionary.password(label).ask()
+        else:
+            value = questionary.text(label, default=requirements.default(var) or "").ask()
         if not value:
             sys.exit(f"  [FAIL]  {var} is required. Aborting.")
         updates[var] = value

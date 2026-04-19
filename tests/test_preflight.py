@@ -115,6 +115,41 @@ class TestAnsibleRoleAdapter:
 
         assert adapter.default("data_path") is None
 
+    def test_rclone_remote_type(self, tmp_path: Path) -> None:
+        """var_type returns 'rclone_remote' when declared in preflight.yml."""
+        _write_defaults(tmp_path, {"media_remote": None})
+        _write_preflight(
+            tmp_path,
+            {
+                "var_hints": {
+                    "media_remote": {"hint": "rclone remote for media", "type": "rclone_remote"}
+                }
+            },
+        )
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.var_type("media_remote") == "rclone_remote"
+        assert adapter.hint("media_remote") == "rclone remote for media"
+
+    def test_var_type_absent_returns_none(self, tmp_path: Path) -> None:
+        """var_type returns None when no type field is declared."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(tmp_path, {"var_hints": {"data_path": {"hint": "where to store data"}}})
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.var_type("data_path") is None
+
+    def test_var_type_for_unknown_var_returns_none(self, tmp_path: Path) -> None:
+        """var_type returns None for vars absent from var_hints."""
+        _write_defaults(tmp_path, {"data_path": None})
+        _write_preflight(tmp_path, {"var_hints": {}})
+
+        adapter = AnsibleRoleAdapter(tmp_path)
+
+        assert adapter.var_type("data_path") is None
+
 
 class TestVaultSecretsAdapter:
     """Tests for VaultSecretsAdapter — reads vault secret specs from the role."""
@@ -171,3 +206,14 @@ class TestVaultSecretsAdapter:
 
         assert adapter.hint("nonexistent") == ""
         assert adapter.hidden("nonexistent") is False
+
+    def test_var_type_always_none(self, tmp_path: Path) -> None:
+        """VaultSecretsAdapter.var_type always returns None — vault secrets have no type."""
+        _write_preflight(
+            tmp_path,
+            {"vault_secrets": [{"key": "token", "label": "API token", "hidden": True}]},
+        )
+
+        adapter = VaultSecretsAdapter(tmp_path)
+
+        assert adapter.var_type("token") is None

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import cast
 
 from fabric import Config, Connection
-from mount_orchestrator import MountOrchestrator
+from internal.mount_orchestrator import MountOrchestrator
 from utils.ansible_utils import ANSIBLE_DIR, ROOT, inventory_host_vars
 from utils.info_port import RemoteInfoPort
 from utils.prompter import QuestionaryPrompter
