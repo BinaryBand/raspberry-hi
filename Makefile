@@ -1,4 +1,5 @@
 ANSIBLE_DIR := ansible
+APPS        := minio postgres baikal
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site
@@ -28,7 +29,13 @@ ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(
 # Make project packages importable without sys.path manipulation in scripts.
 export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
-.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey lint ruff format-check pyright semgrep cpd vulture ansible-lint test test-e2e status logs baikal minio postgres cleanup _vault_check _inv_check _minio_preflight _baikal_preflight _postgres_preflight _cleanup_preflight
+_APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
+
+.PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey \
+        lint ruff format-check pyright semgrep cpd vulture ansible-lint \
+        test test-e2e status logs cleanup \
+        _vault_check _inv_check _cleanup_preflight \
+        $(APPS) $(_APP_PREFLIGHTS)
 
 
 help:
@@ -47,19 +54,17 @@ help:
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
 	@echo "  site          Provision a host (HOST=rpi|rpi2|debian)"
-	@echo "  minio         Setup MinIO storage"
-	@echo "  postgres      Setup PostgreSQL for Baikal"
-	@echo "  baikal        Provision Baikal CalDAV/CardDAV server"
+	@echo "  <app>         Provision a named app — runs preflight automatically"
+	@echo "                Apps: $(APPS)"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
 	@echo ""
-	@echo "  cleanup       Purge an app and all its data from the host (APP=minio|baikal|postgres)"
-	@echo ""
-	@echo "  status        Show MinIO service status on the host"
-	@echo "  logs          Tail MinIO logs from the host"
+	@echo "  cleanup       Purge an app and all its data from the host (APP=<app>)"
+	@echo "  status        Show service status on the host (SVC=<service>)"
+	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
 	@echo "  HOST defaults to 'rpi'; override with: HOST=myserver make site"
 
@@ -87,11 +92,11 @@ vulture:
 	poetry run vulture --min-confidence 80 scripts/ models/ tests/
 
 ansible-lint:
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming ansible/apps/postgres ansible/apps/baikal ansible/roles/service_adapter
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming \
+		$(foreach app,$(APPS),ansible/apps/$(app)) ansible/roles/service_adapter
 
 test:
 	poetry run pytest tests/ -v
-
 
 test-e2e:
 	HOST=$(HOST) poetry run pytest tests/e2e/ -v -m e2e
@@ -120,29 +125,24 @@ _inv_check:
 mount: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/mount.py
 
-_minio_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/preflight.py minio
+# Generic preflight — works for any app registered in APPS.
+_%_preflight: _vault_check
+	HOST=$(HOST) poetry run python ./scripts/preflight.py $*
 
-_postgres_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/preflight.py postgres
+# Generic app provisioning — each app in APPS gets: make <app> → preflight → playbook.
+$(APPS): %: _%_preflight
+	$(ANSIBLE_PLAY) --tags $@
 
-_baikal_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/preflight.py baikal
-
-minio: _minio_preflight
-	$(ANSIBLE_PLAY) --tags minio
-
-postgres: _postgres_preflight
-	$(ANSIBLE_PLAY) --tags postgres
-
-baikal: _postgres_preflight _baikal_preflight
-	$(ANSIBLE_PLAY) --tags baikal
+# Baikal also needs postgres to be ready before provisioning.
+baikal: _postgres_preflight
 
 status: _inv_check
-	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "systemctl --user status minio --no-pager"
+	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make status SVC=minio"; exit 1; }
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "systemctl --user status $(SVC) --no-pager"
 
 logs: _inv_check
-	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u minio -n 50 --no-pager"
+	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make logs SVC=minio"; exit 1; }
+	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u $(SVC) -n 50 --no-pager"
 
 _cleanup_preflight: _vault_check
 	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make cleanup APP=minio"; exit 1; }
