@@ -190,6 +190,19 @@ rules:
       - pattern: VAR_HINTS = {...}
       - pattern: VAULT_SECRETS = [...]
 
+  - id: ansible-meta-no-non-empty-dependencies
+    message: >-
+      Role dependencies in meta/main.yml cause roles to run multiple times under
+      tag-based invocation (e.g. --tags baikal), leading to double privilege escalation
+      and timeouts. Declare ordering explicitly via site.yml tags instead.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/**/meta/main.yml
+    pattern-regex: '(?m)^dependencies:\n\s+- '
+
   - id: host-vars-become-password-must-use-vault-template
     message: ansible_become_password in host_vars must use the shared become_passwords vault lookup.
     severity: ERROR

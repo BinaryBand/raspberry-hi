@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -15,7 +16,7 @@ def _read_text(relative_path: str) -> str:
     return (ROOT / relative_path).read_text()
 
 
-def _read_yaml(relative_path: str) -> object:
+def _read_yaml(relative_path: str) -> Any:
     """Return the YAML-decoded content of a repository file."""
     return yaml.safe_load((ROOT / relative_path).read_text())
 
@@ -73,6 +74,35 @@ class TestCleanupContracts:
 
         assert "dropdb" in tasks
         assert "postgres_service_name" in tasks
+
+
+class TestAnsibleStructureContracts:
+    """Guardrails for Ansible structural patterns that have caused runtime failures."""
+
+    def test_no_app_meta_dependencies(self) -> None:
+        """App meta files must declare empty dependencies — ordering belongs in site.yml tags.
+
+        Non-empty meta dependencies cause roles to run multiple times under tag-based
+        invocation, which can time out on repeated privilege escalation.
+        """
+        for meta_file in sorted((ANSIBLE_DIR / "apps").glob("*/meta/main.yml")):
+            data = _read_yaml(f"ansible/apps/{meta_file.parent.parent.name}/meta/main.yml")
+            assert isinstance(data, dict)
+            assert "dependencies" not in data or data["dependencies"] == [], (
+                f"{meta_file.parent.parent.name}/meta/main.yml has non-empty dependencies; "
+                "declare ordering via site.yml tags instead"
+            )
+
+    def test_cleanup_does_not_use_include_vars(self) -> None:
+        """cleanup.yml must not use include_vars to load role defaults.
+
+        include_vars has higher precedence than host_vars, so loading a defaults file
+        that contains null-sentinel required vars (e.g. postgres_data_path: ~) silently
+        overrides the host_vars values, causing file-removal tasks to no-op.
+        """
+        playbook = _read_text("ansible/cleanup.yml")
+
+        assert "include_vars:" not in playbook
 
 
 class TestPostgresContracts:
