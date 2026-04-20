@@ -85,3 +85,19 @@ def test_postgres_backup_and_restore_share_readiness_check() -> None:
     )
     assert "Wait for PostgreSQL to accept connections" in wait_ready_content
     assert "Fail if PostgreSQL never became ready" in wait_ready_content
+
+
+def test_restore_and_cleanup_playbooks_use_registry_for_supported_apps() -> None:
+    """Restore and cleanup playbooks should derive supported apps from registry metadata."""
+    cleanup_content = _read_text("ansible/cleanup.yml")
+    restore_content = _read_text("ansible/restore.yml")
+
+    assert 'file: "{{ playbook_dir }}/registry.yml"' in cleanup_content
+    assert "cleanup_app in cleanup_supported_apps" in cleanup_content
+    assert 'file: "{{ playbook_dir }}/apps/{{ cleanup_app }}/tasks/cleanup.yml"' in cleanup_content
+    assert "['minio', 'postgres', 'baikal']" not in cleanup_content
+
+    assert 'file: "{{ playbook_dir }}/registry.yml"' in restore_content
+    assert "restore_app in restore_supported_apps" in restore_content
+    assert 'file: "{{ playbook_dir }}/apps/{{ restore_app }}/restore/main.yml"' in restore_content
+    assert "['minio', 'postgres', 'baikal']" not in restore_content

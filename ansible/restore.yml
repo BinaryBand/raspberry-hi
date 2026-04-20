@@ -12,21 +12,39 @@
           Run 'make bootstrap' to add it.
       tags: [always]
 
+    - name: Load app registry metadata
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/registry.yml"
+        name: app_registry
+      tags: [always]
+
+    - name: Derive restore apps from registry
+      ansible.builtin.set_fact:
+        restore_supported_apps: >-
+          {{
+            app_registry.apps
+            | dict2items
+            | selectattr('value.restore', 'equalto', true)
+            | map(attribute='key')
+            | list
+          }}
+      tags: [always]
+
     - name: Require restore_app variable
       ansible.builtin.assert:
         that: restore_app is defined and restore_app | length > 0
         fail_msg: >-
           restore_app is not set.
-          Pass it with: make restore APP=minio  (or postgres, baikal)
+          Pass it with: make restore APP=minio  (or one of {{ restore_supported_apps | join(', ') }})
       tags: [always]
 
     - name: Validate restore_app is supported
       ansible.builtin.assert:
         that:
-          - restore_app in ['minio', 'postgres', 'baikal']
+          - restore_app in restore_supported_apps
         fail_msg: >-
           restore_app '{{ restore_app }}' is not supported.
-          Supported restore apps: minio, postgres, baikal.
+          Supported restore apps: {{ restore_supported_apps | join(', ') }}.
       tags: [always]
 
     - name: Confirm destructive operation
@@ -59,20 +77,6 @@
       tags: [always]
 
   tasks:
-    - name: Restore MinIO
+    - name: Restore selected app
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/minio/restore/main.yml"
-      when: restore_app == 'minio'
-      tags: [minio]
-
-    - name: Restore PostgreSQL
-      ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/postgres/restore/main.yml"
-      when: restore_app == 'postgres'
-      tags: [postgres]
-
-    - name: Restore Baikal
-      ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/baikal/restore/main.yml"
-      when: restore_app == 'baikal'
-      tags: [baikal]
+        file: "{{ playbook_dir }}/apps/{{ restore_app }}/restore/main.yml"

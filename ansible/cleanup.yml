@@ -12,21 +12,39 @@
           Run 'make bootstrap' to add it.
       tags: [always]
 
+    - name: Load app registry metadata
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/registry.yml"
+        name: app_registry
+      tags: [always]
+
+    - name: Derive cleanup apps from registry
+      ansible.builtin.set_fact:
+        cleanup_supported_apps: >-
+          {{
+            app_registry.apps
+            | dict2items
+            | selectattr('value.cleanup', 'equalto', true)
+            | map(attribute='key')
+            | list
+          }}
+      tags: [always]
+
     - name: Require cleanup_app variable
       ansible.builtin.assert:
         that: cleanup_app is defined and cleanup_app | length > 0
         fail_msg: >-
           cleanup_app is not set.
-          Pass it with: make cleanup APP=minio  (or postgres, baikal)
+          Pass it with: make cleanup APP=minio  (or one of {{ cleanup_supported_apps | join(', ') }})
       tags: [always]
 
     - name: Validate cleanup_app is supported
       ansible.builtin.assert:
         that:
-          - cleanup_app in ['minio', 'postgres', 'baikal']
+          - cleanup_app in cleanup_supported_apps
         fail_msg: >-
           cleanup_app '{{ cleanup_app }}' is not supported.
-          Supported cleanup apps: minio, postgres, baikal.
+          Supported cleanup apps: {{ cleanup_supported_apps | join(', ') }}.
       tags: [always]
 
     - name: Confirm destructive operation
@@ -59,20 +77,6 @@
       tags: [always]
 
   tasks:
-    - name: Purge MinIO
+    - name: Purge selected app
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/minio/tasks/cleanup.yml"
-      when: cleanup_app == 'minio'
-      tags: [minio]
-
-    - name: Purge Baikal
-      ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/baikal/tasks/cleanup.yml"
-      when: cleanup_app == 'baikal'
-      tags: [baikal]
-
-    - name: Purge PostgreSQL
-      ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/postgres/tasks/cleanup.yml"
-      when: cleanup_app == 'postgres'
-      tags: [postgres]
+        file: "{{ playbook_dir }}/apps/{{ cleanup_app }}/tasks/cleanup.yml"
