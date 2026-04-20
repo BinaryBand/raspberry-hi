@@ -1,7 +1,6 @@
 ---
 restic_rclone_remote: ~  # required; rclone remote name (e.g. pcloud) — set in host_vars/<hostname>.yml
 restic_repo_path: ~      # required; path within the remote (e.g. Backups/linux-hi) — set in host_vars/<hostname>.yml
-restic_password: ~       # required; set in vault as restic_password
 
 restic_keep_daily: 7
 restic_keep_weekly: 4

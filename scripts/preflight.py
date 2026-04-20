@@ -209,7 +209,7 @@ def run_preflight(
         updates[var] = value
 
     store.write(hostname, updates)
-    print(f"  [OK  ]  Wrote {len(updates)} var(s) to host_vars/{hostname}.yml")
+    print(f"  [OK  ]  Wrote {len(updates)} var(s) for '{hostname}'")
 
 
 # ---------------------------------------------------------------------------

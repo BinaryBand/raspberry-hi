@@ -1,7 +1,7 @@
 var_hints:
   restic_rclone_remote:
-    hint: "rclone remote name for the backup destination (run 'rclone listremotes' to see available)"
-    default: ~
+    hint: "rclone remote to use for backup storage"
+    type: rclone_remote
   restic_repo_path:
     hint: "path within the rclone remote where the restic repository lives"
     default: Backups/linux-hi

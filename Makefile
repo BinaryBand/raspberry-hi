@@ -35,8 +35,8 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey \
         lint ruff format-check pyright semgrep cpd vulture ansible-lint \
         test test-e2e status logs cleanup rclone backup restore \
-        _vault_check _inv_check _cleanup_preflight _restore_preflight \
-        $(APPS) $(_APP_PREFLIGHTS)
+        _vault_check _inv_check _backup_preflight _cleanup_preflight _restore_preflight \
+        $(APPS)
 
 
 help:
@@ -133,7 +133,10 @@ mount: _vault_check
 rclone: _vault_check
 	poetry run python ./scripts/rclone.py
 
-backup: _vault_check
+_backup_preflight: _vault_check
+	HOST=$(HOST) poetry run python ./scripts/preflight.py restic
+
+backup: _backup_preflight
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/backup.yml \
 		-i $(INV) \
 		--vault-password-file $(VAULT_PASS) \
@@ -142,7 +145,7 @@ backup: _vault_check
 _restore_preflight: _vault_check
 	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make restore APP=minio  (or baikal, postgres)"; exit 1; }
 
-restore: _restore_preflight
+restore: _backup_preflight _restore_preflight
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/restore.yml \
 		-i $(INV) \
 		--vault-password-file $(VAULT_PASS) \
