@@ -10,6 +10,19 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 ANSIBLE_DIR = ROOT / "ansible"
 
+# Apps that are tools/engines without a long-running container service.
+_SERVICELESS_APPS: frozenset[str] = frozenset({"restic"})
+
+
+def _all_apps() -> list[str]:
+    """Every app that has a tasks/main.yml under ansible/apps/."""
+    return [p.parent.parent.name for p in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/main.yml"))]
+
+
+def _containerized_apps() -> list[str]:
+    """Apps with a running container service — excludes tool apps like restic."""
+    return [app for app in _all_apps() if app not in _SERVICELESS_APPS]
+
 
 def _read_text(relative_path: str) -> str:
     """Return the text content of a repository file."""
@@ -43,6 +56,127 @@ class TestBaikalContracts:
 
         assert "Disable Baikal install tool after declarative provisioning" in tasks
         assert "INSTALL_DISABLED" in tasks
+
+
+class TestBackupRestoreContracts:
+    """Guardrails for the backup/restore lifecycle contract."""
+
+    def test_all_containerized_apps_declare_backup_protocol(self) -> None:
+        """Every containerised app must declare backup/main.yml and restore/main.yml.
+
+        The backup/restore directories are a lifecycle contract analogous to tasks/cleanup.yml.
+        Missing either file means the app is silently excluded from disaster recovery.
+        """
+        for app in _containerized_apps():
+            assert (ANSIBLE_DIR / "apps" / app / "backup" / "main.yml").exists(), (
+                f"{app} is missing ansible/apps/{app}/backup/main.yml"
+            )
+            assert (ANSIBLE_DIR / "apps" / app / "restore" / "main.yml").exists(), (
+                f"{app} is missing ansible/apps/{app}/restore/main.yml"
+            )
+
+    def test_all_app_backup_tasks_delegate_to_restic(self) -> None:
+        """Every app backup/main.yml must hand off to the restic role.
+
+        Backup tasks that gather data but never call restic silently drop the snapshot,
+        leaving the operator believing backups are running when they are not.
+        """
+        for app in _containerized_apps():
+            content = _read_text(f"ansible/apps/{app}/backup/main.yml")
+            assert "name: restic" in content, f"{app}/backup/main.yml must include_role name=restic"
+
+    def test_restore_playbook_requires_restore_app(self) -> None:
+        """restore.yml must assert that restore_app is defined before doing anything."""
+        playbook = _read_text("ansible/restore.yml")
+
+        assert "restore_app is defined" in playbook
+
+    def test_restore_playbook_has_confirmation_prompt(self) -> None:
+        """restore.yml must pause for confirmation before overwriting live data."""
+        playbook = _read_text("ansible/restore.yml")
+
+        assert "ansible.builtin.pause" in playbook
+        assert "OVERWRITE" in playbook
+
+    def test_backup_restore_playbooks_do_not_use_include_vars(self) -> None:
+        """backup.yml and restore.yml must not use include_vars to load role defaults.
+
+        Same risk as cleanup.yml: include_vars overrides host_vars with null sentinels,
+        causing path variables to resolve to None and tasks to silently no-op.
+        """
+        for playbook_name in ("backup.yml", "restore.yml"):
+            content = _read_text(f"ansible/{playbook_name}")
+            assert "include_vars:" not in content, (
+                f"ansible/{playbook_name} must not use include_vars"
+            )
+
+
+class TestProvisioningCoverage:
+    """Ensure every app is fully wired into the provisioning and lifecycle playbooks.
+
+    These tests catch the silent omission failure: an app can pass all structural
+    contract tests while being skipped by the playbooks that actually run on the host.
+    """
+
+    def test_all_apps_have_preflight(self) -> None:
+        """Every app must declare a preflight.yml.
+
+        preflight.yml is the operator-facing setup contract: it declares which vars
+        need to be set in host_vars and which secrets belong in the vault. Without it,
+        make <app> silently skips all prompts and the operator hits assertion failures
+        at provision time instead of being guided at setup time.
+        """
+        for app in _all_apps():
+            assert (ANSIBLE_DIR / "apps" / app / "preflight.yml").exists(), (
+                f"{app} is missing ansible/apps/{app}/preflight.yml"
+            )
+
+    def test_all_containerized_apps_appear_in_site_yml(self) -> None:
+        """Every containerised app must appear in ansible/site.yml.
+
+        An app in ansible/apps/ and Makefile APPS that is absent from site.yml is
+        never provisioned by make site, making its make <app> target the only entry
+        point and leaving the host partially configured after a full reprovision.
+        """
+        site = _read_text("ansible/site.yml")
+        for app in _containerized_apps():
+            assert f"role: {app}" in site, f"ansible/site.yml does not include role: {app}"
+
+    def test_cleanup_playbook_dispatches_to_all_containerized_apps(self) -> None:
+        """cleanup.yml must include a dispatch branch for every containerised app.
+
+        An app whose cleanup.yml exists but is not wired into cleanup.yml is silently
+        skipped by make cleanup, leaving orphaned containers, data, and service units.
+        """
+        playbook = _read_text("ansible/cleanup.yml")
+        for app in _containerized_apps():
+            assert f"apps/{app}/tasks/cleanup.yml" in playbook, (
+                f"ansible/cleanup.yml does not dispatch to {app}/tasks/cleanup.yml"
+            )
+
+    def test_backup_playbook_dispatches_to_all_containerized_apps(self) -> None:
+        """backup.yml must include a dispatch branch for every containerised app.
+
+        An app that declares backup/main.yml but is absent from backup.yml is silently
+        excluded from every backup run, producing a false sense of coverage.
+        """
+        playbook = _read_text("ansible/backup.yml")
+        for app in _containerized_apps():
+            assert f"apps/{app}/backup/main.yml" in playbook, (
+                f"ansible/backup.yml does not dispatch to {app}/backup/main.yml"
+            )
+
+    def test_restore_playbook_dispatches_to_all_containerized_apps(self) -> None:
+        """restore.yml must include a dispatch branch for every containerised app.
+
+        An app absent from restore.yml cannot be recovered via make restore,
+        discovered only at the worst possible moment.
+        """
+        playbook = _read_text("ansible/restore.yml")
+        for app in _containerized_apps():
+            assert f"apps/{app}/restore/main.yml" in playbook, (
+                f"ansible/restore.yml does not dispatch to {app}/restore/main.yml"
+            )
 
 
 class TestCleanupContracts:
@@ -111,11 +245,7 @@ class TestAnsibleStructureContracts:
         regardless of whether the container and quadlet are correctly deployed.
         Tool apps (restic) that install a binary without a long-running service are exempt.
         """
-        _serviceless_apps = {"restic"}
-        for tasks_file in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/main.yml")):
-            app_name = tasks_file.parent.parent.name
-            if app_name in _serviceless_apps:
-                continue
+        for app_name in _containerized_apps():
             content = _read_text(f"ansible/apps/{app_name}/tasks/main.yml")
             assert "name: service_adapter" in content, (
                 f"{app_name}/tasks/main.yml must register with service_adapter"
@@ -184,6 +314,20 @@ class TestAnsibleStructureContracts:
             if 'mode: "0600"' in content:
                 assert "no_log: true" in content, (
                     f"{app_name}/tasks/main.yml deploys a mode 0600 file but has no no_log: true"
+                )
+
+    def test_restic_task_files_with_password_env_have_no_log(self) -> None:
+        """Any restic task file that sets RESTIC_PASSWORD in environment must also set no_log: true.
+
+        Semgrep generic cannot enforce cross-line invariants, so this lives here.
+        Without no_log, Ansible prints the full environment block — including the
+        plaintext password — to stdout and any attached log sinks.
+        """
+        for task_file in sorted((ANSIBLE_DIR / "apps" / "restic" / "tasks").glob("*.yml")):
+            content = task_file.read_text()
+            if "RESTIC_PASSWORD:" in content:
+                assert "no_log: true" in content, (
+                    f"restic/tasks/{task_file.name} sets RESTIC_PASSWORD but lacks no_log: true"
                 )
 
 
