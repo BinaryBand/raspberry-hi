@@ -1,5 +1,5 @@
 ---
-- name: restart minio (systemd)
+- name: Restart minio (systemd)
   listen: restart minio
   ansible.builtin.systemd:
     name: "{{ minio_service_name }}"
@@ -12,9 +12,10 @@
   become_user: "{{ ansible_user }}"
   when: service_adapter_backend == 'systemd'
 
-- name: restart minio (script)
+- name: Restart minio (script)
   listen: restart minio
   ansible.builtin.command: "{{ app_user_home }}/bin/run-minio.sh"
   become: true
   become_user: "{{ ansible_user }}"
+  changed_when: true
   when: service_adapter_backend != 'systemd'

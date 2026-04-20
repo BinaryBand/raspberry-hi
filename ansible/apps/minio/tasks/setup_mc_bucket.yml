@@ -3,7 +3,7 @@
 # (via the already-installed Podman) to configure the alias, create the
 # bucket, and set the access policy. No mc binary installation required.
 
-- name: Wait for MinIO TCP port {{ minio_port }} to be available
+- name: "Wait for MinIO TCP port to be available: {{ minio_port }}"
   ansible.builtin.wait_for:
     host: 127.0.0.1
     port: "{{ minio_port }}"
@@ -22,7 +22,7 @@
   until: minio_health.status == 200
   failed_when: false
 
-- name: Check whether {{ mc_alias }}/{{ mc_bucket }} exists
+- name: "Check whether MinIO bucket exists: {{ mc_alias + '/' + mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman
@@ -41,7 +41,7 @@
   changed_when: false
   no_log: true
 
-- name: Create bucket {{ mc_bucket }} if missing
+- name: "Create bucket if missing: {{ mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman
@@ -61,7 +61,7 @@
   when: mc_bucket_check.rc != 0
   no_log: true
 
-- name: Set anonymous {{ mc_policy }} policy on {{ mc_alias }}/{{ mc_bucket }}
+- name: "Set anonymous policy on MinIO bucket: {{ mc_alias + '/' + mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman

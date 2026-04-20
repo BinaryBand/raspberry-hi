@@ -18,5 +18,3 @@ mc_wait_retries: 30
 mc_wait_delay: 5
 mc_policy: download
 minio_skip_bucket_setup: false
-
-
