@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from fabric import Connection
+from fabric import Config, Connection
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
@@ -96,7 +96,7 @@ def inventory_host_vars(hostname: str) -> HostVars:
     return HostVars.model_validate(raw)
 
 
-def make_connection(host: str | HostVars) -> Connection:
+def make_connection(host: str | HostVars, *, become_password: str | None = None) -> Connection:
     """Create a Fabric connection from a host alias or validated HostVars."""
     host_vars = inventory_host_vars(host) if isinstance(host, str) else host
 
@@ -107,9 +107,16 @@ def make_connection(host: str | HostVars) -> Connection:
             key_path = ROOT / key_path
         connect_kwargs["key_filename"] = str(key_path)
 
+    config = (
+        Config(overrides={"sudo": {"password": become_password}})
+        if become_password is not None
+        else None
+    )
+
     return Connection(
         host=host_vars.ansible_host,
         user=host_vars.ansible_user,
         port=host_vars.ansible_port or 22,
         connect_kwargs=connect_kwargs,
+        config=config,
     )

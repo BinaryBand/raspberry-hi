@@ -14,12 +14,10 @@ import io
 import os
 import shlex
 import sys
-from pathlib import Path
 from typing import cast
 
-from fabric import Config, Connection
 from internal.mount_orchestrator import MountOrchestrator
-from utils.ansible_utils import ANSIBLE_DIR, ROOT, inventory_host_vars
+from utils.ansible_utils import ANSIBLE_DIR, inventory_host_vars, make_connection
 from utils.info_port import RemoteInfoPort
 from utils.prompter import QuestionaryPrompter
 
@@ -43,21 +41,7 @@ def main() -> None:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
     hvars = inventory_host_vars(hostname)
     become_pwd = _become_password(hostname)
-
-    connect_kwargs: dict[str, str] = {}
-    if hvars.ansible_ssh_private_key_file:
-        key_path = Path(hvars.ansible_ssh_private_key_file)
-        if not key_path.is_absolute():
-            key_path = ROOT / key_path
-        connect_kwargs["key_filename"] = str(key_path)
-
-    conn = Connection(
-        host=hvars.ansible_host,
-        user=hvars.ansible_user,
-        port=hvars.ansible_port or 22,
-        connect_kwargs=connect_kwargs,
-        config=Config(overrides={"sudo": {"password": become_pwd}}),
-    )
+    conn = make_connection(hvars, become_password=become_pwd)
 
     orchestrator = MountOrchestrator(info=RemoteInfoPort(), prompter=QuestionaryPrompter())
     result = orchestrator.mount_new_device(conn)
