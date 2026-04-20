@@ -1,21 +1,8 @@
 ---
-- name: Restart minio (systemd)
+- name: Restart minio
   listen: restart minio
-  ansible.builtin.systemd:
-    name: "{{ minio_service_name }}"
-    scope: user
-    state: restarted
-    daemon_reload: true
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  when: service_adapter_backend == 'systemd'
-
-- name: Restart minio (script)
-  listen: restart minio
-  ansible.builtin.command: "{{ app_user_home }}/bin/run-minio.sh"
-  become: true
-  become_user: "{{ ansible_user }}"
-  changed_when: true
-  when: service_adapter_backend != 'systemd'
+  ansible.builtin.import_tasks: ../../../roles/service_adapter/tasks/restart.yml
+  vars:
+    svc_name: "{{ minio_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"

@@ -101,3 +101,11 @@ def test_restore_and_cleanup_playbooks_use_registry_for_supported_apps() -> None
     assert "restore_app in restore_supported_apps" in restore_content
     assert 'file: "{{ playbook_dir }}/apps/{{ restore_app }}/restore/main.yml"' in restore_content
     assert "['minio', 'postgres', 'baikal']" not in restore_content
+
+
+def test_app_restart_handlers_delegate_to_service_adapter() -> None:
+    """App restart handlers should call the shared service_adapter restart task."""
+    for app in containerized_apps():
+        content = _read_text(f"ansible/apps/{app}/handlers/main.yml")
+        assert "ansible.builtin.import_tasks:" in content
+        assert "../../../roles/service_adapter/tasks/restart.yml" in content
