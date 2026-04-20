@@ -1,8 +1,11 @@
 """Helpers for ruamel.yaml round-trip YAML writing with style control."""
-from ruamel.yaml import YAML
-from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
 from pathlib import Path
 from typing import Any
+
+from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
 
 def dump_host_vars_yaml(data: dict[str, Any], path: Path) -> None:
     """Write host_vars YAML, preserving style and enforcing double quotes for ansible_become_password."""

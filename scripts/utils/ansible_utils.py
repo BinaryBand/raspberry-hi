@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from utils.ruamel_utils import dump_host_vars_yaml
 from fabric import Connection
 
 from models import AppRegistry, AppRegistryEntry, HostVars
+from utils.ruamel_utils import dump_host_vars_yaml
 from utils.yaml_utils import yaml_mapping
 
 ROOT = Path(__file__).resolve().parents[2]
