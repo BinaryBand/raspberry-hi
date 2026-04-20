@@ -6,7 +6,9 @@ Usage:
   poetry run python scripts/check.py --vault-only  fast vault-only check (Makefile prereq)
 """
 
+import argparse
 import sys
+from collections.abc import Sequence
 
 from utils.ansible_utils import ANSIBLE_DIR
 from utils.exec_utils import resolve_executable, run_resolved
@@ -49,10 +51,21 @@ def check_vault_secrets() -> bool:
     )
 
 
-def main() -> None:
-    vault_only = "--vault-only" in sys.argv
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments for prerequisite checks."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--vault-only",
+        action="store_true",
+        help="Run only the vault/password validation check.",
+    )
+    return parser.parse_args(argv)
 
-    if vault_only:
+
+def main(argv: Sequence[str] | None = None) -> None:
+    args = parse_args(argv)
+
+    if args.vault_only:
         all_ok = check_vault_secrets()
         if not all_ok:
             sys.exit(1)
@@ -136,4 +149,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
