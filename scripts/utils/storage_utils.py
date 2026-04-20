@@ -7,8 +7,7 @@ re-implement SSH setup or lsblk/findmnt parsing.
 from __future__ import annotations
 
 import json
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Callable, Protocol
 
 from rich.console import Console
 from rich.table import Table
@@ -45,34 +44,27 @@ class RemoteConnection(Protocol):
 SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
 
 
-class MountPolicyAdapter(ABC):
-    """Platform adapter for deciding whether a mount point is system-owned."""
-
-    @abstractmethod
-    def is_system_mount(self, target: str | None) -> bool:
-        """Return True when *target* should be treated as a system mount."""
+MountPolicy = Callable[[str | None], bool]
 
 
-class DefaultMountPolicyAdapter(MountPolicyAdapter):
-    """Reasonable cross-distro defaults for system mount classification."""
+def default_mount_policy(target: str | None) -> bool:
+    """Return True when *target* should be treated as a system mount."""
+    system_mounts = {"/", "/boot", "/boot/efi", "[SWAP]"}
 
-    _SYSTEM_MOUNTS = {"/", "/boot", "/boot/efi", "[SWAP]"}
+    if not target:
+        return False
 
-    def is_system_mount(self, target: str | None) -> bool:
-        if not target:
-            return False
+    if target in system_mounts:
+        return True
 
-        if target in self._SYSTEM_MOUNTS:
-            return True
+    # Catch distro variants such as /boot/firmware without hardcoding each one.
+    if target.startswith("/boot/"):
+        return True
 
-        # Catch distro variants such as /boot/firmware without hardcoding each one.
-        if target.startswith("/boot/"):
-            return True
-
-        return any(target.startswith(prefix) for prefix in SYSTEM_MOUNT_PREFIXES)
+    return any(target.startswith(prefix) for prefix in SYSTEM_MOUNT_PREFIXES)
 
 
-DEFAULT_MOUNT_POLICY = DefaultMountPolicyAdapter()
+DEFAULT_MOUNT_POLICY: MountPolicy = default_mount_policy
 
 console = Console()
 
@@ -93,11 +85,11 @@ def get_block_devices(conn: RemoteConnection) -> list[BlockDevice]:
 
 def is_system_device(
     device: BlockDevice,
-    mount_policy: MountPolicyAdapter | None = None,
+    mount_policy: MountPolicy | None = None,
 ) -> bool:
     """Return True if *device* or any of its children is at a system mount point."""
     policy = mount_policy or DEFAULT_MOUNT_POLICY
-    if policy.is_system_mount(device.mountpoint):
+    if policy(device.mountpoint):
         return True
     return any(is_system_device(child, policy) for child in (device.children or []))
 
@@ -114,7 +106,7 @@ def collect_partitions(device: BlockDevice) -> list[BlockDevice]:
 
 def get_external_devices(
     devices: list[BlockDevice],
-    mount_policy: MountPolicyAdapter | None = None,
+    mount_policy: MountPolicy | None = None,
 ) -> list[BlockDevice]:
     """Filter *devices* down to mountable partitions on non-system disks."""
     policy = mount_policy or DEFAULT_MOUNT_POLICY
@@ -185,8 +177,8 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
 
 def external_mounts(
     mounts: list[MountInfo],
-    mount_policy: MountPolicyAdapter | None = None,
+    mount_policy: MountPolicy | None = None,
 ) -> list[MountInfo]:
     """Filter *mounts* to non-root, non-system entries."""
     policy = mount_policy or DEFAULT_MOUNT_POLICY
-    return [fs for fs in mounts if not policy.is_system_mount(fs.target)]
+    return [fs for fs in mounts if not policy(fs.target)]

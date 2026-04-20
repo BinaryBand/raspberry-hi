@@ -6,7 +6,6 @@ import pytest
 
 from scripts.utils.storage_utils import (
     SYSTEM_MOUNT_PREFIXES,
-    MountPolicyAdapter,
     external_mounts,
     get_block_devices,
     get_external_devices,
@@ -61,12 +60,11 @@ class TestExternalMounts:
     def test_supports_custom_mount_policy(self) -> None:
         """Verify callers can override system-mount classification per platform."""
 
-        class CustomPolicy(MountPolicyAdapter):
-            def is_system_mount(self, target: str | None) -> bool:
-                return target in {"/", "/efi"}
+        def custom_policy(target: str | None) -> bool:
+            return target in {"/", "/efi"}
 
         mounts = [mnt("/"), mnt("/boot/firmware"), mnt("/mnt/usb")]
-        targets = [m.target for m in external_mounts(mounts, mount_policy=CustomPolicy())]
+        targets = [m.target for m in external_mounts(mounts, mount_policy=custom_policy)]
         assert targets == ["/boot/firmware", "/mnt/usb"]
 
 
@@ -179,9 +177,8 @@ class TestGetExternalDevices:
     def test_supports_custom_mount_policy(self) -> None:
         """Verify disk classification can be overridden by a custom policy."""
 
-        class CustomPolicy(MountPolicyAdapter):
-            def is_system_mount(self, target: str | None) -> bool:
-                return target in {"/", "/efi"}
+        def custom_policy(target: str | None) -> bool:
+            return target in {"/", "/efi"}
 
         system_disk = blk(
             "nvme0n1",
@@ -194,7 +191,7 @@ class TestGetExternalDevices:
         )
         data_disk = blk("sdb", "disk", None, [blk("sdb1", "part", "/boot/firmware", fstype="ext4")])
 
-        external = get_external_devices([system_disk, data_disk], mount_policy=CustomPolicy())
+        external = get_external_devices([system_disk, data_disk], mount_policy=custom_policy)
         assert [d.name for d in external] == ["sdb1"]
 
 
@@ -204,9 +201,8 @@ class TestIsSystemDevice:
     def test_uses_custom_policy_recursively(self) -> None:
         """Verify custom policy is applied to child partitions too."""
 
-        class CustomPolicy(MountPolicyAdapter):
-            def is_system_mount(self, target: str | None) -> bool:
-                return target in {"/", "/efi"}
+        def custom_policy(target: str | None) -> bool:
+            return target in {"/", "/efi"}
 
         disk = blk("nvme0n1", "disk", None, [blk("nvme0n1p1", "part", "/efi", fstype="vfat")])
-        assert is_system_device(disk, mount_policy=CustomPolicy())
+        assert is_system_device(disk, mount_policy=custom_policy)
