@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ HOST_VARS_DIR = INVENTORY_DIR / "host_vars"
 REGISTRY_FILE = ANSIBLE_DIR / "registry.yml"
 
 
+@lru_cache(maxsize=1)
 def load_app_registry() -> dict[str, AppRegistryEntry]:
     """Return the validated app registry keyed by app name."""
     data = yaml_mapping(yaml.safe_load(REGISTRY_FILE.read_text()), source=REGISTRY_FILE)

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from models import HostVars
 from scripts.utils import ansible_utils
@@ -58,3 +61,44 @@ def test_make_connection_can_configure_sudo_password(
 
     assert captured["config"] is not None
     assert captured["config"].sudo.password == sudo_value
+
+
+def test_load_app_registry_is_cached(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Repeated registry reads in one process should hit the parser only once."""
+    registry_file: Path = tmp_path / "registry.yml"
+    registry_file.write_text(
+        """
+apps:
+  minio:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: minio_service_name
+    dependencies: []
+    preflight_vars: {}
+    vault_secrets: []
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    original_safe_load: Callable[..., Any] = yaml.safe_load
+    calls = 0
+
+    def counting_safe_load(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return original_safe_load(*args, **kwargs)
+
+    monkeypatch.setattr(ansible_utils, "REGISTRY_FILE", registry_file)
+    monkeypatch.setattr(ansible_utils.yaml, "safe_load", counting_safe_load)
+    ansible_utils.load_app_registry.cache_clear()
+
+    assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
+    assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
+    assert calls == 1
+
+    ansible_utils.load_app_registry.cache_clear()
