@@ -58,10 +58,3 @@ class AppRegistry(BaseModel):
     apps: dict[str, AppRegistryEntry]
 
     model_config = ConfigDict(extra="forbid")
-
-
-class PreflightSpec(BaseModel):
-    vars: dict[str, PreflightVarSpec] = Field(default_factory=_empty_preflight_vars)
-    secrets: list[VaultSecretSpec] = Field(default_factory=_empty_vault_secrets)
-
-    model_config = ConfigDict(extra="forbid")

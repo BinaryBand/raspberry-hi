@@ -2,7 +2,6 @@ from .ansible.hostvars import HostVars
 from .ansible.registry import (
     AppRegistry,
     AppRegistryEntry,
-    PreflightSpec,
     PreflightVarSpec,
     VaultSecretSpec,
 )
@@ -16,7 +15,6 @@ __all__ = [
     "BlockDevice",
     "HostVars",
     "MountInfo",
-    "PreflightSpec",
     "PreflightVarSpec",
     "VaultSecretSpec",
     "VaultSecrets",

@@ -1,4 +1,18 @@
 ---
+- name: Assert minio_data_path exists on host
+  ansible.builtin.stat:
+    path: "{{ minio_data_path }}"
+  register: _minio_data_stat
+  become: true
+  become_user: "{{ ansible_user }}"
+
+- name: Fail if minio_data_path is missing
+  ansible.builtin.fail:
+    msg: >-
+      MinIO data path does not exist: {{ minio_data_path }}.
+      Run 'make minio' to provision MinIO first.
+  when: not _minio_data_stat.stat.exists
+
 - name: Snapshot MinIO data to restic
   ansible.builtin.include_role:
     name: restic

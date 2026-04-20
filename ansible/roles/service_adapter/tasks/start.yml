@@ -1,0 +1,16 @@
+---
+- name: Get UID of {{ svc_user }}
+  ansible.builtin.command: "id -u {{ svc_user }}"
+  register: _svc_start_uid
+  changed_when: false
+
+- name: Start via systemd {{ svc_name }}
+  ansible.builtin.systemd:
+    name: "{{ svc_name }}"
+    scope: user
+    state: started
+  become: true
+  become_user: "{{ svc_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_start_uid.stdout | trim }}"
+  when: service_adapter_backend == 'systemd'

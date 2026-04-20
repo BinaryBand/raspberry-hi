@@ -2,9 +2,9 @@ export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
 ANSIBLE_DIR := ansible
 ROLES       := service_adapter rclone
-APPS        := $(shell poetry run python -c "from utils.ansible_utils import all_registry_apps; print(' '.join(all_registry_apps()))")
-RESTORE_APPS := $(shell poetry run python -c "from utils.ansible_utils import restorable_apps; print(' '.join(restorable_apps()))")
-CLEANUP_APPS := $(shell poetry run python -c "from utils.ansible_utils import cleanable_apps; print(' '.join(cleanable_apps()))")
+APPS        := $(shell poetry run python -c "from utils.ansible_utils import all_apps; print(' '.join(all_apps()))")
+RESTORE_APPS := $(shell poetry run python -c "from utils.ansible_utils import restore_apps; print(' '.join(restore_apps()))")
+CLEANUP_APPS := $(shell poetry run python -c "from utils.ansible_utils import cleanup_apps; print(' '.join(cleanup_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site
@@ -25,11 +25,12 @@ REMOTE_PORT := $(or $(word 3,$(_INV)),22)
 REMOTE_KEY  := $(word 4,$(_INV))
 
 # Shared Ansible flags — avoids repeating paths across targets.
-ANSIBLE_CFG  := $(CURDIR)/ansible/ansible.cfg
-VAULT_PASS   := $(CURDIR)/ansible/.vault-password
-INV          := ansible/inventory/hosts.ini
-PLAYBOOK     := ansible/site.yml
-ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
+ANSIBLE_CFG   := $(CURDIR)/ansible/ansible.cfg
+VAULT_PASS    := $(CURDIR)/ansible/.vault-password
+INV           := ansible/inventory/hosts.ini
+PLAYBOOK      := ansible/site.yml
+_ANSIBLE_FLAGS := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
+ANSIBLE_PLAY  := $(_ANSIBLE_FLAGS) $(PLAYBOOK)
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
@@ -138,21 +139,14 @@ _backup_preflight: _vault_check
 	HOST=$(HOST) poetry run python ./scripts/preflight.py restic
 
 backup: _backup_preflight
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/backup.yml \
-		-i $(INV) \
-		--vault-password-file $(VAULT_PASS) \
-		--limit $(HOST)
+	$(_ANSIBLE_FLAGS) ansible/backup.yml
 
 _restore_preflight: _vault_check
 	@test -n "$(APP)" || { echo "Error: APP is required — supported restore apps: $(RESTORE_APPS)"; exit 1; }
 	@case " $(RESTORE_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not restorable. Supported restore apps: $(RESTORE_APPS)"; exit 1 ;; esac
 
 restore: _backup_preflight _restore_preflight
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/restore.yml \
-		-i $(INV) \
-		--vault-password-file $(VAULT_PASS) \
-		--limit $(HOST) \
-		-e restore_app=$(APP)
+	$(_ANSIBLE_FLAGS) ansible/restore.yml -e restore_app=$(APP)
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check
@@ -178,11 +172,7 @@ _cleanup_preflight: _vault_check
 	@case " $(CLEANUP_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not cleanable. Supported cleanup apps: $(CLEANUP_APPS)"; exit 1 ;; esac
 
 cleanup: _cleanup_preflight
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/cleanup.yml \
-		-i $(INV) \
-		--vault-password-file $(VAULT_PASS) \
-		--limit $(HOST) \
-		-e cleanup_app=$(APP)
+	$(_ANSIBLE_FLAGS) ansible/cleanup.yml -e cleanup_app=$(APP)
 
 site: _vault_check
 	$(ANSIBLE_PLAY) --skip-tags apps

@@ -1,4 +1,6 @@
----
 ansible_connection: local
 ansible_user: owen
-ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
+ansible_become_password: '{{ (become_passwords | default({})).get(inventory_hostname,
+  '''') }}'
+restic_rclone_remote: pcloud
+restic_repo_path: Backups/debian-hi

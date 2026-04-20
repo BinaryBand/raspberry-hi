@@ -191,6 +191,19 @@
   changed_when: true
   no_log: true
 
+- name: Check if Baikal install sentinel exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - stat
+      - "{{ baikal_data_path }}/INSTALL_DISABLED"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_install_sentinel
+  changed_when: false
+  failed_when: false
+
 - name: Disable Baikal install tool after declarative provisioning
   ansible.builtin.command:
     argv:
@@ -203,6 +216,7 @@
         chown {{ baikal_runtime_uid }}:{{ baikal_runtime_gid }} {{ baikal_data_path }}/INSTALL_DISABLED
   become: true
   become_user: "{{ ansible_user }}"
+  when: _baikal_install_sentinel.rc != 0
   changed_when: true
 
 # 3. Deploy container unit.

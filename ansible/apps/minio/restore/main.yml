@@ -1,21 +1,11 @@
 ---
-- name: Get service user UID
-  ansible.builtin.command: id -u
-  become: true
-  become_user: "{{ ansible_user }}"
-  register: _svc_uid
-  changed_when: false
-
 - name: Stop MinIO service
-  ansible.builtin.systemd:
-    name: "{{ minio_service_name }}"
-    scope: user
-    state: stopped
-  become: true
-  become_user: "{{ ansible_user }}"
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _svc_uid.stdout | trim }}"
-  when: ansible_facts['service_mgr'] == 'systemd'
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: stop
+  vars:
+    svc_name: "{{ minio_service_name }}"
+    svc_user: "{{ ansible_user }}"
 
 - name: Restore MinIO data from restic
   ansible.builtin.include_role:
@@ -26,12 +16,9 @@
     restic_restore_target: /
 
 - name: Start MinIO service
-  ansible.builtin.systemd:
-    name: "{{ minio_service_name }}"
-    scope: user
-    state: started
-  become: true
-  become_user: "{{ ansible_user }}"
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _svc_uid.stdout | trim }}"
-  when: ansible_facts['service_mgr'] == 'systemd'
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: start
+  vars:
+    svc_name: "{{ minio_service_name }}"
+    svc_user: "{{ ansible_user }}"

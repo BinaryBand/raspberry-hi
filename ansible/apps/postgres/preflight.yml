@@ -1,9 +1,0 @@
-var_hints:
-  postgres_data_path:
-    hint: "storage path for PostgreSQL data files"
-    default: /home/linux-hi/postgres
-
-vault_secrets:
-  - key: postgres_password
-    label: PostgreSQL password for the Baikal application user
-    hidden: true
