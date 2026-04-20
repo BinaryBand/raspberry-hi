@@ -1,0 +1,13 @@
+---
+- name: Assert supported service backend
+  ansible.builtin.assert:
+    that:
+      - service_adapter_backend in service_adapter_supported_backends
+    fail_msg: >-
+      service_adapter does not support backend '{{ service_adapter_backend }}'.
+      Supported backends: {{ service_adapter_supported_backends | join(', ') }}.
+  when: service_adapter_fail_on_unsupported | bool
+
+- name: Prepare service paths (systemd)
+  ansible.builtin.include_tasks: prepare_systemd.yml
+  when: service_adapter_backend == 'systemd'

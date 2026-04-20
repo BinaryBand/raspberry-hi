@@ -1,0 +1,9 @@
+---
+- name: Ensure Podman quadlet directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ svc_user }}"
+    group: "{{ svc_user }}"
+    mode: "0755"
+  become: true

@@ -109,3 +109,11 @@ def test_app_restart_handlers_delegate_to_service_adapter() -> None:
         content = _read_text(f"ansible/apps/{app}/handlers/main.yml")
         assert "ansible.builtin.import_tasks:" in content
         assert "../../../roles/service_adapter/tasks/restart.yml" in content
+
+
+def test_containerized_apps_use_service_adapter_prepare_for_quadlet_path() -> None:
+    """Container apps should delegate quadlet directory creation to service_adapter."""
+    for app in containerized_apps():
+        content = _read_text(f"ansible/apps/{app}/tasks/main.yml")
+        assert "tasks_from: prepare" in content
+        assert "Ensure Podman quadlet directory exists" not in content

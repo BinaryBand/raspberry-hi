@@ -75,14 +75,14 @@
   notify: restart postgres
   no_log: true
 
-- name: Ensure Podman quadlet directory exists
-  ansible.builtin.file:
-    path: "{{ app_user_home }}/.config/containers/systemd"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0755"
-  become: true
+- name: Prepare service adapter paths for PostgreSQL
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    svc_name: "{{ postgres_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-postgres.sh"
 
 - name: Remove legacy PostgreSQL Podman network quadlet
   ansible.builtin.file:

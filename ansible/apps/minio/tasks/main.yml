@@ -38,14 +38,14 @@
   no_log: true
 
 # 2. Deploy container unit.
-- name: Ensure Podman quadlet directory exists
-  ansible.builtin.file:
-    path: "{{ app_user_home }}/.config/containers/systemd"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0755"
-  become: true
+- name: Prepare service adapter paths for MinIO
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    svc_name: "{{ minio_service_name }}"
+    svc_user: "{{ ansible_user }}"
+    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"
 
 - name: Install MinIO Podman quadlet
   ansible.builtin.template:
