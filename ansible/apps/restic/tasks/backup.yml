@@ -1,9 +1,14 @@
 ---
 # Called by app backup tasks via: include_role name=restic tasks_from=backup
 # Required vars: restic_snapshot_paths (list), restic_snapshot_tag (string)
+# Optional vars: restic_use_unshare (bool, default false) — wrap in `podman unshare`
+#   when snapshot paths are owned by rootless Podman namespace UIDs.
 - name: "Snapshot to restic: {{ restic_snapshot_tag }}"
   ansible.builtin.command:
-    argv: "{{ ['restic', 'backup', '--tag', restic_snapshot_tag] + restic_snapshot_paths }}"
+    argv: >-
+      {{ (['podman', 'unshare'] if restic_use_unshare | default(false) | bool else [])
+         + ['restic', 'backup', '--tag', restic_snapshot_tag]
+         + restic_snapshot_paths }}
   environment:
     RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
     RESTIC_PASSWORD: "{{ restic_password }}"

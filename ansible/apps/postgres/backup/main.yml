@@ -5,7 +5,9 @@
 
 - name: Dump baikal database from PostgreSQL container
   ansible.builtin.shell:
-    cmd: "podman exec --user postgres {{ postgres_service_name }} pg_dump -U postgres {{ postgres_database }} > {{ _pg_dump_path }}"
+    cmd: >-
+      podman exec --user {{ postgres_runtime_uid }} {{ postgres_service_name }}
+      pg_dump -U {{ postgres_user }} {{ postgres_database }} > {{ _pg_dump_path }}
   become: true
   become_user: "{{ ansible_user }}"
   changed_when: false

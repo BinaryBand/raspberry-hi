@@ -10,3 +10,5 @@ minio_data_path: /mnt/external/minio
 postgres_data_path: /postgres
 restic_rclone_remote: pcloud
 restic_repo_path: Backups/linux-hi
+baikal_config_path: /home/linux-hi/baikal/config
+baikal_data_path: /home/linux-hi/baikal/data

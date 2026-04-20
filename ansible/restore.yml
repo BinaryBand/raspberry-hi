@@ -43,6 +43,7 @@
         minio_service_name: "{{ minio_service_name | default('minio') }}"
         postgres_service_name: "{{ postgres_service_name | default('postgres') }}"
         postgres_database: "{{ postgres_database | default('baikal') }}"
+        postgres_user: "{{ postgres_user | default('baikal') }}"
         postgres_runtime_uid: "{{ postgres_runtime_uid | default(70) }}"
         postgres_runtime_gid: "{{ postgres_runtime_gid | default(70) }}"
         baikal_service_name: "{{ baikal_service_name | default('baikal') }}"

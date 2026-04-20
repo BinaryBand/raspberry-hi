@@ -76,7 +76,7 @@
       - "{{ postgres_service_name }}"
       - pg_isready
       - -U
-      - postgres
+      - "{{ postgres_user }}"
   become: true
   become_user: "{{ ansible_user }}"
   register: _pg_ready
@@ -87,7 +87,9 @@
 
 - name: Load PostgreSQL database dump
   ansible.builtin.shell:
-    cmd: "podman exec --user postgres -i {{ postgres_service_name }} psql -U postgres {{ postgres_database }} < {{ _pg_dump_path }}"
+    cmd: >-
+      podman exec --user {{ postgres_runtime_uid }} -i {{ postgres_service_name }}
+      psql -U {{ postgres_user }} {{ postgres_database }} < {{ _pg_dump_path }}
   become: true
   become_user: "{{ ansible_user }}"
   changed_when: true
