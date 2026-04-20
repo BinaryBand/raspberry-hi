@@ -1,0 +1,12 @@
+var_hints:
+  restic_rclone_remote:
+    hint: "rclone remote name for the backup destination (run 'rclone listremotes' to see available)"
+    default: ~
+  restic_repo_path:
+    hint: "path within the rclone remote where the restic repository lives"
+    default: Backups/linux-hi
+
+vault_secrets:
+  - key: restic_password
+    label: Restic repository encryption password
+    hidden: true

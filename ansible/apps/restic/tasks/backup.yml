@@ -1,0 +1,13 @@
+---
+# Called by app backup tasks via: include_role name=restic tasks_from=backup
+# Required vars: restic_snapshot_paths (list), restic_snapshot_tag (string)
+- name: "Snapshot to restic: {{ restic_snapshot_tag }}"
+  ansible.builtin.command:
+    argv: "{{ ['restic', 'backup', '--tag', restic_snapshot_tag] + restic_snapshot_paths }}"
+  environment:
+    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_PASSWORD: "{{ restic_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  no_log: true

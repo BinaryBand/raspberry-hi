@@ -1,0 +1,20 @@
+---
+# Called by app restore tasks via: include_role name=restic tasks_from=restore
+# Required vars: restic_snapshot_tag (string), restic_restore_target (string, usually '/')
+- name: "Restore latest snapshot from restic: {{ restic_snapshot_tag }}"
+  ansible.builtin.command:
+    argv:
+      - restic
+      - restore
+      - latest
+      - --tag
+      - "{{ restic_snapshot_tag }}"
+      - --target
+      - "{{ restic_restore_target }}"
+  environment:
+    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_PASSWORD: "{{ restic_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  no_log: true

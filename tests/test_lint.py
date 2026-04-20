@@ -123,6 +123,7 @@ class TestAnsibleLint:
                 "ansible/apps/minio",
                 "ansible/apps/postgres",
                 "ansible/apps/baikal",
+                "ansible/apps/restic",
                 "ansible/roles/service_adapter",
                 "ansible/roles/rclone",
             ],

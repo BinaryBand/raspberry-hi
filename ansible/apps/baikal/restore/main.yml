@@ -1,0 +1,37 @@
+---
+- name: Get service user UID
+  ansible.builtin.command: id -u
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _svc_uid
+  changed_when: false
+
+- name: Stop Baikal service
+  ansible.builtin.systemd:
+    name: "{{ baikal_service_name }}"
+    scope: user
+    state: stopped
+  become: true
+  become_user: "{{ ansible_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_uid.stdout | trim }}"
+  when: ansible_facts['service_mgr'] == 'systemd'
+
+- name: Restore Baikal config and data from restic
+  ansible.builtin.include_role:
+    name: restic
+    tasks_from: restore
+  vars:
+    restic_snapshot_tag: baikal
+    restic_restore_target: /
+
+- name: Start Baikal service
+  ansible.builtin.systemd:
+    name: "{{ baikal_service_name }}"
+    scope: user
+    state: started
+  become: true
+  become_user: "{{ ansible_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _svc_uid.stdout | trim }}"
+  when: ansible_facts['service_mgr'] == 'systemd'

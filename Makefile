@@ -1,5 +1,5 @@
 ANSIBLE_DIR := ansible
-APPS        := minio postgres baikal
+APPS        := minio postgres baikal restic
 ROLES       := service_adapter rclone
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
@@ -34,8 +34,8 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey \
         lint ruff format-check pyright semgrep cpd vulture ansible-lint \
-        test test-e2e status logs cleanup rclone \
-        _vault_check _inv_check _cleanup_preflight \
+        test test-e2e status logs cleanup rclone backup restore \
+        _vault_check _inv_check _cleanup_preflight _restore_preflight \
         $(APPS) $(_APP_PREFLIGHTS)
 
 
@@ -58,6 +58,8 @@ help:
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Capture local rclone config into the vault"
+	@echo "  backup        Back up all apps to the restic repository"
+	@echo "  restore       Restore a named app from the latest restic snapshot (APP=<app>)"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
@@ -130,6 +132,22 @@ mount: _vault_check
 
 rclone: _vault_check
 	poetry run python ./scripts/rclone.py
+
+backup: _vault_check
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/backup.yml \
+		-i $(INV) \
+		--vault-password-file $(VAULT_PASS) \
+		--limit $(HOST)
+
+_restore_preflight: _vault_check
+	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make restore APP=minio  (or baikal, postgres)"; exit 1; }
+
+restore: _restore_preflight
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/restore.yml \
+		-i $(INV) \
+		--vault-password-file $(VAULT_PASS) \
+		--limit $(HOST) \
+		-e restore_app=$(APP)
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check

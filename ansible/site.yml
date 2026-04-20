@@ -21,6 +21,9 @@
       tags: [podman]
       become: true
 
+    - role: rclone
+      tags: [base]
+
     # App roles live under ansible/apps/ and are excluded from `make site` by default.
     # They are tagged with both [apps] and their own name so they can be run individually.
 
@@ -36,3 +39,7 @@
     # Run `make baikal` to provision or re-provision Baikal independently.
     - role: baikal
       tags: [apps, baikal]
+
+    # Run `make restic` to provision restic and initialise the backup repository.
+    - role: restic
+      tags: [apps, restic]

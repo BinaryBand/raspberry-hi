@@ -1,0 +1,10 @@
+---
+- name: Snapshot Baikal config and data to restic
+  ansible.builtin.include_role:
+    name: restic
+    tasks_from: backup
+  vars:
+    restic_snapshot_paths:
+      - "{{ baikal_config_path }}"
+      - "{{ baikal_data_path }}"
+    restic_snapshot_tag: baikal

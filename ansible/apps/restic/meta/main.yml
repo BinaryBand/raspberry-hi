@@ -1,0 +1,7 @@
+---
+galaxy_info:
+  author: local
+  description: Restic backup engine backed by rclone
+  license: MIT
+  min_ansible_version: "2.9"
+dependencies: []

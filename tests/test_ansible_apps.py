@@ -105,13 +105,17 @@ class TestAnsibleStructureContracts:
         assert "include_vars:" not in playbook
 
     def test_all_app_main_tasks_call_service_adapter(self) -> None:
-        """Every app tasks/main.yml must register with service_adapter.
+        """Every containerised app tasks/main.yml must register with service_adapter.
 
         Without service_adapter registration the service silently fails to start on boot
         regardless of whether the container and quadlet are correctly deployed.
+        Tool apps (restic) that install a binary without a long-running service are exempt.
         """
+        _serviceless_apps = {"restic"}
         for tasks_file in sorted((ANSIBLE_DIR / "apps").glob("*/tasks/main.yml")):
             app_name = tasks_file.parent.parent.name
+            if app_name in _serviceless_apps:
+                continue
             content = _read_text(f"ansible/apps/{app_name}/tasks/main.yml")
             assert "name: service_adapter" in content, (
                 f"{app_name}/tasks/main.yml must register with service_adapter"

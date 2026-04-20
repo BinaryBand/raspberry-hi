@@ -1,0 +1,20 @@
+---
+- name: Prune old restic snapshots
+  ansible.builtin.command:
+    argv:
+      - restic
+      - forget
+      - --keep-daily
+      - "{{ restic_keep_daily | string }}"
+      - --keep-weekly
+      - "{{ restic_keep_weekly | string }}"
+      - --keep-monthly
+      - "{{ restic_keep_monthly | string }}"
+      - --prune
+  environment:
+    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_PASSWORD: "{{ restic_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  no_log: true

@@ -1,0 +1,27 @@
+---
+- name: Set PostgreSQL dump path
+  ansible.builtin.set_fact:
+    _pg_dump_path: "{{ app_user_home }}/restic-postgres-dump.sql"
+
+- name: Dump baikal database from PostgreSQL container
+  ansible.builtin.shell:
+    cmd: "podman exec --user postgres {{ postgres_service_name }} pg_dump -U postgres {{ postgres_database }} > {{ _pg_dump_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+- name: Snapshot PostgreSQL dump to restic
+  ansible.builtin.include_role:
+    name: restic
+    tasks_from: backup
+  vars:
+    restic_snapshot_paths:
+      - "{{ _pg_dump_path }}"
+    restic_snapshot_tag: postgres
+
+- name: Remove PostgreSQL dump file
+  ansible.builtin.file:
+    path: "{{ _pg_dump_path }}"
+    state: absent
+  become: true
+  become_user: "{{ ansible_user }}"
