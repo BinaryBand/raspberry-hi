@@ -69,3 +69,19 @@ def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
     content = _read_text("ansible/apps/minio/tasks/setup_mc_bucket.yml")
     assert "Wait until MinIO health endpoint responds HTTP 200" in content
     assert "Fail if MinIO health endpoint never became ready" in content
+
+
+def test_postgres_backup_and_restore_share_readiness_check() -> None:
+    """PostgreSQL lifecycle flows should reuse the shared readiness gate."""
+    backup_content = _read_text("ansible/apps/postgres/backup/main.yml")
+    restore_content = _read_text("ansible/apps/postgres/restore/main.yml")
+    wait_ready_content = _read_text("ansible/apps/postgres/tasks/wait_ready.yml")
+
+    assert (
+        'include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"' in backup_content
+    )
+    assert (
+        'include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"' in restore_content
+    )
+    assert "Wait for PostgreSQL to accept connections" in wait_ready_content
+    assert "Fail if PostgreSQL never became ready" in wait_ready_content

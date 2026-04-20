@@ -1,0 +1,26 @@
+---
+- name: Wait for PostgreSQL to accept connections
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - pg_isready
+      - -U
+      - "{{ postgres_user }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _postgres_ready
+  retries: 30
+  delay: 5
+  until: _postgres_ready.rc == 0
+  changed_when: false
+  failed_when: false
+
+- name: Fail if PostgreSQL never became ready
+  ansible.builtin.fail:
+    msg: >-
+      PostgreSQL service '{{ postgres_service_name }}' is not running or not accepting connections.
+      Last pg_isready result: {{ _postgres_ready.stderr | default(_postgres_ready.stdout | default('no output')) | trim }}.
+      Start or reprovision PostgreSQL before retrying this operation.
+  when: _postgres_ready.rc != 0

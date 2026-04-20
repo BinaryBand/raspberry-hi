@@ -55,22 +55,8 @@
     svc_name: "{{ postgres_service_name }}"
     svc_user: "{{ ansible_user }}"
 
-- name: Wait for PostgreSQL to accept connections
-  ansible.builtin.command:
-    argv:
-      - podman
-      - exec
-      - "{{ postgres_service_name }}"
-      - pg_isready
-      - -U
-      - "{{ postgres_user }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  register: _pg_ready
-  retries: 30
-  delay: 5
-  until: _pg_ready.rc == 0
-  changed_when: false
+- name: Wait for PostgreSQL before restore
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"
 
 - name: Load PostgreSQL database dump
   ansible.builtin.shell:
