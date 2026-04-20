@@ -46,3 +46,11 @@ def test_containerized_app_backups_delegate_to_restic() -> None:
     for app in containerized_apps():
         content = _read_text(f"ansible/apps/{app}/backup/main.yml")
         assert "name: restic" in content
+
+
+def test_restic_operational_tasks_prepare_their_own_prerequisites() -> None:
+    """Direct restic entry points must bootstrap their own client and repo checks."""
+    for task_name in ["backup", "prune", "restore"]:
+        content = _read_text(f"ansible/apps/restic/tasks/{task_name}.yml")
+        assert "import_tasks: prepare.yml" in content
+        assert "import_tasks: repository.yml" in content

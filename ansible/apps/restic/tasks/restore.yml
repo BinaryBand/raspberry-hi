@@ -1,6 +1,12 @@
 ---
 # Called by app restore tasks via: include_role name=restic tasks_from=restore
 # Required vars: restic_snapshot_tag (string), restic_restore_target (string, usually '/')
+- name: Prepare restic client and credentials
+  ansible.builtin.import_tasks: prepare.yml
+
+- name: Ensure restic repository exists
+  ansible.builtin.import_tasks: repository.yml
+
 - name: "Restore latest snapshot from restic: {{ restic_snapshot_tag }}"
   ansible.builtin.command:
     argv:

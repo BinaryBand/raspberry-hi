@@ -3,6 +3,14 @@
 # Required vars: restic_snapshot_paths (list), restic_snapshot_tag (string)
 # Optional vars: restic_use_unshare (bool, default false) — wrap in `podman unshare`
 #   when snapshot paths are owned by rootless Podman namespace UIDs.
+- name: Prepare restic client and credentials
+  ansible.builtin.import_tasks: prepare.yml
+
+- name: Ensure restic repository exists
+  ansible.builtin.import_tasks: repository.yml
+  vars:
+    restic_init_repository: true
+
 - name: "Snapshot to restic: {{ restic_snapshot_tag }}"
   ansible.builtin.command:
     argv: >-
