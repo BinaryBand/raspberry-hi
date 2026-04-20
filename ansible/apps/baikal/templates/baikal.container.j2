@@ -4,6 +4,7 @@ After=network.target
 
 [Container]
 Image={{ baikal_image }}
+ContainerName={{ baikal_service_name }}
 PublishPort={{ baikal_port }}:80
 Volume={{ baikal_config_path }}:/var/www/baikal/config:U
 Volume={{ baikal_data_path }}:/var/www/baikal/Specific:U
