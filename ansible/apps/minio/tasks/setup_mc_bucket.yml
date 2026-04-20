@@ -22,6 +22,14 @@
   until: minio_health.status == 200
   failed_when: false
 
+- name: Fail if MinIO health endpoint never became ready
+  ansible.builtin.fail:
+    msg: >-
+      MinIO health endpoint did not return HTTP 200 after {{ mc_wait_retries }} retries.
+      Last observed status: {{ minio_health.status | default('unreachable') }}.
+      Check the MinIO service logs and configuration before retrying bucket setup.
+  when: minio_health.status | default(0) != 200
+
 - name: "Check whether MinIO bucket exists: {{ mc_alias + '/' + mc_bucket }}"
   ansible.builtin.command:
     argv:

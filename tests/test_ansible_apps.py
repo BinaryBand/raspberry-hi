@@ -62,3 +62,10 @@ def test_restic_operational_tasks_prepare_their_own_prerequisites() -> None:
         content = _read_text(f"ansible/apps/restic/tasks/{task_name}.yml")
         assert "import_tasks: prepare.yml" in content
         assert "import_tasks: repository.yml" in content
+
+
+def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
+    """MinIO bucket setup must stop before mc commands if readiness polling never succeeds."""
+    content = _read_text("ansible/apps/minio/tasks/setup_mc_bucket.yml")
+    assert "Wait until MinIO health endpoint responds HTTP 200" in content
+    assert "Fail if MinIO health endpoint never became ready" in content
