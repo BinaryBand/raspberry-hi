@@ -46,9 +46,10 @@
   ansible.builtin.command:
     argv:
       - restic
-      - snapshots
+      - cat
+      - config
   environment:
-    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_REPOSITORY: "{{ restic_repository }}"
     RESTIC_PASSWORD: "{{ restic_password }}"
   become: true
   become_user: "{{ ansible_user }}"
@@ -57,16 +58,35 @@
   changed_when: false
   no_log: true
 
+- name: Classify missing restic repository
+  ansible.builtin.set_fact:
+    _restic_repo_missing: >-
+      {{
+        _restic_check.rc != 0 and (
+          'Is there a repository at the following location?' in (_restic_check.stderr | default(''))
+          or 'unable to open config file' in (_restic_check.stderr | default(''))
+        )
+      }}
+
+- name: Fail if restic repository check failed unexpectedly
+  ansible.builtin.fail:
+    msg: >-
+      restic repository check failed unexpectedly for {{ restic_repository }}:
+      {{ _restic_check.stderr | default('') | trim }}
+  when:
+    - _restic_check.rc != 0
+    - not _restic_repo_missing
+
 - name: Initialize restic repository
   ansible.builtin.command:
     argv:
       - restic
       - init
   environment:
-    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_REPOSITORY: "{{ restic_repository }}"
     RESTIC_PASSWORD: "{{ restic_password }}"
   become: true
   become_user: "{{ ansible_user }}"
-  when: _restic_check.rc != 0
+  when: _restic_repo_missing
   changed_when: true
   no_log: true

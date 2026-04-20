@@ -344,6 +344,28 @@ class TestAnsibleStructureContracts:
                     f"restic/tasks/{task_file.name} sets RESTIC_PASSWORD but lacks no_log: true"
                 )
 
+    def test_restic_backup_is_host_scoped(self) -> None:
+        """Restic backups must record inventory_hostname to keep multi-host repos safe."""
+        tasks = _read_text("ansible/apps/restic/tasks/backup.yml")
+
+        assert "--host" in tasks
+        assert "restic_snapshot_host" in tasks
+
+    def test_restic_restore_is_host_scoped(self) -> None:
+        """Restic restore must filter by inventory_hostname as well as app tag."""
+        tasks = _read_text("ansible/apps/restic/tasks/restore.yml")
+
+        assert "--host" in tasks
+        assert "restic_snapshot_host" in tasks
+
+    def test_restic_repository_init_is_narrowly_guarded(self) -> None:
+        """Restic init must run only for a missing repository, not any arbitrary failure."""
+        tasks = _read_text("ansible/apps/restic/tasks/main.yml")
+
+        assert "Classify missing restic repository" in tasks
+        assert "Fail if restic repository check failed unexpectedly" in tasks
+        assert "when: _restic_repo_missing" in tasks
+
 
 class TestPostgresContracts:
     """Guardrails for PostgreSQL network and auth wiring."""

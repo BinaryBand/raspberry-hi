@@ -7,10 +7,10 @@
   ansible.builtin.command:
     argv: >-
       {{ (['podman', 'unshare'] if restic_use_unshare | default(false) | bool else [])
-         + ['restic', 'backup', '--tag', restic_snapshot_tag]
+         + ['restic', 'backup', '--host', restic_snapshot_host, '--tag', restic_snapshot_tag]
          + restic_snapshot_paths }}
   environment:
-    RESTIC_REPOSITORY: "rclone:{{ restic_rclone_remote }}:{{ restic_repo_path }}"
+    RESTIC_REPOSITORY: "{{ restic_repository }}"
     RESTIC_PASSWORD: "{{ restic_password }}"
   become: true
   become_user: "{{ ansible_user }}"
