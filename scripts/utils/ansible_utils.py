@@ -1,105 +1,103 @@
-"""Ansible inventory and connection helpers shared by local Python code."""
-
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import yaml
+from fabric import Connection
 
+from models import AppRegistry, AppRegistryEntry, HostVars
 from utils.yaml_utils import yaml_mapping
 
-if TYPE_CHECKING:
-    from fabric import Connection
-
-    from models import HostVars
-
-# lib/ → scripts/ → project root
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 ANSIBLE_DIR = ROOT / "ansible"
+INVENTORY_DIR = ANSIBLE_DIR / "inventory"
+HOST_VARS_DIR = INVENTORY_DIR / "host_vars"
+REGISTRY_FILE = ANSIBLE_DIR / "registry.yml"
 
 
-# ---------------------------------------------------------------------------
-# Role introspection
-# ---------------------------------------------------------------------------
+def load_app_registry() -> dict[str, AppRegistryEntry]:
+    """Return the validated app registry keyed by app name."""
+    data = yaml_mapping(yaml.safe_load(REGISTRY_FILE.read_text()), source=REGISTRY_FILE)
+    return AppRegistry.model_validate(data).apps
+
+
+def all_apps() -> list[str]:
+    """Return all registered app names in declared order."""
+    return list(load_app_registry().keys())
+
+
+def containerized_apps() -> list[str]:
+    """Return registered apps with a long-running container service."""
+    registry = load_app_registry()
+    return [name for name, entry in registry.items() if entry.service_type == "containerized"]
+
+
+def restore_apps() -> list[str]:
+    """Return registered apps that participate in restore flows."""
+    registry = load_app_registry()
+    return [name for name, entry in registry.items() if entry.restore]
+
+
+def cleanup_apps() -> list[str]:
+    """Return registered apps that participate in cleanup flows."""
+    registry = load_app_registry()
+    return [name for name, entry in registry.items() if entry.cleanup]
+
+
+def get_app_entry(app: str) -> AppRegistryEntry:
+    """Return a single validated registry entry."""
+    return load_app_registry()[app]
 
 
 def role_required_vars(role_path: Path) -> list[str]:
-    """Return variable names whose default is null (~) in a role's defaults/main.yml.
-
-    Null is the sentinel for "required — no default." Python reads this to know
-    what to prompt for; Ansible asserts the same vars are not none at runtime.
-    Neither side maintains its own list.
-    """
+    """Return names whose defaults/main.yml values are explicitly null."""
     defaults_file = role_path / "defaults" / "main.yml"
     if not defaults_file.exists():
         return []
+
     data = yaml_mapping(yaml.safe_load(defaults_file.read_text()), source=defaults_file)
-    return [k for k, v in data.items() if v is None]
+    return [name for name, value in data.items() if value is None]
 
 
 def read_host_vars_raw(hostname: str) -> dict[str, Any]:
-    """Return the raw host_vars dict for *hostname*, or {} if the file is missing."""
-    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{hostname}.yml"
-    if not path.exists():
+    """Read host_vars data for a host from the Ansible inventory."""
+    host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
+    if not host_vars_file.exists():
         return {}
-    return yaml_mapping(yaml.safe_load(path.read_text()), source=path)
+    return yaml_mapping(yaml.safe_load(host_vars_file.read_text()), source=host_vars_file)
 
 
 def write_host_vars_raw(hostname: str, updates: dict[str, Any]) -> None:
-    """Merge *updates* into host_vars/<hostname>.yml, preserving comments and formatting."""
-    from ruamel.yaml import YAML
-
-    path = ANSIBLE_DIR / "inventory" / "host_vars" / f"{hostname}.yml"
-    ryaml = YAML()
-    ryaml.preserve_quotes = True
-    ryaml.width = 4096
-    data = yaml_mapping(ryaml.load(path) if path.exists() else None, source=path)
-    data.update(updates)
-    ryaml.dump(data, path)
+    """Merge and persist host_vars data for a host."""
+    host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
+    current = read_host_vars_raw(hostname)
+    current.update(updates)
+    host_vars_file.write_text(yaml.safe_dump(current, sort_keys=False))
 
 
-# ---------------------------------------------------------------------------
-# Inventory
-# ---------------------------------------------------------------------------
+def inventory_host_vars(hostname: str) -> HostVars:
+    """Return validated inventory host vars for a host alias."""
+    raw = read_host_vars_raw(hostname)
+    if not raw:
+        return HostVars(ansible_host=hostname)
+    return HostVars.model_validate(raw)
 
 
-def inventory_host_vars(host: str) -> HostVars:
-    """Return merged host vars from ansible-inventory for *host*."""
-    from models import HostVars
-
-    from .exec_utils import run_resolved
-
-    result = run_resolved(
-        ["ansible-inventory", "--host", host],
-        capture_output=True,
-        text=True,
-        cwd=str(ANSIBLE_DIR),
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"ansible-inventory failed: {result.stderr.strip()}")
-    return HostVars.model_validate(json.loads(result.stdout))
-
-
-# ---------------------------------------------------------------------------
-# SSH connection
-# ---------------------------------------------------------------------------
-
-
-def make_connection(hvars: HostVars) -> Connection:
-    """Return a Fabric Connection for *hvars*, resolving relative key paths."""
-    from fabric import Connection
+def make_connection(host: str | HostVars) -> Connection:
+    """Create a Fabric connection from a host alias or validated HostVars."""
+    host_vars = inventory_host_vars(host) if isinstance(host, str) else host
 
     connect_kwargs: dict[str, str] = {}
-    if hvars.ansible_ssh_private_key_file:
-        key_path = Path(hvars.ansible_ssh_private_key_file)
+    if host_vars.ansible_ssh_private_key_file:
+        key_path = Path(host_vars.ansible_ssh_private_key_file)
         if not key_path.is_absolute():
             key_path = ROOT / key_path
         connect_kwargs["key_filename"] = str(key_path)
+
     return Connection(
-        host=hvars.ansible_host,
-        user=hvars.ansible_user,
-        port=hvars.ansible_port,
+        host=host_vars.ansible_host,
+        user=host_vars.ansible_user,
+        port=host_vars.ansible_port or 22,
         connect_kwargs=connect_kwargs,
     )

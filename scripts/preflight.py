@@ -6,8 +6,8 @@ defaults/main.yml. This script reads that file, checks host_vars for the host,
 and prompts for anything missing.
 
 App-specific prompt hints and vault secret definitions live in
-ansible/apps/<app>/preflight.yml. Adding a new app requires no changes here —
-only a null sentinel in defaults and optionally a preflight.yml in the role.
+ansible/registry.yml. Adding a new app requires no code changes here — only a
+null sentinel in defaults and registry metadata.
 
 Usage:
   HOST=rpi poetry run python scripts/preflight.py <app>
@@ -19,141 +19,20 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any
 
 import questionary
-import yaml
 from utils.ansible_utils import (
     ANSIBLE_DIR,
+    get_app_entry,
     read_host_vars_raw,
     role_required_vars,
     write_host_vars_raw,
 )
-from utils.yaml_utils import yaml_mapping
 
-if TYPE_CHECKING:
-    from bootstrap import SecretSpec
-
+from models import AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, Any]
-
-# ---------------------------------------------------------------------------
-# Ports
-# ---------------------------------------------------------------------------
-
-
-class VarRequirements(Protocol):
-    def required(self) -> list[str]: ...
-    def hint(self, var: str) -> str: ...
-    def hidden(self, var: str) -> bool: ...
-    def default(self, var: str) -> str | None: ...
-    def var_type(self, var: str) -> str | None: ...
-
-
-class VarStore(Protocol):
-    def read(self, hostname: str) -> StoreData: ...
-    def write(self, hostname: str, updates: StoreData) -> None: ...
-
-
-# ---------------------------------------------------------------------------
-# Adapters
-# ---------------------------------------------------------------------------
-
-
-class AnsibleRoleAdapter:
-    """Reads required vars from a role's defaults/main.yml (null ~ = required).
-
-    Loads prompt hints from the role's preflight.yml if present.
-    Falls back to an empty hint for any var not listed there.
-    """
-
-    def __init__(self, role_path: Path) -> None:
-        self._role_path = role_path
-        self._hints: dict[str, str] = {}
-        self._defaults: dict[str, str] = {}
-        self._types: dict[str, str] = {}
-        preflight_path = role_path / "preflight.yml"
-        if preflight_path.exists():
-            data = yaml_mapping(yaml.safe_load(preflight_path.read_text()), source=preflight_path)
-            for k, v in cast("dict[str, Any]", data.get("var_hints", {})).items():
-                if isinstance(v, dict):
-                    hint_entry = cast("dict[str, str]", v)
-                    self._hints[k] = hint_entry.get("hint", "")
-                    if d := hint_entry.get("default"):
-                        self._defaults[k] = d
-                    if t := hint_entry.get("type"):
-                        self._types[k] = t
-                else:
-                    self._hints[k] = v
-
-    def required(self) -> list[str]:
-        return role_required_vars(self._role_path)
-
-    def hint(self, var: str) -> str:
-        return self._hints.get(var, "")
-
-    def hidden(self, var: str) -> bool:
-        return False
-
-    def default(self, var: str) -> str | None:
-        return self._defaults.get(var)
-
-    def var_type(self, var: str) -> str | None:
-        return self._types.get(var) or None
-
-
-class VaultSecretsAdapter:
-    """Reads required vault secrets from the role's preflight.yml."""
-
-    def __init__(self, role_path: Path) -> None:
-        self._specs: list[SecretSpec] = []
-        preflight_path = role_path / "preflight.yml"
-        if preflight_path.exists():
-            data = yaml_mapping(yaml.safe_load(preflight_path.read_text()), source=preflight_path)
-            self._specs = cast("list[SecretSpec]", data.get("vault_secrets", []))
-
-    def required(self) -> list[str]:
-        return [s["key"] for s in self._specs]
-
-    def hint(self, var: str) -> str:
-        return next((s["label"] for s in self._specs if s["key"] == var), "")
-
-    def hidden(self, var: str) -> bool:
-        return next((s["hidden"] for s in self._specs if s["key"] == var), False)
-
-    def default(self, var: str) -> str | None:
-        return None
-
-    def var_type(self, var: str) -> str | None:
-        return None
-
-
-class HostVarsAdapter:
-    """Reads and writes host_vars/<hostname>.yml, preserving comments and formatting."""
-
-    def read(self, hostname: str) -> StoreData:
-        return read_host_vars_raw(hostname)
-
-    def write(self, hostname: str, updates: StoreData) -> None:
-        write_host_vars_raw(hostname, updates)
-
-
-class VaultStore:
-    """Reads and writes secrets to the Ansible vault."""
-
-    def read(self, hostname: str) -> StoreData:
-        from bootstrap import decrypt_vault_raw
-
-        return decrypt_vault_raw()
-
-    def write(self, hostname: str, updates: StoreData) -> None:
-        from bootstrap import VAULT_FILE, decrypt_vault_raw, encrypt_vault
-
-        raw = decrypt_vault_raw()
-        raw.update(updates)
-        tmp = VAULT_FILE.with_suffix(".tmp")
-        encrypt_vault(raw, output=tmp)
-        os.replace(tmp, VAULT_FILE)
 
 
 # ---------------------------------------------------------------------------
@@ -177,39 +56,87 @@ def _pick_rclone_remote(label: str) -> str | None:
     return questionary.select(label, choices=remotes).ask()
 
 
-def run_preflight(
+def load_preflight_spec(
+    app: str, role_path: Path
+) -> tuple[dict[str, PreflightVarSpec], list[VaultSecretSpec]]:
+    """Return the prompt schema for *app* by combining registry metadata and role defaults."""
+    entry: AppRegistryEntry = get_app_entry(app)
+    required_vars = role_required_vars(role_path)
+    var_hints = entry.preflight_vars or {}
+    vars_spec = {var: var_hints.get(var, PreflightVarSpec(hint="")) for var in required_vars}
+    secrets_spec = entry.vault_secrets or []
+    return vars_spec, secrets_spec
+
+
+def _prompt_host_var(var_name: str, spec: PreflightVarSpec) -> str:
+    label = f"  {var_name}" + (f" ({spec.hint})" if spec.hint else "") + ":"
+    if getattr(spec, "type", None) == "rclone_remote":
+        value = _pick_rclone_remote(label)
+    else:
+        value = questionary.text(label, default=getattr(spec, "default", None) or "").ask()
+    if not value:
+        sys.exit(f"  [FAIL]  {var_name} is required. Aborting.")
+    return value
+
+
+def _prompt_secret(spec: VaultSecretSpec) -> str:
+    label = f"  {spec.key}" + (f" ({spec.label})" if spec.label else "") + ":"
+    if spec.hidden:
+        value = questionary.password(label).ask()
+    else:
+        value = questionary.text(label).ask()
+    if not value:
+        sys.exit(f"  [FAIL]  {spec.key} is required. Aborting.")
+    return value
+
+
+def collect_preflight_updates(
     hostname: str,
-    requirements: VarRequirements,
-    store: VarStore,
+    vars_spec: dict[str, PreflightVarSpec],
+    secrets_spec: list[VaultSecretSpec],
+) -> tuple[StoreData, StoreData]:
+    """Prompt for any missing host vars and vault secrets and return the updates."""
+    from bootstrap import decrypt_vault_raw
+
+    current_host_vars = read_host_vars_raw(hostname)
+    current_vault = decrypt_vault_raw()
+
+    host_updates: StoreData = {}
+    missing_vars = [name for name in vars_spec if not current_host_vars.get(name)]
+    if missing_vars:
+        print(f"  [WARN]  Missing required vars for '{hostname}' — please set them now.")
+        for var_name in missing_vars:
+            host_updates[var_name] = _prompt_host_var(var_name, vars_spec[var_name])
+
+    secret_updates: StoreData = {}
+    missing_secrets = [secret for secret in secrets_spec if not current_vault.get(secret.key)]
+    if missing_secrets:
+        print("  [WARN]  Missing required vault secrets — please set them now.")
+        for secret in missing_secrets:
+            secret_updates[secret.key] = _prompt_secret(secret)
+
+    return host_updates, secret_updates
+
+
+def write_preflight_updates(
+    hostname: str,
+    host_updates: StoreData,
+    secret_updates: StoreData,
 ) -> None:
-    """Prompt for any required vars not yet set in host_vars for *hostname*."""
-    required = requirements.required()
-    if not required:
-        return
+    """Persist any prompted host vars and vault secrets."""
+    if host_updates:
+        write_host_vars_raw(hostname, host_updates)
+        print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
-    current = store.read(hostname)
-    missing = [v for v in required if not current.get(v)]
-    if not missing:
-        return
+    if secret_updates:
+        from bootstrap import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
-    print(f"  [WARN]  Missing required vars for '{hostname}' — please set them now.")
-    updates: StoreData = {}
-    for var in missing:
-        hint = requirements.hint(var)
-        label = f"  {var}" + (f" ({hint})" if hint else "") + ":"
-        var_type = requirements.var_type(var)
-        if var_type == "rclone_remote":
-            value = _pick_rclone_remote(label)
-        elif requirements.hidden(var):
-            value = questionary.password(label).ask()
-        else:
-            value = questionary.text(label, default=requirements.default(var) or "").ask()
-        if not value:
-            sys.exit(f"  [FAIL]  {var} is required. Aborting.")
-        updates[var] = value
-
-    store.write(hostname, updates)
-    print(f"  [OK  ]  Wrote {len(updates)} var(s) for '{hostname}'")
+        raw = decrypt_vault_raw()
+        raw.update(secret_updates)
+        tmp = VAULT_FILE.with_suffix(".tmp")
+        encrypt_vault(raw, output=tmp)
+        os.replace(tmp, VAULT_FILE)
+        print(f"  [OK  ]  Wrote {len(secret_updates)} vault secret(s)")
 
 
 # ---------------------------------------------------------------------------
@@ -233,19 +160,9 @@ def main() -> None:
     if not hostname:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
     role_path = _resolve_role_path(app)
-
-    # Vault secrets first — credentials must exist before Ansible runs.
-    run_preflight(
-        hostname=hostname,
-        requirements=VaultSecretsAdapter(role_path),
-        store=VaultStore(),
-    )
-    # Host vars second — infrastructure config specific to this host.
-    run_preflight(
-        hostname=hostname,
-        requirements=AnsibleRoleAdapter(role_path),
-        store=HostVarsAdapter(),
-    )
+    vars_spec, secrets_spec = load_preflight_spec(app, role_path)
+    host_updates, secret_updates = collect_preflight_updates(hostname, vars_spec, secrets_spec)
+    write_preflight_updates(hostname, host_updates, secret_updates)
 
 
 if __name__ == "__main__":

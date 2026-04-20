@@ -1,8 +1,10 @@
+export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
+
 ANSIBLE_DIR := ansible
-APPS        := minio postgres baikal restic
 ROLES       := service_adapter rclone
-RESTORE_APPS := minio postgres baikal
-CLEANUP_APPS := minio postgres baikal
+APPS        := $(shell poetry run python -c "from utils.ansible_utils import all_registry_apps; print(' '.join(all_registry_apps()))")
+RESTORE_APPS := $(shell poetry run python -c "from utils.ansible_utils import restorable_apps; print(' '.join(restorable_apps()))")
+CLEANUP_APPS := $(shell poetry run python -c "from utils.ansible_utils import cleanable_apps; print(' '.join(cleanable_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site
@@ -28,9 +30,6 @@ VAULT_PASS   := $(CURDIR)/ansible/.vault-password
 INV          := ansible/inventory/hosts.ini
 PLAYBOOK     := ansible/site.yml
 ANSIBLE_PLAY := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook $(PLAYBOOK) -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
-
-# Make project packages importable without sys.path manipulation in scripts.
-export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 

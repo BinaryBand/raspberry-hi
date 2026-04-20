@@ -23,6 +23,7 @@ make check             # validate prerequisites (vault file, host reachability)
 This repo automates provisioning a Linux server using Python + Ansible.
 
 **Two layers:**
+
 - `scripts/` — interactive Python (prompting, validation, bootstrap); runs on the operator's machine
 - `ansible/` — declarative Ansible (idempotent provisioning); runs against the remote host
 
@@ -30,6 +31,7 @@ This repo automates provisioning a Linux server using Python + Ansible.
 from Python (Semgrep rule `python-must-not-run-ansible-playbook` enforces this).
 
 **App contract:** Every app under `ansible/apps/<app>/` must declare:
+
 - `tasks/main.yml` — provisioning (must call `include_role name: service_adapter`)
 - `tasks/cleanup.yml` — teardown (must call `service_adapter tasks_from: teardown`)
 - `backup/main.yml` — backup (must call `include_role name: restic tasks_from: backup`)
@@ -56,6 +58,7 @@ contract. `tests/test_lint.py` runs ansible-lint programmatically. Both use `_al
 `_containerized_apps()` helpers that glob `ansible/apps/*/tasks/main.yml`.
 
 **Key Semgrep rules (`.semgrep.yml`):**
+
 - Subprocess must go through `scripts/utils/exec_utils.py`
 - No `ansible-playbook` invocation from Python
 - No inline secrets in `host_vars` or plain `group_vars`

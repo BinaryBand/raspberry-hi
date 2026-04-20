@@ -1,0 +1,77 @@
+---
+apps:
+  minio:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: minio_service_name
+    dependencies: []
+    preflight_vars:
+      minio_data_path:
+        hint: persistent path for MinIO data
+        default: /home/linux-hi/minio
+    vault_secrets:
+      - key: minio_root_user
+        label: MinIO root username
+        hidden: false
+      - key: minio_root_password
+        label: MinIO root password
+        hidden: true
+
+  postgres:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: postgres_service_name
+    dependencies: []
+    preflight_vars:
+      postgres_data_path:
+        hint: storage path for PostgreSQL data files
+        default: /home/linux-hi/postgres
+    vault_secrets:
+      - key: postgres_password
+        label: PostgreSQL password for the Baikal application user
+        hidden: true
+
+  baikal:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: baikal_service_name
+    dependencies:
+      - postgres
+    preflight_vars:
+      baikal_config_path:
+        hint: directory for Baikal config files and app settings
+        default: /home/linux-hi/baikal/config
+      baikal_data_path:
+        hint: directory for Baikal persistent data files
+        default: /home/linux-hi/baikal/data
+    vault_secrets:
+      - key: baikal_admin_password
+        label: Baikal admin password
+        hidden: true
+      - key: baikal_encryption_key
+        label: Baikal encryption key (stable random string)
+        hidden: true
+
+  restic:
+    service_type: tool
+    backup: false
+    restore: false
+    cleanup: false
+    dependencies: []
+    preflight_vars:
+      restic_rclone_remote:
+        hint: rclone remote to use for backup storage
+        type: rclone_remote
+      restic_repo_path:
+        hint: path within the rclone remote where the restic repository lives
+        default: Backups/linux-hi
+    vault_secrets:
+      - key: restic_password
+        label: Restic repository encryption password
+        hidden: true
