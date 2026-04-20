@@ -1,27 +1,20 @@
----
-- name: Assert baikal_config_path exists on host
+- name: Check Baikal backup paths on host
   ansible.builtin.stat:
-    path: "{{ baikal_config_path }}"
-  register: _baikal_config_stat
+    path: "{{ item }}"
+  loop:
+    - "{{ baikal_config_path }}"
+    - "{{ baikal_data_path }}"
+  register: _baikal_backup_paths
   become: true
   become_user: "{{ ansible_user }}"
 
-- name: Assert baikal_data_path exists on host
-  ansible.builtin.stat:
-    path: "{{ baikal_data_path }}"
-  register: _baikal_data_stat
-  become: true
-  become_user: "{{ ansible_user }}"
-
-- name: Fail if baikal paths are missing
+- name: Fail if Baikal backup paths are missing
   ansible.builtin.fail:
     msg: >-
-      Baikal backup path does not exist: {{ item.path }}.
+      Baikal backup path does not exist: {{ item.item }}.
       Run 'make baikal' to provision Baikal first.
   when: not item.stat.exists
-  loop:
-    - { path: "{{ baikal_config_path }}", stat: "{{ _baikal_config_stat.stat }}" }
-    - { path: "{{ baikal_data_path }}", stat: "{{ _baikal_data_stat.stat }}" }
+  loop: "{{ _baikal_backup_paths.results }}"
 
 - name: Snapshot Baikal config and data to restic
   ansible.builtin.include_role:

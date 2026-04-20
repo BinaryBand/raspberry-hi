@@ -5,9 +5,10 @@ from typing import Any
 
 import yaml
 from fabric import Connection
+from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
 from models import AppRegistry, AppRegistryEntry, HostVars
-from utils.ruamel_utils import dump_host_vars_yaml
 from utils.yaml_utils import yaml_mapping
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -74,7 +75,17 @@ def write_host_vars_raw(hostname: str, updates: dict[str, Any]) -> None:
     host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
     current = read_host_vars_raw(hostname)
     current.update(updates)
-    dump_host_vars_yaml(current, host_vars_file)
+
+    yaml_round_trip = YAML()
+    yaml_round_trip.preserve_quotes = True
+
+    if "ansible_become_password" in current:
+        value = current["ansible_become_password"]
+        if not isinstance(value, DoubleQuotedScalarString):
+            current["ansible_become_password"] = DoubleQuotedScalarString(str(value))
+
+    with host_vars_file.open("w", encoding="utf-8") as handle:
+        yaml_round_trip.dump(current, handle)
 
 
 def inventory_host_vars(hostname: str) -> HostVars:

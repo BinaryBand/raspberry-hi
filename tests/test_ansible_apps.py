@@ -48,6 +48,14 @@ def test_containerized_app_backups_delegate_to_restic() -> None:
         assert "name: restic" in content
 
 
+def test_containerized_app_backups_validate_snapshot_paths() -> None:
+    """Each app backup task should verify snapshot source paths before restic runs."""
+    for app in containerized_apps():
+        content = _read_text(f"ansible/apps/{app}/backup/main.yml")
+        assert "ansible.builtin.stat" in content
+        assert "ansible.builtin.fail" in content
+
+
 def test_restic_operational_tasks_prepare_their_own_prerequisites() -> None:
     """Direct restic entry points must bootstrap their own client and repo checks."""
     for task_name in ["backup", "prune", "restore"]:
