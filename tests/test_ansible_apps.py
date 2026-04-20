@@ -91,6 +91,13 @@ class TestBackupRestoreContracts:
 
         assert "restore_app is defined" in playbook
 
+    def test_restore_playbook_validates_supported_restore_apps(self) -> None:
+        """restore.yml must reject unsupported restore_app values such as restic."""
+        playbook = _read_text("ansible/restore.yml")
+
+        assert "Validate restore_app is supported" in playbook
+        assert "restore_app in ['minio', 'postgres', 'baikal']" in playbook
+
     def test_restore_playbook_has_confirmation_prompt(self) -> None:
         """restore.yml must pause for confirmation before overwriting live data."""
         playbook = _read_text("ansible/restore.yml")
@@ -187,6 +194,13 @@ class TestCleanupContracts:
         playbook = _read_text("ansible/cleanup.yml")
 
         assert "cleanup_app is defined" in playbook
+
+    def test_cleanup_playbook_validates_supported_cleanup_apps(self) -> None:
+        """cleanup.yml must reject unsupported cleanup_app values such as restic."""
+        playbook = _read_text("ansible/cleanup.yml")
+
+        assert "Validate cleanup_app is supported" in playbook
+        assert "cleanup_app in ['minio', 'postgres', 'baikal']" in playbook
 
     def test_cleanup_playbook_has_confirmation_prompt(self) -> None:
         """cleanup.yml must pause for confirmation before destructive steps."""

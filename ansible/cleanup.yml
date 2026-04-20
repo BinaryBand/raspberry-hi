@@ -17,7 +17,16 @@
         that: cleanup_app is defined and cleanup_app | length > 0
         fail_msg: >-
           cleanup_app is not set.
-          Pass it with: make cleanup APP=minio  (or baikal, postgres)
+          Pass it with: make cleanup APP=minio  (or postgres, baikal)
+      tags: [always]
+
+    - name: Validate cleanup_app is supported
+      ansible.builtin.assert:
+        that:
+          - cleanup_app in ['minio', 'postgres', 'baikal']
+        fail_msg: >-
+          cleanup_app '{{ cleanup_app }}' is not supported.
+          Supported cleanup apps: minio, postgres, baikal.
       tags: [always]
 
     - name: Confirm destructive operation

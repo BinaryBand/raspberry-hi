@@ -17,7 +17,16 @@
         that: restore_app is defined and restore_app | length > 0
         fail_msg: >-
           restore_app is not set.
-          Pass it with: make restore APP=minio  (or baikal, postgres)
+          Pass it with: make restore APP=minio  (or postgres, baikal)
+      tags: [always]
+
+    - name: Validate restore_app is supported
+      ansible.builtin.assert:
+        that:
+          - restore_app in ['minio', 'postgres', 'baikal']
+        fail_msg: >-
+          restore_app '{{ restore_app }}' is not supported.
+          Supported restore apps: minio, postgres, baikal.
       tags: [always]
 
     - name: Confirm destructive operation

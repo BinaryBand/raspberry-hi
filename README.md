@@ -106,7 +106,11 @@ If you want to prepare external storage on the host, run `make mount`. That comm
 | `make minio` | Provision MinIO (purely declarative — reads credentials from vault, data path from `host_vars`) |
 | `make postgres` | Provision PostgreSQL for Baikal (reads credentials from vault and data path from `host_vars`) |
 | `make baikal` | Provision Baikal (runs PostgreSQL preflight first because Baikal depends on it) |
+| `make restic` | Provision restic and initialise the backup repository |
 | `make mount` | Interactively mount external storage |
+| `make backup` | Snapshot all supported apps into restic |
+| `make restore APP=<app>` | Restore one supported app: `minio`, `postgres`, or `baikal` |
+| `make cleanup APP=<app>` | Delete one supported app: `minio`, `postgres`, or `baikal` |
 
 ### Operations
 

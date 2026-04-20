@@ -1,6 +1,8 @@
 ANSIBLE_DIR := ansible
 APPS        := minio postgres baikal restic
 ROLES       := service_adapter rclone
+RESTORE_APPS := minio postgres baikal
+CLEANUP_APPS := minio postgres baikal
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site
@@ -59,14 +61,14 @@ help:
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Capture local rclone config into the vault"
 	@echo "  backup        Back up all apps to the restic repository"
-	@echo "  restore       Restore a named app from the latest restic snapshot (APP=<app>)"
+	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
 	@echo ""
-	@echo "  cleanup       Purge an app and all its data from the host (APP=<app>)"
+	@echo "  cleanup       Purge an app and all its data from the host (APP=$(CLEANUP_APPS))"
 	@echo "  status        Show service status on the host (SVC=<service>)"
 	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
@@ -143,7 +145,8 @@ backup: _backup_preflight
 		--limit $(HOST)
 
 _restore_preflight: _vault_check
-	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make restore APP=minio  (or baikal, postgres)"; exit 1; }
+	@test -n "$(APP)" || { echo "Error: APP is required — supported restore apps: $(RESTORE_APPS)"; exit 1; }
+	@case " $(RESTORE_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not restorable. Supported restore apps: $(RESTORE_APPS)"; exit 1 ;; esac
 
 restore: _backup_preflight _restore_preflight
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/restore.yml \
@@ -172,7 +175,8 @@ logs: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u $(SVC) -n 50 --no-pager"
 
 _cleanup_preflight: _vault_check
-	@test -n "$(APP)" || { echo "Error: APP is required — e.g. make cleanup APP=minio"; exit 1; }
+	@test -n "$(APP)" || { echo "Error: APP is required — supported cleanup apps: $(CLEANUP_APPS)"; exit 1; }
+	@case " $(CLEANUP_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not cleanable. Supported cleanup apps: $(CLEANUP_APPS)"; exit 1 ;; esac
 
 cleanup: _cleanup_preflight
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook ansible/cleanup.yml \
