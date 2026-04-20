@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from utils.ruamel_utils import dump_host_vars_yaml
 from fabric import Connection
 
 from models import AppRegistry, AppRegistryEntry, HostVars
@@ -73,7 +74,7 @@ def write_host_vars_raw(hostname: str, updates: dict[str, Any]) -> None:
     host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
     current = read_host_vars_raw(hostname)
     current.update(updates)
-    host_vars_file.write_text(yaml.safe_dump(current, sort_keys=False))
+    dump_host_vars_yaml(current, host_vars_file)
 
 
 def inventory_host_vars(hostname: str) -> HostVars:
