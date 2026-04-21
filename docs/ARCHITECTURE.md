@@ -75,6 +75,14 @@ Top-level files in `scripts/` are entry points. Importable support code lives be
 
 Top-level scripts are entry points only. Shared logic belongs in `scripts/internal/` or `scripts/utils/`, not in other script modules.
 
+### Package naming policy
+
+Generic package names are transitional, not preferred.
+
+- Prefer responsibility names such as `orchestration`, `adapters`, `ansible`, `storage`, `vault`, and `process`.
+- Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
+- Existing `scripts/internal/` and `scripts/utils/` packages are compatibility names. When packaging work next moves files across boundaries, rename those packages toward responsibility-oriented names instead of expanding the generic buckets.
+
 ### Internal orchestration
 
 `scripts/internal/` contains orchestration objects that compose smaller ports or helpers without becoming standalone CLI entry points.
