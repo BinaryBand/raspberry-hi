@@ -17,9 +17,9 @@ import shlex
 import sys
 from typing import cast
 
-from internal.mount_orchestrator import MountOrchestrator
 from utils.ansible_utils import make_connection
 from utils.info_port import RemoteInfoPort
+from utils.mount_orchestrator import MountOrchestrator
 from utils.prompter import QuestionaryPrompter
 from utils.storage_utils import get_device_uuid
 from utils.vault_service import decrypt_vault_raw

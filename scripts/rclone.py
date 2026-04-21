@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 import questionary
-from internal.rclone_controller import RcloneSetupController
+from utils.rclone_controller import RcloneSetupController
 from utils.vault_service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
 RCLONE_CONF = Path.home() / ".config" / "rclone" / "rclone.conf"

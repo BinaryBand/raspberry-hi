@@ -120,7 +120,7 @@ rules:
 
   # Python package boundary rules
   - id: python-no-external-internal-imports
-    message: Do not import scripts.internal modules from outside scripts/internal or scripts/utils.
+    message: Do not import internal implementation modules from outside scripts/internal or scripts/utils.
     severity: ERROR
     languages:
       - python
@@ -133,6 +133,10 @@ rules:
         - /scripts/utils/**/*.py
     patterns:
       - pattern-either:
+          - pattern: from internal import $X
+          - pattern: import internal
+          - pattern: from internal.$MOD import $X
+          - pattern: import internal.$MOD
           - pattern: from scripts.internal import $X
           - pattern: import scripts.internal
           - pattern: from scripts.internal.$MOD import $X
