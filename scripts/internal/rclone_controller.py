@@ -38,7 +38,7 @@ class RcloneSetupController:
         Raises ``ValueError`` when *config_text* contains no remote sections.
         Calls ``sys.exit`` when the operator declines an overwrite.
         """
-        from utils.rclone_utils import list_remotes
+        from scripts.utils.rclone_utils import list_remotes
 
         new_remotes = list_remotes(config_text)
         if not new_remotes:

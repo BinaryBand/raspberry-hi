@@ -65,6 +65,8 @@ Semgrep enforces the secret boundary by rejecting secret-like keys in `host_vars
 
 Top-level files in `scripts/` are entry points. Importable support code lives below them.
 
+Canonical importable CLI modules live in `linux_hi/cli/`. The matching files in `scripts/` are compatibility wrappers only.
+
 ### Entry points
 
 - `scripts/bootstrap.py`: first-time vault setup and missing secret collection
@@ -73,7 +75,7 @@ Top-level files in `scripts/` are entry points. Importable support code lives be
 - `scripts/mount.py`: interactive storage mounting via Fabric
 - `scripts/rclone.py`: capture local rclone config into the vault
 
-Top-level scripts are entry points only. Shared logic belongs in `scripts/internal/` or `scripts/utils/`, not in other script modules.
+Top-level scripts are entry points only. Shared logic belongs in importable packages, with `scripts/` kept as a thin compatibility layer.
 
 ### Package naming policy
 
@@ -114,23 +116,23 @@ Semgrep enforces these boundaries directly.
 
 ### `scripts/bootstrap.py`
 
-Owns first-time vault setup. It may read `ansible/inventory/hosts.ini`, prompt for credentials, and write the encrypted vault.
+Compatibility wrapper for `linux_hi.cli.bootstrap`. The package entrypoint owns first-time vault setup, may read `ansible/inventory/hosts.ini`, prompt for credentials, and write the encrypted vault.
 
 ### `scripts/check.py`
 
-Owns prerequisite validation. It may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
+Compatibility wrapper for `linux_hi.cli.check`. The package entrypoint owns prerequisite validation, may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
 
 ### `scripts/preflight.py`
 
-Owns registry-driven prompting before provisioning. App metadata is loaded from `ansible/registry.yml`, role-required vars are inferred from `defaults/main.yml`, and any missing values are written through the dedicated inventory and vault helpers.
+Compatibility wrapper for `linux_hi.cli.preflight`. The package entrypoint owns registry-driven prompting before provisioning. App metadata is loaded from `ansible/registry.yml`, role-required vars are inferred from `defaults/main.yml`, and any missing values are written through the dedicated inventory and vault helpers.
 
 ### `scripts/mount.py`
 
-Owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
+Compatibility wrapper for `linux_hi.cli.mount`. The package entrypoint owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
 
 ### `scripts/rclone.py`
 
-Owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened.
+Compatibility wrapper for `linux_hi.cli.rclone`. The package entrypoint owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened.
 
 ---
 
@@ -139,7 +141,7 @@ Owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and sav
 The Makefile is the operator-facing entry point.
 
 - Provisioning commands flow through `make`, not through Python wrappers around `ansible-playbook`.
-- `_vault_check` runs `scripts/check.py --vault-only` before workflows that require decrypted secrets.
+- `_vault_check` runs `python -m linux_hi.cli.check --vault-only` before workflows that require decrypted secrets.
 - `HOST=<alias>` is the standard multi-host selector for both provisioning and operational commands.
 
 Missing prerequisites should be rejected at the edge of the workflow.
@@ -254,13 +256,16 @@ ansible/
   site.yml         single provisioning entry point
 
 scripts/
-  bootstrap.py     first-time vault setup
-  check.py         prerequisite validation
-  preflight.py     registry-driven missing-value prompting
-  mount.py         interactive storage mounting
-  rclone.py        local rclone config capture
+  bootstrap.py     compatibility wrapper for package bootstrap CLI
+  check.py         compatibility wrapper for package check CLI
+  preflight.py     compatibility wrapper for package preflight CLI
+  mount.py         compatibility wrapper for package mount CLI
+  rclone.py        compatibility wrapper for package rclone CLI
   internal/        orchestration layer for interactive workflows
   utils/           helper seams around subprocesses, vault, inventory, storage, and YAML
+
+linux_hi/
+  cli/             canonical importable CLI modules
 
 models/
   ansible/         typed access to registry and host_vars data

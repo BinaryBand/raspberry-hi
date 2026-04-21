@@ -39,7 +39,7 @@ class TestCpd:
 class TestRuff:
     """Ensure the codebase passes ruff linting and formatting checks."""
 
-    PATHS = ["scripts/", "models/", "tests/"]
+    PATHS = ["linux_hi/", "scripts/", "models/", "tests/"]
 
     def test_ruff_check(self):
         """Fail if ruff reports any lint violations."""
@@ -89,7 +89,7 @@ class TestSemgrep:
 class TestVulture:
     """Ensure the codebase passes the current Vulture dead-code gate."""
 
-    PATHS = ["scripts/", "models/", "tests/"]
+    PATHS = ["linux_hi/", "scripts/", "models/", "tests/"]
 
     def test_vulture(self):
         """Fail if Vulture reports unused code at or above 80% confidence."""

@@ -9,8 +9,8 @@ from typing import Any
 import yaml
 
 from models import ANSIBLE_DATA, VaultSecrets
-from utils.exec_utils import run_resolved
-from utils.yaml_utils import yaml_mapping
+from scripts.utils.exec_utils import run_resolved
+from scripts.utils.yaml_utils import yaml_mapping
 
 VAULT_PASSWORD_FILE = ANSIBLE_DATA.ansible_dir / ".vault-password"
 VAULT_FILE = ANSIBLE_DATA.ansible_dir / "group_vars" / "all" / "vault.yml"

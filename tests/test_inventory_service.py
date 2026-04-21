@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from utils.inventory_service import discover_hosts, require_inventory_host
+
+from scripts.utils.inventory_service import discover_hosts, require_inventory_host
 
 
 def test_discover_hosts_uses_inventory_aliases() -> None:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from utils.yaml_utils import yaml_mapping
+from scripts.utils.yaml_utils import yaml_mapping
 
 
 def role_required_vars(role_path: Path) -> list[str]:

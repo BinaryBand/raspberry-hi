@@ -11,6 +11,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/utils/exec_utils.py
@@ -27,6 +28,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/utils/exec_utils.py
@@ -46,6 +48,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
       - pattern-either:
@@ -60,6 +63,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
       - pattern-either:
@@ -67,16 +71,18 @@ rules:
           - pattern: $F(("ansible-runner", ...), ...)
 
   - id: python-must-not-run-raw-ansible-outside-check
-    message: Raw ansible CLI usage is reserved for scripts/check.py reachability checks.
+    message: Raw ansible CLI usage is reserved for the check entrypoint reachability checks.
     severity: ERROR
     languages:
       - python
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/check.py
+        - /linux_hi/cli/check.py
     patterns:
       - pattern-either:
           - pattern: $F(["ansible", ...], ...)
@@ -92,6 +98,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/utils/vault_service.py
@@ -109,6 +116,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
       - pattern-either:
@@ -125,6 +133,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/internal/**/*.py
@@ -148,19 +157,21 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
         - /scripts/mount.py
     pattern: sys.path.insert(...)
 
   - id: python-no-script-entrypoint-imports
-    message: Top-level scripts are entrypoints only. Move shared logic into scripts/utils or scripts/internal instead of importing script modules from scripts.
+    message: Top-level scripts are entrypoints only. Move shared logic into linux_hi or dedicated support packages instead of importing script modules from scripts.
     severity: ERROR
     languages:
       - python
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
     patterns:
       - pattern-either:
           - pattern: from bootstrap import $X
@@ -208,6 +219,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
         - /models/**/*.py
       exclude:
@@ -237,6 +249,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
       - pattern-either:
@@ -251,6 +264,7 @@ rules:
     paths:
       include:
         - /scripts/**/*.py
+        - /linux_hi/**/*.py
         - /tests/**/*.py
     pattern-either:
       - pattern: VAR_HINTS = {...}

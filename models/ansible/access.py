@@ -8,7 +8,8 @@ from ansible.inventory.manager import InventoryManager
 from ansible.parsing.dataloader import DataLoader
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
-from utils.yaml_utils import yaml_mapping
+
+from scripts.utils.yaml_utils import yaml_mapping
 
 from .hostvars import HostVars
 from .registry import AppRegistry, AppRegistryEntry

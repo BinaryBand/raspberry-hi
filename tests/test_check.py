@@ -1,10 +1,10 @@
-"""Tests for scripts/check.py CLI parsing and vault-only mode."""
+"""Tests for the package check CLI parsing and vault-only mode."""
 
 from __future__ import annotations
 
 import pytest
 
-from scripts import check
+from linux_hi.cli import check
 
 
 def test_parse_args_accepts_vault_only_flag() -> None:

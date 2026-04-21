@@ -75,15 +75,15 @@ help:
 	@echo "  HOST defaults to 'rpi'; override with: HOST=myserver make site"
 
 check:
-	poetry run python ./scripts/check.py
+	poetry run python -m linux_hi.cli.check
 
 lint: ruff format-check pyright semgrep cpd vulture ansible-lint
 
 ruff:
-	poetry run ruff check scripts/ models/ tests/
+	poetry run ruff check linux_hi/ scripts/ models/ tests/
 
 format-check:
-	poetry run ruff format --check scripts/ models/ tests/
+	poetry run ruff format --check linux_hi/ scripts/ models/ tests/
 
 pyright:
 	poetry run pyright
@@ -95,7 +95,7 @@ cpd:
 	npx jscpd --format python --min-tokens 50 --threshold 3 --ignore '**/.venv/**,**/typings/**' .
 
 vulture:
-	poetry run vulture --min-confidence 80 scripts/ models/ tests/
+	poetry run vulture --min-confidence 80 linux_hi/ scripts/ models/ tests/
 
 ansible-lint:
 	ANSIBLE_CONFIG=$(ANSIBLE_CFG) poetry run ansible-lint -x var-naming \
@@ -121,22 +121,22 @@ vault-edit:
 	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
 
 bootstrap:
-	poetry run python ./scripts/bootstrap.py
+	poetry run python -m linux_hi.cli.bootstrap
 
 _vault_check:
-	@poetry run python ./scripts/check.py --vault-only
+	@poetry run python -m linux_hi.cli.check --vault-only
 
 _inv_check:
 	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.ini and host_vars/$(HOST).yml"; exit 1; }
 
 mount: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/mount.py
+	HOST=$(HOST) poetry run python -m linux_hi.cli.mount
 
 rclone: _vault_check
-	poetry run python ./scripts/rclone.py
+	poetry run python -m linux_hi.cli.rclone
 
 _backup_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/preflight.py restic
+	HOST=$(HOST) poetry run python -m linux_hi.cli.preflight restic
 
 backup: _backup_preflight
 	$(_ANSIBLE_FLAGS) ansible/backup.yml
@@ -150,7 +150,7 @@ restore: _backup_preflight _restore_preflight
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check
-	HOST=$(HOST) poetry run python ./scripts/preflight.py $*
+	HOST=$(HOST) poetry run python -m linux_hi.cli.preflight $*
 
 # Generic app provisioning — each app in APPS gets: make <app> → preflight → playbook.
 $(APPS): %: _%_preflight
