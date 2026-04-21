@@ -126,6 +126,42 @@ rules:
         - /scripts/mount.py
     pattern: sys.path.insert(...)
 
+  - id: python-no-script-entrypoint-imports
+    message: Top-level scripts are entrypoints only. Move shared logic into scripts/utils or scripts/internal instead of importing script modules from scripts.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: from bootstrap import $X
+          - pattern: import bootstrap
+          - pattern: from check import $X
+          - pattern: import check
+          - pattern: from mount import $X
+          - pattern: import mount
+          - pattern: from preflight import $X
+          - pattern: import preflight
+          - pattern: from rclone import $X
+          - pattern: import rclone
+          - pattern: from scripts import bootstrap
+          - pattern: from scripts import check
+          - pattern: from scripts import mount
+          - pattern: from scripts import preflight
+          - pattern: from scripts import rclone
+          - pattern: import scripts.bootstrap
+          - pattern: import scripts.check
+          - pattern: import scripts.mount
+          - pattern: import scripts.preflight
+          - pattern: import scripts.rclone
+          - pattern: from scripts.bootstrap import $X
+          - pattern: from scripts.check import $X
+          - pattern: from scripts.mount import $X
+          - pattern: from scripts.preflight import $X
+          - pattern: from scripts.rclone import $X
+
   - id: host-vars-no-inline-secret-keys
     message: host_vars must not store secret-like keys or app credentials; keep secrets in group_vars/all/vault.yml.
     severity: ERROR

@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ansible.inventory.manager import InventoryManager
+from ansible.parsing.dataloader import DataLoader
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from utils.yaml_utils import yaml_mapping
@@ -19,13 +21,16 @@ class AnsibleDataStore:
         self.root = root or Path(__file__).resolve().parents[2]
         self.ansible_dir = self.root / "ansible"
         self.inventory_dir = self.ansible_dir / "inventory"
+        self.inventory_file = self.inventory_dir / "hosts.ini"
         self.host_vars_dir = self.inventory_dir / "host_vars"
         self.registry_file = self.ansible_dir / "registry.yml"
         self._app_registry_cache: dict[str, AppRegistryEntry] | None = None
+        self._inventory_hosts_cache: list[str] | None = None
 
     def clear_cache(self) -> None:
         """Drop any cached registry data."""
         self._app_registry_cache = None
+        self._inventory_hosts_cache = None
 
     def load_app_registry(self) -> dict[str, AppRegistryEntry]:
         """Return the validated app registry keyed by app name."""
@@ -57,12 +62,33 @@ class AnsibleDataStore:
         """Return a single validated app registry entry."""
         return self.load_app_registry()[app]
 
+    def inventory_hosts(self) -> list[str]:
+        """Return host aliases from the actual Ansible inventory."""
+        if self._inventory_hosts_cache is None:
+            inventory = InventoryManager(
+                loader=DataLoader(),
+                sources=[str(self.inventory_file)],
+            )
+            self._inventory_hosts_cache = sorted(host.name for host in inventory.get_hosts())
+        return self._inventory_hosts_cache
+
+    def require_inventory_host(self, hostname: str) -> str:
+        """Validate that *hostname* exists in the configured inventory."""
+        if hostname not in self.inventory_hosts():
+            raise KeyError(
+                "Unknown inventory host "
+                f"'{hostname}'. Add it to {self.inventory_file} "
+                "or set HOST to a known alias."
+            )
+        return hostname
+
     def host_vars_path(self, hostname: str) -> Path:
         """Return the inventory path for a host's host_vars file."""
         return self.host_vars_dir / f"{hostname}.yml"
 
     def read_host_vars_raw(self, hostname: str) -> dict[str, Any]:
         """Read host_vars data for a host from the Ansible inventory."""
+        self.require_inventory_host(hostname)
         host_vars_file = self.host_vars_path(hostname)
         if not host_vars_file.exists():
             return {}
@@ -70,6 +96,7 @@ class AnsibleDataStore:
 
     def write_host_vars_raw(self, hostname: str, updates: dict[str, Any]) -> None:
         """Merge and persist host_vars data for a host."""
+        self.require_inventory_host(hostname)
         host_vars_file = self.host_vars_path(hostname)
         current = self.read_host_vars_raw(hostname)
         current.update(updates)
@@ -88,6 +115,7 @@ class AnsibleDataStore:
 
     def host_vars(self, hostname: str) -> HostVars:
         """Return validated inventory host vars for a host alias."""
+        self.require_inventory_host(hostname)
         return HostVars.from_inventory(hostname, self.read_host_vars_raw(hostname))
 
     def _read_yaml_mapping(self, source: Path) -> dict[str, Any]:

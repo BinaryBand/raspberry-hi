@@ -119,3 +119,9 @@ def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
     host = ansible_utils.inventory_host_vars("rpi")
 
     assert host.ansible_host == "rpi"
+
+
+def test_inventory_host_vars_rejects_unknown_inventory_alias() -> None:
+    """Unknown inventory aliases should fail before fabric connection setup."""
+    with pytest.raises(KeyError, match="Unknown inventory host"):
+        ansible_utils.inventory_host_vars("unknown-host")

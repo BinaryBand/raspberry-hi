@@ -26,6 +26,7 @@ from utils.ansible_utils import (
     ANSIBLE_DIR,
     role_required_vars,
 )
+from utils.inventory_service import require_inventory_host
 from utils.vault_service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
@@ -148,6 +149,7 @@ def main() -> None:
     hostname = os.environ.get("HOST")
     if not hostname:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
+    hostname = require_inventory_host(hostname)
     role_path = _resolve_role_path(app)
     vars_spec, secrets_spec = load_preflight_spec(app, role_path)
     host_updates, secret_updates = collect_preflight_updates(hostname, vars_spec, secrets_spec)
