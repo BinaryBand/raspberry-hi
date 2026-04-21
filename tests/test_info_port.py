@@ -11,14 +11,15 @@ from typing import cast
 import pytest
 
 from models import BlockDevice, MountInfo
+from scripts.utils.connection_types import RemoteConnection
 from scripts.utils.info_port import RemoteInfoPort
-from scripts.utils.storage_utils import RemoteConnection
 from tests.support.builders import blk, mnt, partition
+from tests.support.connections import FakeConnection
 
 
 def test_list_devices_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify device discovery delegates through storage utility helpers."""
-    conn = cast(RemoteConnection, object())
+    conn = cast(RemoteConnection, FakeConnection({}))
     usb_partition = partition("sda1")
     disk = blk("sda", "disk", mountpoint=None, children=[usb_partition])
 
@@ -44,6 +45,7 @@ def test_list_devices_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch
 def test_list_mounts_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify mount discovery delegates to the real mount helper."""
     mounts = [mnt("/mnt/usb")]
+    conn = cast(RemoteConnection, FakeConnection({}))
 
     def fake_get_real_mounts(_conn: RemoteConnection) -> list[MountInfo]:
         return mounts
@@ -54,4 +56,4 @@ def test_list_mounts_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch)
     )
 
     rip = RemoteInfoPort()
-    assert rip.list_mounts(cast(RemoteConnection, object())) == mounts
+    assert rip.list_mounts(conn) == mounts

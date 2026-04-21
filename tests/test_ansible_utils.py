@@ -11,6 +11,7 @@ import yaml
 
 from models import ANSIBLE_DATA, HostVars
 from scripts.utils import ansible_utils
+from tests.support.connections import RecordingConnectionFactory
 
 
 def test_make_connection_uses_relative_ssh_key_from_repo_root(
@@ -19,11 +20,12 @@ def test_make_connection_uses_relative_ssh_key_from_repo_root(
     """Relative SSH key paths should be resolved against the repository root."""
     captured: dict[str, Any] = {}
 
-    class FakeConnection:
+    class CapturingConnectionFactory(RecordingConnectionFactory):
         def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
             captured.update(kwargs)
 
-    monkeypatch.setattr(ansible_utils, "Connection", FakeConnection)
+    monkeypatch.setattr(ansible_utils, "Connection", CapturingConnectionFactory)
 
     host = HostVars(
         ansible_host="example.local",
@@ -49,11 +51,12 @@ def test_make_connection_can_configure_sudo_password(
     """Sudo password should be forwarded into Fabric config when requested."""
     captured: dict[str, Any] = {}
 
-    class FakeConnection:
+    class CapturingConnectionFactory(RecordingConnectionFactory):
         def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
             captured.update(kwargs)
 
-    monkeypatch.setattr(ansible_utils, "Connection", FakeConnection)
+    monkeypatch.setattr(ansible_utils, "Connection", CapturingConnectionFactory)
 
     host = HostVars(ansible_host="example.local", ansible_user="owen")
     sudo_value = "mount-sudo-value"

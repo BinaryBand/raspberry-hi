@@ -6,36 +6,30 @@ control-flow can be exercised without performing any I/O.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import cast
-
+from models import BlockDevice, MountInfo
 from scripts.internal.mount_orchestrator import MountOrchestrator
-from scripts.utils.info_port import InfoPort
-from scripts.utils.prompter import Prompter
-from scripts.utils.storage_utils import RemoteConnection
-
-
-@dataclass
-class DummyDevice:
-    """Simple device object with the fields MountOrchestrator needs."""
-
-    name: str
-    label: str | None = None
+from scripts.utils.connection_types import RemoteConnection
+from tests.support.connections import FakeConnection
 
 
 class FakeInfo:
     """Minimal InfoPort implementation for orchestration tests."""
 
-    def list_devices(self, conn: RemoteConnection) -> list[DummyDevice]:
+    def list_devices(self, conn: RemoteConnection) -> list[BlockDevice]:
         """Return one selectable device."""
         del conn
-        return [DummyDevice("sdb1", "usb")]
+        return [BlockDevice(name="sdb1", label="usb")]
+
+    def list_mounts(self, conn: RemoteConnection) -> list[MountInfo]:
+        """Return no mounts; mount orchestration does not consult mounts yet."""
+        del conn
+        return []
 
 
 class FakePrompter:
     """Minimal Prompter implementation for orchestration tests."""
 
-    def choose_device(self, devices: list[DummyDevice]) -> DummyDevice | None:
+    def choose_device(self, devices: list[BlockDevice]) -> BlockDevice | None:
         """Choose the first discovered device."""
         return devices[0]
 
@@ -47,11 +41,12 @@ class FakePrompter:
 
 def test_mount_new_device_success() -> None:
     """Verify the orchestrator returns the selected device path and label."""
+    conn: RemoteConnection = FakeConnection({})
     orch = MountOrchestrator(
-        info=cast(InfoPort, FakeInfo()),
-        prompter=cast(Prompter, FakePrompter()),
+        info=FakeInfo(),
+        prompter=FakePrompter(),
     )
-    assert orch.mount_new_device(conn=cast(RemoteConnection, object())) == (
+    assert orch.mount_new_device(conn=conn) == (
         "/dev/sdb1",
         "chosen",
     )
@@ -59,42 +54,45 @@ def test_mount_new_device_success() -> None:
 
 def test_mount_new_device_no_devices() -> None:
     """Verify the flow stops when discovery returns no external devices."""
+    conn: RemoteConnection = FakeConnection({})
 
     class EmptyInfo(FakeInfo):
         """InfoPort variant that returns no devices."""
 
-        def list_devices(self, conn: RemoteConnection) -> list[DummyDevice]:
+        def list_devices(self, conn: RemoteConnection) -> list[BlockDevice]:
             """Return no devices."""
             del conn
             return []
 
     orch = MountOrchestrator(
-        info=cast(InfoPort, EmptyInfo()),
-        prompter=cast(Prompter, FakePrompter()),
+        info=EmptyInfo(),
+        prompter=FakePrompter(),
     )
-    assert orch.mount_new_device(conn=cast(RemoteConnection, object())) is None
+    assert orch.mount_new_device(conn=conn) is None
 
 
 def test_mount_new_device_user_cancels() -> None:
     """Verify the flow stops when the device-selection prompt is cancelled."""
+    conn: RemoteConnection = FakeConnection({})
 
     class CancelPrompter(FakePrompter):
         """Prompter variant that cancels device selection."""
 
-        def choose_device(self, devices: list[DummyDevice]) -> DummyDevice | None:
+        def choose_device(self, devices: list[BlockDevice]) -> BlockDevice | None:
             """Cancel selection instead of choosing a device."""
             del devices
             return None
 
     orch = MountOrchestrator(
-        info=cast(InfoPort, FakeInfo()),
-        prompter=cast(Prompter, CancelPrompter()),
+        info=FakeInfo(),
+        prompter=CancelPrompter(),
     )
-    assert orch.mount_new_device(conn=cast(RemoteConnection, object())) is None
+    assert orch.mount_new_device(conn=conn) is None
 
 
 def test_label_hint_used_as_default() -> None:
     """Verify an explicit label hint takes precedence over the device label."""
+    conn: RemoteConnection = FakeConnection({})
 
     class HintPrompter(FakePrompter):
         """Prompter variant that expects a caller-supplied label hint."""
@@ -105,10 +103,10 @@ def test_label_hint_used_as_default() -> None:
             return "hinted"
 
     orch = MountOrchestrator(
-        info=cast(InfoPort, FakeInfo()),
-        prompter=cast(Prompter, HintPrompter()),
+        info=FakeInfo(),
+        prompter=HintPrompter(),
     )
     orch.mount_new_device(
-        conn=cast(RemoteConnection, object()),
+        conn=conn,
         label_hint="hinted",
     )

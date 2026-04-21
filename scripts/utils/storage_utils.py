@@ -7,37 +7,15 @@ re-implement SSH setup or lsblk/findmnt parsing.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Callable, Protocol
+from typing import TYPE_CHECKING, Callable
 
 from rich.console import Console
 from rich.table import Table
 
+from .connection_types import RemoteConnection
+
 if TYPE_CHECKING:
     from models import BlockDevice, MountInfo
-
-
-class CommandResult(Protocol):
-    """Minimal result interface required from connection.run()."""
-
-    stdout: str
-    ok: bool
-
-
-class RemoteConnection(Protocol):
-    """Minimal connection interface required by storage helpers."""
-
-    def run(
-        self,
-        command: str,
-        *,
-        hide: bool | str = False,
-        warn: bool = False,
-        echo: bool = False,
-        in_stream: object | None = None,
-        **kwargs: object,
-    ) -> CommandResult:
-        _ = (hide, warn, echo, in_stream, kwargs)
-        raise NotImplementedError
 
 
 # Virtual/kernel filesystem prefixes - never user data.

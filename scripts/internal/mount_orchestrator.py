@@ -6,9 +6,9 @@ UI (Prompter) so both can be swapped or unit-tested independently.
 
 from __future__ import annotations
 
+from utils.connection_types import RemoteConnection
 from utils.info_port import InfoPort
 from utils.prompter import Prompter
-from utils.storage_utils import RemoteConnection
 
 
 class MountOrchestrator:
