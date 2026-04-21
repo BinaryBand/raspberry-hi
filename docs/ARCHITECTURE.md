@@ -1,32 +1,51 @@
 # Architecture: Declarative Ansible + Standalone Python
 
+## Authority
+
+This repository has two architecture authorities with different jobs.
+
+- [.semgrep.yml](../.semgrep.yml) is the enforceable authority. It defines the repository rules that must hold mechanically.
+- This document is the explanatory authority. It explains why the rules exist, how the seams are intended to work, and which patterns are architectural rather than incidental.
+
+When the two disagree, treat [.semgrep.yml](../.semgrep.yml) as the source of truth for what contributors may or may not do, then fix this document to match.
+
+---
+
 ## Constitutional Rule
 
 This repository separates declared state from operational tooling.
 
-- **Ansible** is the sole provisioning driver.
-- **Python** handles interactive, one-shot, and pre-flight operations.
-- **Ansible-owned state stays authoritative.** Python may read or update it through
-  narrow seams, but it must not become a second source of truth.
-- **The boundary is intentional.** Ansible does not call Python to decide state, and
-  Python does not orchestrate playbook execution.
+- Ansible is the sole provisioning driver.
+- Python handles interactive, one-shot, and pre-flight operations.
+- Ansible-owned state stays authoritative. Python may read or update it through narrow seams, but it must not become a second source of truth.
+- The boundary is intentional. Ansible does not call Python to decide state, and Python does not orchestrate playbook execution.
+
+This rule is enforced in Semgrep by forbidding Python-side playbook orchestration, raw `ansible-vault` access outside the vault helper, and direct inventory/vault writes outside their dedicated seams.
+
+---
+
+## Domain Vocabulary
+
+| Term | Meaning |
+| --- | --- |
+| `HOST` | Inventory alias for the target host. All operator-facing make targets accept `HOST=<alias>`. |
+| `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/` containing connection and host-specific declared settings. |
+| `vault` | The encrypted durable secret store at `ansible/group_vars/all/vault.yml`. |
+| `app_user_home` | Home directory for `ansible_user` on the target host. App roles use it for config, scripts, and quadlet paths. |
+| `service_adapter_backend` | Init-system adapter selected for app lifecycle management. Supported values are `systemd`, `cron`, and `manual`. |
+| `quadlet` | A systemd `.container` unit file used by rootless Podman services. |
+| `preflight` | Python-side prompting and persistence of any missing host vars or vault secrets required before a role can converge. |
 
 ---
 
 ## Secret Policy
 
-Durable secrets live in [ansible/group_vars/all/vault.yml](ansible/group_vars/all/vault.yml).
+Durable secrets live in `ansible/group_vars/all/vault.yml`.
 
-The vault model in [models/services/vault.py](models/services/vault.py) holds:
+The vault model in `models/services/vault.py` holds:
 
 - Static app credentials such as `minio_root_user` and `minio_root_password`
-- A `become_passwords` mapping keyed by inventory hostname:
-
-  ```yaml
-  become_passwords:
-    rpi: "..."
-    rpi2: "..."
-  ```
+- A `become_passwords` mapping keyed by inventory hostname
 
 Each host inventory file references that mapping dynamically:
 
@@ -36,60 +55,132 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 
 This keeps sudo credentials centralized and out of `host_vars`.
 
-[ansible/site.yml](ansible/site.yml) includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error.
+`ansible/site.yml` includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error.
+
+Semgrep enforces the secret boundary by rejecting secret-like keys in `host_vars`, rejecting plaintext secrets in non-vault `group_vars`, and requiring the shared `ansible_become_password` vault lookup template.
+
+---
+
+## Python Structure
+
+Top-level files in `scripts/` are entry points. Importable support code lives below them.
+
+### Entry points
+
+- `scripts/bootstrap.py`: first-time vault setup and missing secret collection
+- `scripts/check.py`: prerequisite checks and minimal reachability validation
+- `scripts/preflight.py`: registry-driven prompting for missing host vars and vault secrets
+- `scripts/mount.py`: interactive storage mounting via Fabric
+- `scripts/rclone.py`: capture local rclone config into the vault
+
+Top-level scripts are entry points only. Shared logic belongs in `scripts/internal/` or `scripts/utils/`, not in other script modules.
+
+### Internal orchestration
+
+`scripts/internal/` contains orchestration objects that compose smaller ports or helpers without becoming standalone CLI entry points.
+
+- `mount_orchestrator.py` composes an `InfoPort` with a `Prompter`
+- `rclone_controller.py` composes vault I/O with overwrite confirmation
+
+This layer exists to keep interactive control flow testable without mixing it into terminal-facing scripts.
+
+### Utilities
+
+`scripts/utils/` contains narrow seams around process execution, inventory access, vault access, storage discovery, YAML I/O, and other reusable helpers.
+
+Important boundaries:
+
+- `exec_utils.py` is the subprocess seam.
+- `vault_service.py` is the `ansible-vault` seam.
+- `ansible_utils.py` and `inventory_service.py` are the inventory access seams.
+- `ansible_connection.py` is the Fabric connection seam.
+- `yaml_utils.py` and `models/` type YAML and inventory boundaries.
+
+Semgrep enforces these boundaries directly.
 
 ---
 
 ## Python Entry Point Policy
 
-### [scripts/bootstrap.py](scripts/bootstrap.py)
+### `scripts/bootstrap.py`
 
-This script owns first-time vault setup. It may read [ansible/inventory/hosts.ini](ansible/inventory/hosts.ini), prompt for credentials, and write the encrypted vault.
+Owns first-time vault setup. It may read `ansible/inventory/hosts.ini`, prompt for credentials, and write the encrypted vault.
 
-### [scripts/check.py](scripts/check.py)
+### `scripts/check.py`
 
-This script owns pre-flight validation. It may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
+Owns prerequisite validation. It may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
 
-### [scripts/mount.py](scripts/mount.py)
+### `scripts/preflight.py`
 
-This script owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
+Owns registry-driven prompting before provisioning. App metadata is loaded from `ansible/registry.yml`, role-required vars are inferred from `defaults/main.yml`, and any missing values are written through the dedicated inventory and vault helpers.
 
-### [scripts/rclone.py](scripts/rclone.py)
+### `scripts/mount.py`
 
-This script owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` from the local machine and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened — vault access goes through `bootstrap.py` helpers.
+Owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
+
+### `scripts/rclone.py`
+
+Owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened.
 
 ---
 
 ## Makefile Policy
 
-The Makefile is the operator-facing entry point. The `_vault_check` target runs [scripts/check.py](scripts/check.py) in `--vault-only` mode before provisioning or mount targets:
+The Makefile is the operator-facing entry point.
 
-```makefile
-site minio baikal mount: _vault_check
-```
+- Provisioning commands flow through `make`, not through Python wrappers around `ansible-playbook`.
+- `_vault_check` runs `scripts/check.py --vault-only` before workflows that require decrypted secrets.
+- `HOST=<alias>` is the standard multi-host selector for both provisioning and operational commands.
 
 Missing prerequisites should be rejected at the edge of the workflow.
 
 ---
 
-## App Dependency Policy
+## App and Dependency Policy
 
-Application roles may depend on other app roles when the dependent service is part of the same declared stack.
+App metadata is centralized in `ansible/registry.yml`.
 
-- **Dependencies must be explicit** in role metadata.
-- **The dependency remains declarative.** Ansible resolves ordering through metadata
-  and playbook tags.
-- **Operator entry points should still exist.** A dependency may still have its own
-  `make` target.
+Each app entry declares:
 
-The current example is Baikal depending on PostgreSQL:
+- service type
+- lifecycle participation such as backup, restore, and cleanup
+- preflight host vars
+- required vault secrets
+- explicit repo-owned dependencies
 
-- [ansible/apps/baikal/meta/main.yml](ansible/apps/baikal/meta/main.yml) declares the
-  dependency on the `postgres` app role.
-- PostgreSQL is exposed through its published host port, and Baikal reaches it via
-  `host.containers.internal` rather than a repo-managed custom Podman bridge.
+The current example is Baikal depending on PostgreSQL.
 
-This pattern is for repo-owned services, not hidden external prerequisites.
+That dependency is declared in the registry for tooling and documentation, but provisioning order is enforced in `ansible/site.yml` through tag composition, not through `meta/main.yml` role dependencies:
+
+- `postgres` is tagged with both `postgres` and `baikal`
+- `baikal` is tagged with `baikal`
+- `make baikal` therefore runs PostgreSQL first without relying on role metadata dependencies
+
+`meta/main.yml` dependencies must stay empty for these roles. Non-empty role dependencies cause duplicate execution under tag-based runs and are forbidden by Semgrep.
+
+This pattern is for repo-owned service relationships, not hidden external prerequisites.
+
+---
+
+## Service Adapter Policy
+
+App roles are decoupled from init-system specifics through `ansible/roles/service_adapter/`.
+
+Supported backends are defined in `ansible/roles/service_adapter/defaults/main.yml`:
+
+- `systemd`
+- `cron`
+- `manual`
+
+The backend is auto-detected from `ansible_facts['service_mgr']` by default, but host-specific overrides may set one of those literal values in `host_vars`.
+
+Backend responsibilities:
+
+- `systemd`: quadlets, linger, and `systemctl --user`
+- `cron`: deploy a run script and schedule it with `@reboot`
+- `manual`: deploy the run script only and leave init-system wiring to the operator
+
+For OpenRC or runit targets, use `manual` and wire the generated run script into the local init system manually.
 
 ---
 
@@ -97,11 +188,43 @@ This pattern is for repo-owned services, not hidden external prerequisites.
 
 Application data paths must be explicitly declared, but the storage medium is an operator choice.
 
-- **Persistence is required.**
-- **The medium is an operator choice.**
-- **Mount workflows are optional helpers.**
+- Persistence is required.
+- The medium is an operator choice.
+- Mount workflows are optional helpers.
 
-The governing rule is that Ansible owns the declared path, not the storage medium.
+The governing rule is that Ansible owns the declared path, not the storage medium. MinIO and PostgreSQL require durable paths, not specifically external media.
+
+---
+
+## Testing Model
+
+Tests are split into two tiers.
+
+### Tier 1: unit and stub tests
+
+`tests/` contains fast tests that run locally without infrastructure.
+
+This tier covers:
+
+- model validation
+- storage discovery and policy logic
+- inventory and ansible utility helpers
+- script control-flow and orchestration objects
+- registry-backed app contracts
+
+SSH-dependent logic uses `tests/support/FakeConnection` and canned payloads from `tests/support/data.py`.
+
+### Tier 2: end-to-end tests
+
+`tests/e2e/` contains live host tests marked `@pytest.mark.e2e`.
+
+- `make test` excludes them
+- `make test-e2e` runs them against a reachable host
+- `HOST=<alias>` selects the live target
+
+### Static architecture checks
+
+The repository treats Semgrep, ansible-lint, Ruff, Pyright, Vulture, and duplication checks as part of the maintainability model, not just style tooling.
 
 ---
 
@@ -109,32 +232,45 @@ The governing rule is that Ansible owns the declared path, not the storage mediu
 
 ```text
 ansible/
-  apps/            ← declarative roles (minio, postgres, baikal, …)
-  roles/           ← declarative roles (storage, podman, auto-updates, …)
+  apps/            declarative app roles (minio, postgres, baikal, restic)
+  roles/           shared declarative roles (podman, rclone, service_adapter, auto-updates)
   inventory/
     hosts.ini
-    host_vars/     ← per-host connection details + become_password reference
+    host_vars/     per-host connection details and host-specific declared settings
   group_vars/all/
-    vault.yml      ← encrypted secrets (become_passwords dict + app creds)
-  site.yml         ← single entry point with always-on vault assert
+    vars.yml       shared non-secret variables
+    vault.yml      encrypted durable secrets
+  registry.yml     app metadata consumed by Python tooling and tests
+  site.yml         single provisioning entry point
 
 scripts/
-  bootstrap.py     ← vault setup (pre-Ansible, no Ansible subprocess)
-  check.py         ← pre-flight checks including vault completeness
-  mount.py         ← interactive storage mount via Fabric
-  rclone.py        ← capture local rclone config into vault
-  internal/
-    mount_orchestrator.py  ← orchestration: InfoPort + Prompter composition
-    rclone_controller.py   ← orchestration: vault read/write + overwrite confirm
-  utils/
-    ansible_utils.py   ← inventory parsing helpers (no playbook invocation)
-    storage_utils.py   ← SSH helpers: lsblk, mount detection
-    rclone_utils.py    ← rclone config parsing (INI, offline)
+  bootstrap.py     first-time vault setup
+  check.py         prerequisite validation
+  preflight.py     registry-driven missing-value prompting
+  mount.py         interactive storage mounting
+  rclone.py        local rclone config capture
+  internal/        orchestration layer for interactive workflows
+  utils/           helper seams around subprocesses, vault, inventory, storage, and YAML
 
 models/
-  services/vault.py    ← Pydantic model for vault secrets
-  ansible/hostvars.py  ← Pydantic model for host_vars
-  system/              ← BlockDevice, MountInfo data models
+  ansible/         typed access to registry and host_vars data
+  services/        vault secrets model
+  system/          block-device and mount models
+
+tests/
+  support/         non-pytest fakes, builders, and canned data
+  e2e/             live host checks
+  test_*.py        fast local contract, unit, and stub tests
 ```
 
-Ansible declares and converges durable state. Python assists through narrow seams. App-to-app dependencies may exist when they stay explicit and repo-owned.
+---
+
+## Working Rules
+
+- Use `ansible_facts['key']` bracket notation instead of top-level injected fact variables.
+- Use Pydantic models at data boundaries rather than untyped dict plumbing.
+- Keep top-level scripts thin and move reusable logic downward.
+- Keep durable state changes behind the dedicated inventory and vault helpers.
+- Treat Semgrep failures as architecture failures, not stylistic warnings.
+
+Ansible declares and converges durable state. Python assists through narrow seams. Semgrep keeps the boundary from drifting.

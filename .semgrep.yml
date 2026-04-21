@@ -1,4 +1,8 @@
 rules:
+  # Constitutional rule: Python may assist with operations, but provisioning
+  # orchestration and durable declared state remain Ansible-owned.
+
+  # Process execution seams
   - id: python-no-direct-subprocess-import
     message: Use scripts.utils.exec_utils.run_resolved instead of importing subprocess directly.
     severity: ERROR
@@ -79,6 +83,7 @@ rules:
           - pattern: $F(("ansible", ...), ...)
           - pattern: resolve_executable("ansible")
 
+  # Inventory and vault authority seams
   - id: python-ansible-vault-only-in-vault-service
     message: ansible-vault access is reserved for scripts/utils/vault_service.py.
     severity: ERROR
@@ -113,6 +118,26 @@ rules:
           - pattern: $F(("ansible-inventory", ...), ...)
           - pattern: resolve_executable("ansible-inventory")
 
+  # Python package boundary rules
+  - id: python-no-external-internal-imports
+    message: Do not import scripts.internal modules from outside scripts/internal or scripts/utils.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /scripts/internal/**/*.py
+        - /scripts/utils/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: from scripts.internal import $X
+          - pattern: import scripts.internal
+          - pattern: from scripts.internal.$MOD import $X
+          - pattern: import scripts.internal.$MOD
+          
   - id: python-sys-path-insert-only-in-mount
     message: sys.path.insert is a temporary escape hatch and is only allowed in scripts/mount.py.
     severity: ERROR
@@ -162,6 +187,7 @@ rules:
           - pattern: from scripts.preflight import $X
           - pattern: from scripts.rclone import $X
 
+  # Durable secret and host_vars policies
   - id: host-vars-no-inline-secret-keys
     message: host_vars must not store secret-like keys or app credentials; keep secrets in group_vars/all/vault.yml.
     severity: ERROR
@@ -199,8 +225,9 @@ rules:
         - /ansible/group_vars/all/vault.yml
     pattern-regex: '(?im)^\s*(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key)\s*:'
 
+  # Registry-driven preflight model
   - id: python-no-preflights-module-import
-    message: App preflight specs have moved to ansible/apps/<app>/preflight.yml. Do not import from a preflights Python package.
+    message: App preflight metadata is registry-driven. Do not import preflight specs from a Python preflights package.
     severity: ERROR
     languages:
       - python
@@ -214,7 +241,7 @@ rules:
           - pattern: importlib.import_module(f"preflights.{$APP}")
 
   - id: python-no-inline-preflight-specs
-    message: VAR_HINTS and VAULT_SECRETS belong in ansible/apps/<app>/preflight.yml, not Python. The adapters in scripts/preflight.py load them from there.
+    message: App preflight metadata belongs in ansible/registry.yml, not inline Python constants.
     severity: ERROR
     languages:
       - python
@@ -226,6 +253,7 @@ rules:
       - pattern: VAR_HINTS = {...}
       - pattern: VAULT_SECRETS = [...]
 
+  # Role ordering and service lifecycle policies
   - id: ansible-meta-no-non-empty-dependencies
     message: >-
       Role dependencies in meta/main.yml cause roles to run multiple times under
@@ -239,6 +267,18 @@ rules:
         - /ansible/**/meta/main.yml
     pattern-regex: '(?m)^dependencies:\n\s+- '
 
+  - id: host-vars-service-adapter-backend-literal
+    message: "service_adapter_backend overrides in host_vars must be one of: systemd, cron, manual."
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    patterns:
+      - pattern-regex: '(?m)^\s*service_adapter_backend\s*:'
+      - pattern-not-regex: "(?m)^\\s*service_adapter_backend\\s*:\\s*(?:\"systemd\"|\"cron\"|\"manual\"|'systemd'|'cron'|'manual'|systemd|cron|manual)\\s*$"
+
   - id: host-vars-become-password-must-use-vault-template
     message: ansible_become_password in host_vars must use the shared become_passwords vault lookup.
     severity: ERROR
@@ -251,6 +291,7 @@ rules:
       - pattern-regex: '(?m)^\s*ansible_become_password\s*:'
       - pattern-not-regex: "(?m)^\\s*ansible_become_password\\s*:\\s*\"\\{\\{ \\(become_passwords \\| default\\(\\{\\}\\)\\)\\.get\\(inventory_hostname, ''\\) \\}\\}\"\\s*$"
 
+  # Reproducibility and template correctness
   - id: ansible-image-no-latest-tag
     message: >-
       Container images must be pinned to a specific version tag, not ':latest'.
@@ -275,4 +316,13 @@ rules:
       include:
         - /ansible/**/*.j2
     pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'
+
+# ---
+# TODO rules (not enforceable by Semgrep alone):
+#
+# - TODO: Every ansible/apps/* role must have a corresponding entry in ansible/registry.yml
+# - TODO: Every ansible/apps/* role must have backup/, restore/, and tasks/ directories
+# - TODO: Every ansible/apps/* role must have a test in tests/test_ansible_apps.py or e2e/
+# - TODO: group_vars/host_vars are the only allowed variable sources; playbooks must not define variables directly
+# ---
 

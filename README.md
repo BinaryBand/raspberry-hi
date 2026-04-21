@@ -2,6 +2,8 @@
 
 Ansible + Python tools for provisioning any Linux system over SSH.
 
+Architecture intent lives in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Enforceable repository architecture rules live in [.semgrep.yml](.semgrep.yml).
+
 ## Requirements
 
 - Python 3.12+
