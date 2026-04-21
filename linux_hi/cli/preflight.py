@@ -101,8 +101,8 @@ def write_preflight_updates(
         print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
     if secret_updates:
-        count = replace_vault_data(secret_updates, VAULT_FILE)
-        print(f"  [OK  ]  Wrote {count} vault secret(s)")
+        replace_vault_data(secret_updates, vault_file=VAULT_FILE)
+        print(f"  [OK  ]  Wrote {len(secret_updates)} vault secret(s)")
 
 
 def _resolve_role_path(app: str) -> Path:

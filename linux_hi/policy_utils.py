@@ -1,7 +1,7 @@
 """Utilities for repository policy checks."""
 
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 
 def get_app_roles(apps_dir: str) -> List[str]:
@@ -38,12 +38,13 @@ def check_registry_entries(app_roles: List[str], registry_path: str, failures: L
                         "(YAML parser not installed, used fallback)"
                     )
         else:
-            reg: Any = yaml.safe_load(f)
+            reg_data = yaml.safe_load(f)
+            reg: Dict[str, Any] = cast(Dict[str, Any], reg_data) if reg_data else {}
             apps_section: Dict[str, Any] = {}
-            if isinstance(reg, dict) and "apps" in reg:
+            if "apps" in reg:
                 val = reg["apps"]
                 if isinstance(val, dict):
-                    apps_section = val
+                    apps_section = cast(Dict[str, Any], val)
             for app in app_roles:
                 if app not in apps_section:
                     failures.append(f"App '{app}' missing from registry.yml")
