@@ -19,9 +19,14 @@ class MountOrchestrator:
     def mount_new_device(
         self, conn: RemoteConnection, label_hint: str | None = None
     ) -> tuple[str, str] | None:
-        """Discover external devices, prompt the user, and return (device, label).
+        """
+        Discover external devices, prompt the user, and return (device_path, label).
 
-        Returns ``None`` when the user cancels or no devices are available.
+        - device_path: e.g. /dev/sdb1 (the selected device)
+        - label: user-provided or default label (will be sanitized and used as mountpoint name)
+
+        Returns None when the user cancels or no devices are available.
+        Downstream code is responsible for label sanitization and for using UUID in fstab.
         """
         devices = self.info.list_devices(conn)
         if not devices:

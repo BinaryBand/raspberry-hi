@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import shlex
 import sys
 from typing import cast
@@ -20,6 +21,7 @@ from internal.mount_orchestrator import MountOrchestrator
 from utils.ansible_utils import make_connection
 from utils.info_port import RemoteInfoPort
 from utils.prompter import QuestionaryPrompter
+from utils.storage_utils import get_device_uuid
 from utils.vault_service import decrypt_vault_raw
 
 from models import ANSIBLE_DATA
@@ -49,17 +51,30 @@ def main() -> None:
         sys.exit("No device selected.")
 
     device, label = result
-    mount_point = f"/mnt/{label}"
+    # Sanitize label: allow only alphanum, dash, underscore, no path traversal
+    safe_label = re.sub(r"[^a-zA-Z0-9_-]", "_", label).lstrip("_").rstrip("_")
+    if not safe_label:
+        sys.exit("Invalid mount label after sanitization.")
+    mount_point = f"/mnt/{safe_label}"
     dev = shlex.quote(device)
     mp = shlex.quote(mount_point)
 
     conn.sudo(f"mkdir -p {mp}", hide=True)
     conn.sudo(f"mount {dev} {mp}", hide=True)
 
-    # Append to fstab only if this device isn't already listed.
+    # Use UUID for fstab entry if possible
+    uuid = get_device_uuid(conn, device)
     fstab = conn.sudo("cat /etc/fstab", hide=True).stdout
-    if device not in fstab:
-        entry = f"{device} {mount_point} auto defaults,nofail 0 0\n"
+    entry = None
+    if uuid:
+        uuid_line = f"UUID={uuid} {mount_point} auto defaults,nofail 0 0\n"
+        if f"UUID={uuid}" not in fstab:
+            entry = uuid_line
+    else:
+        dev_line = f"{device} {mount_point} auto defaults,nofail 0 0\n"
+        if device not in fstab:
+            entry = dev_line
+    if entry:
         conn.sudo("tee -a /etc/fstab", in_stream=io.StringIO(entry), hide=True)
 
     print(f"Mounted {device} at {mount_point}.")
