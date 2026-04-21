@@ -12,126 +12,17 @@ Run via: make bootstrap
 
 from __future__ import annotations
 
-import configparser
 import getpass
-import sys
-import tempfile
-from pathlib import Path
-from typing import Any, TypedDict
 
-import yaml
-from utils.ansible_utils import ANSIBLE_DIR
-from utils.exec_utils import run_resolved
-from utils.yaml_utils import yaml_mapping
+from utils.inventory_service import discover_hosts
+from utils.vault_service import (
+    VAULT_FILE,
+    decrypt_vault_raw,
+    encrypt_vault,
+    setup_vault_password,
+)
 
 from models import VaultSecrets
-
-VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
-VAULT_FILE = ANSIBLE_DIR / "group_vars" / "all" / "vault.yml"
-INVENTORY_FILE = ANSIBLE_DIR / "inventory" / "hosts.ini"
-
-
-class SecretSpec(TypedDict):
-    key: str
-    label: str
-    hidden: bool
-
-
-RawVaultData = dict[str, Any]
-
-
-def abort(msg: str) -> None:
-    print(f"\nERROR: {msg}", file=sys.stderr)
-    sys.exit(1)
-
-
-def discover_hosts() -> list[str]:
-    """Return all hostnames from the Ansible inventory without requiring Ansible."""
-    parser = configparser.ConfigParser(allow_no_value=True)
-    parser.read(INVENTORY_FILE)
-    seen: set[str] = set()
-    hosts: list[str] = []
-    for section in parser.sections():
-        for host in parser.options(section):
-            if host not in seen:
-                seen.add(host)
-                hosts.append(host)
-    return hosts
-
-
-def setup_vault_password() -> None:
-    if VAULT_PASSWORD_FILE.exists():
-        return
-
-    print("No vault password file found. Let's create one.")
-    while True:
-        pw = getpass.getpass("Choose a vault password: ")
-        confirm = getpass.getpass("Confirm vault password: ")
-        if pw == confirm:
-            break
-        print("Passwords do not match — try again.")
-
-    VAULT_PASSWORD_FILE.write_text(pw)
-    VAULT_PASSWORD_FILE.chmod(0o600)
-    print(f"Vault password saved to {VAULT_PASSWORD_FILE}\n")
-
-
-def decrypt_vault_raw() -> RawVaultData:
-    """Decrypt the vault file and return its raw contents as a dict."""
-    result = run_resolved(
-        [
-            "ansible-vault",
-            "decrypt",
-            str(VAULT_FILE),
-            "--vault-password-file",
-            str(VAULT_PASSWORD_FILE),
-            "--output",
-            "-",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
-    return yaml_mapping(yaml.safe_load(result.stdout), source=VAULT_FILE)
-
-
-def decrypt_vault() -> VaultSecrets:
-    """Decrypt the vault file and return its contents as a VaultSecrets model."""
-    return VaultSecrets.model_validate(decrypt_vault_raw())
-
-
-def encrypt_vault(data: RawVaultData, output: Path | None = None) -> None:
-    """Write *data* to an encrypted vault file.
-
-    *output* defaults to VAULT_FILE. Pass an alternate path to write to a
-    temporary location first (for atomic replace patterns).
-    """
-    target = output or VAULT_FILE
-    plaintext = yaml.dump(data, default_flow_style=False)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False, dir=ANSIBLE_DIR) as tmp:
-        tmp.write(plaintext)
-        tmp_path = Path(tmp.name)
-
-    try:
-        result = run_resolved(
-            [
-                "ansible-vault",
-                "encrypt",
-                str(tmp_path),
-                "--vault-password-file",
-                str(VAULT_PASSWORD_FILE),
-                "--output",
-                str(target),
-            ],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            abort(f"ansible-vault encrypt failed:\n{result.stderr.strip()}")
-    finally:
-        tmp_path.unlink(missing_ok=True)
 
 
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:

@@ -12,8 +12,9 @@ from collections.abc import Sequence
 
 from utils.ansible_utils import ANSIBLE_DIR
 from utils.exec_utils import resolve_executable, run_resolved
+from utils.inventory_service import discover_hosts
+from utils.vault_service import VAULT_PASSWORD_FILE, decrypt_vault
 
-VAULT_PASSWORD_FILE = ANSIBLE_DIR / ".vault-password"
 MIN_PYTHON = (3, 12)
 
 
@@ -27,8 +28,6 @@ def check(label: str, ok: bool, fix: str = "") -> bool:
 
 def check_vault_secrets() -> bool:
     """Verify the vault is decryptable and become passwords are set for all hosts."""
-    from bootstrap import decrypt_vault, discover_hosts
-
     if not VAULT_PASSWORD_FILE.exists():
         return check(
             "Vault secrets complete",

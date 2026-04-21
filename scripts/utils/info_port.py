@@ -28,11 +28,12 @@ class RemoteInfoPort:
     """
 
     def list_devices(self, conn: RemoteConnection) -> list["BlockDevice"]:
-        from .storage_utils import get_block_devices, get_external_devices
+        from .storage_discovery import get_block_devices
+        from .storage_policy import get_external_devices
 
         return get_external_devices(get_block_devices(conn))
 
     def list_mounts(self, conn: RemoteConnection) -> list["MountInfo"]:
-        from .storage_utils import get_real_mounts
+        from .storage_discovery import get_real_mounts
 
         return get_real_mounts(conn)

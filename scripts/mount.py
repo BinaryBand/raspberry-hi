@@ -17,18 +17,16 @@ import sys
 from typing import cast
 
 from internal.mount_orchestrator import MountOrchestrator
-from utils.ansible_utils import ANSIBLE_DIR, make_connection
+from utils.ansible_utils import make_connection
 from utils.info_port import RemoteInfoPort
 from utils.prompter import QuestionaryPrompter
+from utils.vault_service import decrypt_vault_raw
 
 from models import ANSIBLE_DATA
 
 
 def _become_password(hostname: str) -> str:
     """Read the become (sudo) password for *hostname* from the vault."""
-    sys.path.insert(0, str(ANSIBLE_DIR.parent / "scripts"))
-    from bootstrap import decrypt_vault_raw  # noqa: PLC0415
-
     raw = decrypt_vault_raw()
     become_passwords = cast(dict[str, str], raw.get("become_passwords") or {})
     pwd = become_passwords.get(hostname, "")

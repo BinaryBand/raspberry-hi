@@ -31,7 +31,7 @@ class QuestionaryPrompter:
     """
 
     def choose_device(self, devices: list["BlockDevice"]) -> "BlockDevice | None":
-        from .storage_utils import display_devices
+        from .storage_display import display_devices
 
         if not devices:
             return None

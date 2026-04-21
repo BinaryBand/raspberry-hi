@@ -17,19 +17,16 @@ from pathlib import Path
 
 import questionary
 from internal.rclone_controller import RcloneSetupController
+from utils.vault_service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
 RCLONE_CONF = Path.home() / ".config" / "rclone" / "rclone.conf"
 
 
 class _VaultAdapter:
     def read(self) -> dict[str, object]:
-        from bootstrap import decrypt_vault_raw
-
         return decrypt_vault_raw()
 
     def write(self, data: dict[str, object]) -> None:
-        from bootstrap import VAULT_FILE, encrypt_vault
-
         tmp = VAULT_FILE.with_suffix(".tmp")
         encrypt_vault(data, output=tmp)
         os.replace(tmp, VAULT_FILE)

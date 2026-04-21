@@ -30,11 +30,11 @@ def test_list_devices_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch
         return [usb_partition]
 
     monkeypatch.setattr(
-        "scripts.utils.storage_utils.get_block_devices",
+        "scripts.utils.storage_discovery.get_block_devices",
         fake_get_block_devices,
     )
     monkeypatch.setattr(
-        "scripts.utils.storage_utils.get_external_devices",
+        "scripts.utils.storage_policy.get_external_devices",
         fake_get_external_devices,
     )
 
@@ -51,7 +51,7 @@ def test_list_mounts_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch)
         return mounts
 
     monkeypatch.setattr(
-        "scripts.utils.storage_utils.get_real_mounts",
+        "scripts.utils.storage_discovery.get_real_mounts",
         fake_get_real_mounts,
     )
 

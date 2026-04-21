@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-import yaml
-from fabric import Config, Connection
-
 from models import ANSIBLE_DATA, AppRegistryEntry, HostVars
-from utils.yaml_utils import yaml_mapping
+from utils.ansible_connection import make_connection
+from utils.ansible_role_vars import role_required_vars
 
 ROOT = ANSIBLE_DATA.root
 ANSIBLE_DIR = ANSIBLE_DATA.ansible_dir
@@ -44,16 +41,6 @@ def get_app_entry(app: str) -> AppRegistryEntry:
     return ANSIBLE_DATA.get_app_entry(app)
 
 
-def role_required_vars(role_path: Path) -> list[str]:
-    """Return names whose defaults/main.yml values are explicitly null."""
-    defaults_file = role_path / "defaults" / "main.yml"
-    if not defaults_file.exists():
-        return []
-
-    data = yaml_mapping(yaml.safe_load(defaults_file.read_text()), source=defaults_file)
-    return [name for name, value in data.items() if value is None]
-
-
 def read_host_vars_raw(hostname: str) -> dict[str, Any]:
     """Read host_vars data for a host from the Ansible inventory."""
     return ANSIBLE_DATA.read_host_vars_raw(hostname)
@@ -69,27 +56,19 @@ def inventory_host_vars(hostname: str) -> HostVars:
     return ANSIBLE_DATA.host_vars(hostname)
 
 
-def make_connection(host: str | HostVars, *, become_password: str | None = None) -> Connection:
-    """Create a Fabric connection from a host alias or validated HostVars."""
-    host_vars = ANSIBLE_DATA.host_vars(host) if isinstance(host, str) else host
-
-    connect_kwargs: dict[str, str] = {}
-    if host_vars.ansible_ssh_private_key_file:
-        key_path = Path(host_vars.ansible_ssh_private_key_file)
-        if not key_path.is_absolute():
-            key_path = ANSIBLE_DATA.root / key_path
-        connect_kwargs["key_filename"] = str(key_path)
-
-    config = (
-        Config(overrides={"sudo": {"password": become_password}})
-        if become_password is not None
-        else None
-    )
-
-    return Connection(
-        host=host_vars.ansible_host,
-        user=host_vars.ansible_user,
-        port=host_vars.ansible_port or 22,
-        connect_kwargs=connect_kwargs,
-        config=config,
-    )
+__all__ = [
+    "ANSIBLE_DIR",
+    "INVENTORY_DIR",
+    "ROOT",
+    "all_apps",
+    "cleanup_apps",
+    "containerized_apps",
+    "get_app_entry",
+    "inventory_host_vars",
+    "load_app_registry",
+    "make_connection",
+    "read_host_vars_raw",
+    "restore_apps",
+    "role_required_vars",
+    "write_host_vars_raw",
+]

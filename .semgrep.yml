@@ -79,8 +79,8 @@ rules:
           - pattern: $F(("ansible", ...), ...)
           - pattern: resolve_executable("ansible")
 
-  - id: python-ansible-vault-only-in-bootstrap
-    message: ansible-vault access is reserved for scripts/bootstrap.py.
+  - id: python-ansible-vault-only-in-vault-service
+    message: ansible-vault access is reserved for scripts/utils/vault_service.py.
     severity: ERROR
     languages:
       - python
@@ -89,7 +89,7 @@ rules:
         - /scripts/**/*.py
         - /tests/**/*.py
       exclude:
-        - /scripts/bootstrap.py
+        - /scripts/utils/vault_service.py
     patterns:
       - pattern-either:
           - pattern: $F(["ansible-vault", ...], ...)

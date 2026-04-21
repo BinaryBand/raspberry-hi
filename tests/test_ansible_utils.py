@@ -8,8 +8,10 @@ from typing import Any
 
 import pytest
 import yaml
+from utils import ansible_connection
 
 from models import ANSIBLE_DATA, HostVars
+from models.ansible import access as ansible_access
 from scripts.utils import ansible_utils
 from tests.support.connections import RecordingConnectionFactory
 
@@ -25,7 +27,7 @@ def test_make_connection_uses_relative_ssh_key_from_repo_root(
             super().__init__(**kwargs)
             captured.update(kwargs)
 
-    monkeypatch.setattr(ansible_utils, "Connection", CapturingConnectionFactory)
+    monkeypatch.setattr(ansible_connection, "Connection", CapturingConnectionFactory)
 
     host = HostVars(
         ansible_host="example.local",
@@ -56,7 +58,7 @@ def test_make_connection_can_configure_sudo_password(
             super().__init__(**kwargs)
             captured.update(kwargs)
 
-    monkeypatch.setattr(ansible_utils, "Connection", CapturingConnectionFactory)
+    monkeypatch.setattr(ansible_connection, "Connection", CapturingConnectionFactory)
 
     host = HostVars(ansible_host="example.local", ansible_user="owen")
     sudo_value = "mount-sudo-value"
@@ -97,7 +99,7 @@ apps:
         return original_safe_load(*args, **kwargs)
 
     monkeypatch.setattr(ANSIBLE_DATA, "registry_file", registry_file)
-    monkeypatch.setattr(ansible_utils.yaml, "safe_load", counting_safe_load)
+    monkeypatch.setattr(ansible_access.yaml, "safe_load", counting_safe_load)
     ANSIBLE_DATA.clear_cache()
 
     assert list(ansible_utils.load_app_registry().keys()) == ["minio"]

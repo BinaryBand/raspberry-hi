@@ -26,6 +26,7 @@ from utils.ansible_utils import (
     ANSIBLE_DIR,
     role_required_vars,
 )
+from utils.vault_service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
@@ -39,7 +40,6 @@ StoreData = dict[str, Any]
 
 def _pick_rclone_remote(label: str) -> str | None:
     """Present existing vault rclone remotes as a selection prompt."""
-    from bootstrap import decrypt_vault_raw
     from utils.rclone_utils import list_remotes
 
     raw = decrypt_vault_raw()
@@ -93,8 +93,6 @@ def collect_preflight_updates(
     secrets_spec: list[VaultSecretSpec],
 ) -> tuple[StoreData, StoreData]:
     """Prompt for any missing host vars and vault secrets and return the updates."""
-    from bootstrap import decrypt_vault_raw
-
     current_host_vars = ANSIBLE_DATA.read_host_vars_raw(hostname)
     current_vault = decrypt_vault_raw()
 
@@ -126,14 +124,8 @@ def write_preflight_updates(
         print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
     if secret_updates:
-        from bootstrap import VAULT_FILE, decrypt_vault_raw, encrypt_vault
-
-        raw = decrypt_vault_raw()
-        raw.update(secret_updates)
-        tmp = VAULT_FILE.with_suffix(".tmp")
-        encrypt_vault(raw, output=tmp)
-        os.replace(tmp, VAULT_FILE)
-        print(f"  [OK  ]  Wrote {len(secret_updates)} vault secret(s)")
+        count = replace_vault_data(secret_updates, VAULT_FILE)
+        print(f"  [OK  ]  Wrote {count} vault secret(s)")
 
 
 # ---------------------------------------------------------------------------
