@@ -8,11 +8,10 @@ from typing import Any
 
 import pytest
 import yaml
-from utils import ansible_connection
 
 from models import ANSIBLE_DATA, HostVars
 from models.ansible import access as ansible_access
-from scripts.utils import ansible_utils
+from scripts.utils import ansible_connection
 from tests.support.connections import RecordingConnectionFactory
 
 
@@ -36,13 +35,13 @@ def test_make_connection_uses_relative_ssh_key_from_repo_root(
         ansible_ssh_private_key_file="config/.id_ed25519",
     )
 
-    ansible_utils.make_connection(host)
+    ansible_connection.make_connection(host)
 
     assert captured["host"] == "example.local"
     assert captured["user"] == "owen"
     assert captured["port"] == 2202
     assert captured["connect_kwargs"]["key_filename"] == str(
-        ansible_utils.ROOT / "config/.id_ed25519"
+        ANSIBLE_DATA.root / "config/.id_ed25519"
     )
     assert captured["config"] is None
 
@@ -62,7 +61,7 @@ def test_make_connection_can_configure_sudo_password(
 
     host = HostVars(ansible_host="example.local", ansible_user="owen")
     sudo_value = "mount-sudo-value"
-    ansible_utils.make_connection(host, become_password=sudo_value)
+    ansible_connection.make_connection(host, become_password=sudo_value)
 
     assert captured["config"] is not None
     assert captured["config"].sudo.password == sudo_value
@@ -102,8 +101,8 @@ apps:
     monkeypatch.setattr(ansible_access.yaml, "safe_load", counting_safe_load)
     ANSIBLE_DATA.clear_cache()
 
-    assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
-    assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
+    assert list(ANSIBLE_DATA.load_app_registry().keys()) == ["minio"]
+    assert list(ANSIBLE_DATA.load_app_registry().keys()) == ["minio"]
     assert calls == 1
 
     ANSIBLE_DATA.clear_cache()
@@ -116,7 +115,7 @@ def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
     """Missing host_vars should still produce a valid HostVars object."""
     monkeypatch.setattr(ANSIBLE_DATA, "host_vars_dir", tmp_path)
 
-    host = ansible_utils.inventory_host_vars("rpi")
+    host = ANSIBLE_DATA.host_vars("rpi")
 
     assert host.ansible_host == "rpi"
 
@@ -124,4 +123,4 @@ def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
 def test_inventory_host_vars_rejects_unknown_inventory_alias() -> None:
     """Unknown inventory aliases should fail before fabric connection setup."""
     with pytest.raises(KeyError, match="Unknown inventory host"):
-        ansible_utils.inventory_host_vars("unknown-host")
+        ANSIBLE_DATA.host_vars("unknown-host")

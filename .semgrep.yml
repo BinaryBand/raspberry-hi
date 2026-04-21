@@ -101,8 +101,8 @@ rules:
           - pattern: $F(("ansible-vault", ...), ...)
           - pattern: resolve_executable("ansible-vault")
 
-  - id: python-ansible-inventory-only-in-ansible-utils
-    message: ansible-inventory access is reserved for scripts/utils/ansible_utils.py.
+  - id: python-no-ansible-inventory-cli
+    message: Do not shell out to ansible-inventory. Use ANSIBLE_DATA or inventory_service instead.
     severity: ERROR
     languages:
       - python
@@ -110,8 +110,6 @@ rules:
       include:
         - /scripts/**/*.py
         - /tests/**/*.py
-      exclude:
-        - /scripts/utils/ansible_utils.py
     patterns:
       - pattern-either:
           - pattern: $F(["ansible-inventory", ...], ...)
@@ -202,8 +200,8 @@ rules:
         - /ansible/inventory/host_vars/*.yml
     pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|minio_root_password)\s*:'
 
-  - id: python-ruamel-yaml-only-in-ansible-utils
-    message: Direct ruamel.yaml usage is reserved for write_host_vars_raw in ansible_utils.py. Writes to host_vars must go through that helper.
+  - id: python-ruamel-yaml-only-in-ansible-access
+    message: Direct ruamel.yaml usage is reserved for models/ansible/access.py. Writes to host_vars must go through ANSIBLE_DATA.
     severity: ERROR
     languages:
       - python
@@ -211,8 +209,9 @@ rules:
       include:
         - /scripts/**/*.py
         - /tests/**/*.py
+        - /models/**/*.py
       exclude:
-        - /scripts/utils/ansible_utils.py
+        - /models/ansible/access.py
     pattern-either:
       - pattern: from ruamel.yaml import $X
       - pattern: import ruamel.yaml

@@ -10,10 +10,11 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from utils.ansible_utils import ANSIBLE_DIR
 from utils.exec_utils import resolve_executable, run_resolved
 from utils.inventory_service import discover_hosts
 from utils.vault_service import VAULT_PASSWORD_FILE, decrypt_vault
+
+from models import ANSIBLE_DATA
 
 MIN_PYTHON = (3, 12)
 
@@ -120,7 +121,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         all_ok &= check_vault_secrets()
 
     # Pi reachable
-    inventory_path = ANSIBLE_DIR / "inventory" / "hosts.ini"
+    inventory_path = ANSIBLE_DATA.inventory_file
 
     try:
         ping = run_resolved(

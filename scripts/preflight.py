@@ -22,10 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import questionary
-from utils.ansible_utils import (
-    ANSIBLE_DIR,
-    role_required_vars,
-)
+from utils.ansible_role_vars import role_required_vars
 from utils.inventory_service import require_inventory_host
 from utils.vault_service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 
@@ -135,11 +132,10 @@ def write_preflight_updates(
 
 
 def _resolve_role_path(app: str) -> Path:
-    for base in ("apps", "roles"):
-        path = ANSIBLE_DIR / base / app
-        if path.exists():
-            return path
-    sys.exit(f"  [FAIL]  No role found for '{app}' under ansible/apps/ or ansible/roles/")
+    try:
+        return ANSIBLE_DATA.role_path(app)
+    except KeyError as exc:
+        sys.exit(f"  [FAIL]  {exc}")
 
 
 def main() -> None:

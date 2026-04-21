@@ -2,9 +2,9 @@ export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
 
 ANSIBLE_DIR := ansible
 ROLES       := service_adapter rclone
-APPS        := $(shell poetry run python -c "from utils.ansible_utils import all_apps; print(' '.join(all_apps()))")
-RESTORE_APPS := $(shell poetry run python -c "from utils.ansible_utils import restore_apps; print(' '.join(restore_apps()))")
-CLEANUP_APPS := $(shell poetry run python -c "from utils.ansible_utils import cleanup_apps; print(' '.join(cleanup_apps()))")
+APPS        := $(shell poetry run python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
+RESTORE_APPS := $(shell poetry run python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.restore_apps()))")
+CLEANUP_APPS := $(shell poetry run python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.cleanup_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.ini.
 # Override per-run: HOST=myserver make site

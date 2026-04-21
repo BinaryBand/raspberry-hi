@@ -17,7 +17,7 @@ import shlex
 import sys
 from typing import cast
 
-from utils.ansible_utils import make_connection
+from utils.ansible_connection import make_connection
 from utils.info_port import RemoteInfoPort
 from utils.mount_orchestrator import MountOrchestrator
 from utils.prompter import QuestionaryPrompter

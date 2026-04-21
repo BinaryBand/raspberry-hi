@@ -11,7 +11,7 @@ import os
 import pytest
 
 from models import ANSIBLE_DATA
-from scripts.utils.ansible_utils import make_connection
+from scripts.utils.ansible_connection import make_connection
 from scripts.utils.connection_types import RemoteConnection
 
 

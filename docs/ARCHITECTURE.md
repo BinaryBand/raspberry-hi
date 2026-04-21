@@ -92,7 +92,9 @@ Important boundaries:
 
 - `exec_utils.py` is the subprocess seam.
 - `vault_service.py` is the `ansible-vault` seam.
-- `ansible_utils.py` and `inventory_service.py` are the inventory access seams.
+- `models/ansible/access.py` exposed as `ANSIBLE_DATA` is the canonical registry and inventory store seam.
+- `inventory_service.py` is a thin host-discovery wrapper over that store boundary.
+- `ansible_utils.py` is a compatibility facade for non-store operational helpers only.
 - `ansible_connection.py` is the Fabric connection seam.
 - `yaml_utils.py` and `models/` type YAML and inventory boundaries.
 
