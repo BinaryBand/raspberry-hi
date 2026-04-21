@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any
 
 from linux_hi.adapters.connection_types import RemoteConnection
 from linux_hi.storage.discovery import get_block_devices, get_real_mounts
@@ -19,7 +19,8 @@ from linux_hi.storage.policy import (
 )
 
 if TYPE_CHECKING:
-    from models import BlockDevice
+    pass
+
 
 def get_device_uuid(conn: RemoteConnection, device_path: str) -> str | None:
     """Return the UUID of a device (partition) by path, or None if not found."""
@@ -39,6 +40,7 @@ def get_device_uuid(conn: RemoteConnection, device_path: str) -> str | None:
         return None
 
     return find_uuid(data)
+
 
 __all__ = [
     "DEFAULT_MOUNT_POLICY",

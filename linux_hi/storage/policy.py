@@ -11,6 +11,7 @@ SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
 
 MountPolicy = Callable[[str | None], bool]
 
+
 def default_mount_policy(target: str | None) -> bool:
     """Return True when *target* should be treated as a system mount."""
     system_mounts = {"/", "/boot", "/boot/efi", "[SWAP]"}
@@ -26,7 +27,9 @@ def default_mount_policy(target: str | None) -> bool:
 
     return any(target.startswith(prefix) for prefix in SYSTEM_MOUNT_PREFIXES)
 
+
 DEFAULT_MOUNT_POLICY: MountPolicy = default_mount_policy
+
 
 def is_system_device(
     device: BlockDevice,
@@ -38,6 +41,7 @@ def is_system_device(
         return True
     return any(is_system_device(child, policy) for child in (device.children or []))
 
+
 def collect_partitions(device: BlockDevice) -> list[BlockDevice]:
     """Return mountable partitions from a non-system disk."""
     children = device.children or []
@@ -46,6 +50,7 @@ def collect_partitions(device: BlockDevice) -> list[BlockDevice]:
     if device.fstype:
         return [device]
     return []
+
 
 def get_external_devices(
     devices: list[BlockDevice],
@@ -60,6 +65,7 @@ def get_external_devices(
         external.extend(collect_partitions(device))
     return external
 
+
 def mount_covering(mounts: list[MountInfo], path: str) -> str:
     """Return the most-specific mount point that covers *path*."""
     covering = "/"
@@ -70,9 +76,11 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
                 covering = fs.target
     return covering
 
+
 def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
     """Return all non-system mounts."""
     return [m for m in mounts if not default_mount_policy(m.target)]
+
 
 __all__ = [
     "DEFAULT_MOUNT_POLICY",

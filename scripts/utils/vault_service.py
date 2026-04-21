@@ -8,10 +8,9 @@ from typing import Any
 
 import yaml
 
-from models import ANSIBLE_DATA, VaultSecrets
 from linux_hi.process.exec import run_resolved
-
 from linux_hi.vault.service import *
+from models import ANSIBLE_DATA, VaultSecrets
 from scripts.utils.yaml_utils import yaml_mapping
 
 VAULT_PASSWORD_FILE = ANSIBLE_DATA.ansible_dir / ".vault-password"
