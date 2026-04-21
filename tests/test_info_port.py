@@ -1,7 +1,7 @@
-"""Tests for the InfoPort adapter in `scripts.utils.info_port`.
+"""Tests for the InfoPort adapter in `linux_hi.adapters.info_port`.
 
 Verify that `RemoteInfoPort` delegates to the helpers in
-`scripts.utils.storage_utils` so discovery logic is reusable.
+`linux_hi.storage` so discovery logic is reusable.
 """
 
 from __future__ import annotations
@@ -10,9 +10,9 @@ from typing import cast
 
 import pytest
 
+from linux_hi.adapters.connection_types import RemoteConnection
+from linux_hi.adapters.info_port import RemoteInfoPort
 from models import BlockDevice, MountInfo
-from scripts.utils.connection_types import RemoteConnection
-from scripts.utils.info_port import RemoteInfoPort
 from tests.support.builders import blk, mnt, partition
 from tests.support.connections import FakeConnection
 
@@ -30,11 +30,11 @@ def test_list_devices_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch
         return [usb_partition]
 
     monkeypatch.setattr(
-        "scripts.utils.storage_discovery.get_block_devices",
+        "linux_hi.storage.discovery.get_block_devices",
         fake_get_block_devices,
     )
     monkeypatch.setattr(
-        "scripts.utils.storage_policy.get_external_devices",
+        "linux_hi.storage.policy.get_external_devices",
         fake_get_external_devices,
     )
 
@@ -51,7 +51,7 @@ def test_list_mounts_delegates_to_storage_utils(monkeypatch: pytest.MonkeyPatch)
         return mounts
 
     monkeypatch.setattr(
-        "scripts.utils.storage_discovery.get_real_mounts",
+        "linux_hi.storage.discovery.get_real_mounts",
         fake_get_real_mounts,
     )
 

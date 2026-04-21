@@ -85,28 +85,31 @@ Generic package names are transitional, not preferred.
 - Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
 - Existing `scripts/internal/` and `scripts/utils/` packages are compatibility names. When packaging work next moves files across boundaries, rename those packages toward responsibility-oriented names instead of expanding the generic buckets.
 
-### Internal orchestration
+### Orchestration
 
-`scripts/internal/` contains orchestration objects that compose smaller ports or helpers without becoming standalone CLI entry points.
+`linux_hi/orchestration/` is the canonical orchestration layer. It composes ports and helpers without becoming standalone CLI entry points.
+
+`scripts/internal/` remains only as a compatibility package during the rename.
 
 - `mount_orchestrator.py` composes an `InfoPort` with a `Prompter`
 - `rclone_controller.py` composes vault I/O with overwrite confirmation
 
 This layer exists to keep interactive control flow testable without mixing it into terminal-facing scripts.
 
-### Utilities
+### Responsibility Packages
 
-`scripts/utils/` contains narrow seams around process execution, inventory access, vault access, storage discovery, YAML I/O, and other reusable helpers.
+The canonical import surface is organized by responsibility:
 
 Important boundaries:
 
-- `exec_utils.py` is the subprocess seam.
-- `vault_service.py` is the `ansible-vault` seam.
+- `linux_hi/process/` is the subprocess seam.
+- `linux_hi/vault/` is the `ansible-vault` seam.
 - `models/ansible/access.py` exposed as `ANSIBLE_DATA` is the canonical registry and inventory store seam.
-- `inventory_service.py` is a thin host-discovery wrapper over that store boundary.
-- `ansible_utils.py` is a compatibility facade for non-store operational helpers only.
-- `ansible_connection.py` is the Fabric connection seam.
-- `yaml_utils.py` and `models/` type YAML and inventory boundaries.
+- `linux_hi/ansible/` contains inventory discovery, role-var introspection, connection setup, and YAML boundary helpers.
+- `linux_hi/adapters/` contains protocols and adapter implementations for interactive workflows.
+- `linux_hi/storage/` contains storage discovery, classification, display, and rclone parsing helpers.
+
+`scripts/utils/` remains only as a compatibility package during the rename.
 
 Semgrep enforces these boundaries directly.
 
@@ -261,11 +264,17 @@ scripts/
   preflight.py     compatibility wrapper for package preflight CLI
   mount.py         compatibility wrapper for package mount CLI
   rclone.py        compatibility wrapper for package rclone CLI
-  internal/        orchestration layer for interactive workflows
-  utils/           helper seams around subprocesses, vault, inventory, storage, and YAML
+  internal/        compatibility wrappers for orchestration modules
+  utils/           compatibility wrappers for legacy helper imports
 
 linux_hi/
   cli/             canonical importable CLI modules
+  orchestration/   orchestration flows composed from adapters and stores
+  adapters/        protocols and adapter implementations
+  ansible/         ansible-facing helpers and typed YAML boundaries
+  storage/         storage and rclone helpers
+  vault/           vault access helpers
+  process/         process execution helpers
 
 models/
   ansible/         typed access to registry and host_vars data

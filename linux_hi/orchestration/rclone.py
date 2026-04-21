@@ -1,9 +1,4 @@
-"""Orchestration for the rclone remote setup workflow.
-
-Reads a local rclone.conf text, confirms with the user when overwriting an
-existing vault entry, and writes the config blob into the Ansible vault so
-the rclone Ansible role can deploy it to any host.
-"""
+"""Orchestration for the rclone remote setup workflow."""
 
 from __future__ import annotations
 
@@ -12,32 +7,35 @@ from typing import Protocol
 
 
 class VaultPort(Protocol):
-    """Read/write access to the Ansible vault key-value store."""
+    """Port for reading and writing vault-backed config data."""
 
-    def read(self) -> dict[str, object]: ...
+    def read(self) -> dict[str, object]:
+        """Return the current vault payload."""
+        ...
 
-    def write(self, data: dict[str, object]) -> None: ...
+    def write(self, data: dict[str, object]) -> None:
+        """Persist an updated vault payload."""
+        ...
 
 
 class ConfirmPrompter(Protocol):
-    """Prompt the operator before destructive vault overwrites."""
+    """Port for destructive-overwrite confirmation prompts."""
 
-    def confirm_overwrite(self, existing: list[str], incoming: list[str]) -> bool: ...
+    def confirm_overwrite(self, existing: list[str], incoming: list[str]) -> bool:
+        """Confirm whether incoming remotes may replace existing ones."""
+        ...
 
 
 class RcloneSetupController:
     """Saves a local rclone config into the vault, prompting on overwrite."""
 
     def __init__(self, vault: VaultPort, prompter: ConfirmPrompter) -> None:
+        """Store the vault and prompt ports used by the workflow."""
         self._vault = vault
         self._prompter = prompter
 
     def run(self, config_text: str) -> list[str]:
-        """Persist *config_text* in the vault and return the list of remote names saved.
-
-        Raises ``ValueError`` when *config_text* contains no remote sections.
-        Calls ``sys.exit`` when the operator declines an overwrite.
-        """
+        """Persist config_text in the vault and return the remote names saved."""
         from linux_hi.storage.rclone import list_remotes
 
         new_remotes = list_remotes(config_text)

@@ -6,10 +6,10 @@ import argparse
 import sys
 from collections.abc import Sequence
 
+from linux_hi.ansible.inventory import discover_hosts
+from linux_hi.process.exec import resolve_executable, run_resolved
+from linux_hi.vault.service import VAULT_PASSWORD_FILE, decrypt_vault
 from models import ANSIBLE_DATA
-from scripts.utils.exec_utils import resolve_executable, run_resolved
-from scripts.utils.inventory_service import discover_hosts
-from scripts.utils.vault_service import VAULT_PASSWORD_FILE, decrypt_vault
 
 MIN_PYTHON = (3, 12)
 

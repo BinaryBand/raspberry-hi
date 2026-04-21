@@ -9,17 +9,17 @@ from typing import Any
 
 import questionary
 
+from linux_hi.ansible.inventory import require_inventory_host
+from linux_hi.ansible.role_vars import role_required_vars
+from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
-from scripts.utils.ansible_role_vars import role_required_vars
-from scripts.utils.inventory_service import require_inventory_host
-from scripts.utils.vault_service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 
 StoreData = dict[str, Any]
 
 
 def _pick_rclone_remote(label: str) -> str | None:
     """Present existing vault rclone remotes as a selection prompt."""
-    from scripts.utils.rclone_utils import list_remotes
+    from linux_hi.storage.rclone import list_remotes
 
     raw = decrypt_vault_raw()
     config_text = str(raw.get("rclone_config") or "")

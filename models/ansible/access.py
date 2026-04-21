@@ -9,7 +9,7 @@ from ansible.parsing.dataloader import DataLoader
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-from scripts.utils.yaml_utils import yaml_mapping
+from linux_hi.ansible.yaml import yaml_mapping
 
 from .hostvars import HostVars
 from .registry import AppRegistry, AppRegistryEntry

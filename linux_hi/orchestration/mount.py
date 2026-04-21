@@ -1,8 +1,4 @@
-"""Thin orchestration layer composing an InfoPort and a Prompter.
-
-This keeps orchestration logic separate from discovery (InfoPort) and the
-UI (Prompter) so both can be swapped or unit-tested independently.
-"""
+"""Thin orchestration layer composing an InfoPort and a Prompter."""
 
 from __future__ import annotations
 
@@ -12,22 +8,17 @@ from linux_hi.adapters.prompter import Prompter
 
 
 class MountOrchestrator:
+    """Coordinate device discovery and user prompts for interactive mounts."""
+
     def __init__(self, info: InfoPort, prompter: Prompter) -> None:
+        """Store the ports required to discover devices and prompt the user."""
         self.info = info
         self.prompter = prompter
 
     def mount_new_device(
         self, conn: RemoteConnection, label_hint: str | None = None
     ) -> tuple[str, str] | None:
-        """
-        Discover external devices, prompt the user, and return (device_path, label).
-
-        - device_path: e.g. /dev/sdb1 (the selected device)
-        - label: user-provided or default label (will be sanitized and used as mountpoint name)
-
-        Returns None when the user cancels or no devices are available.
-        Downstream code is responsible for label sanitization and for using UUID in fstab.
-        """
+        """Discover external devices, prompt the user, and return the selected mount info."""
         devices = self.info.list_devices(conn)
         if not devices:
             return None
@@ -36,7 +27,6 @@ class MountOrchestrator:
         if not selected:
             return None
 
-        # Prefer explicit hint, then partition label, then device name.
         default_label = (
             label_hint or getattr(selected, "label", None) or getattr(selected, "name", None)
         )
@@ -44,5 +34,4 @@ class MountOrchestrator:
         if not label:
             return None
 
-        device_path = f"/dev/{selected.name}"
-        return device_path, label
+        return f"/dev/{selected.name}", label

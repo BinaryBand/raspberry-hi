@@ -1,3 +1,5 @@
+"""Vault access helpers."""
+
 from __future__ import annotations
 
 import getpass
@@ -10,8 +12,6 @@ import yaml
 
 from models import ANSIBLE_DATA, VaultSecrets
 from linux_hi.process.exec import run_resolved
-
-from linux_hi.vault.service import *
 from scripts.utils.yaml_utils import yaml_mapping
 
 VAULT_PASSWORD_FILE = ANSIBLE_DATA.ansible_dir / ".vault-password"
@@ -19,12 +19,10 @@ VAULT_FILE = ANSIBLE_DATA.ansible_dir / "group_vars" / "all" / "vault.yml"
 
 RawVaultData = dict[str, Any]
 
-
 def abort(message: str) -> None:
     """Print an error and terminate the current script flow."""
     print(f"\nERROR: {message}", file=sys.stderr)
     sys.exit(1)
-
 
 def setup_vault_password(vault_password_file: Path = VAULT_PASSWORD_FILE) -> None:
     """Create the local vault password file if it does not already exist."""
@@ -42,7 +40,6 @@ def setup_vault_password(vault_password_file: Path = VAULT_PASSWORD_FILE) -> Non
     vault_password_file.write_text(password)
     vault_password_file.chmod(0o600)
     print(f"Vault password saved to {vault_password_file}\n")
-
 
 def decrypt_vault_raw(
     vault_file: Path = VAULT_FILE,
@@ -66,7 +63,6 @@ def decrypt_vault_raw(
         abort(f"Could not decrypt vault:\n{result.stderr.strip()}")
     return yaml_mapping(yaml.safe_load(result.stdout), source=vault_file)
 
-
 def decrypt_vault(
     vault_file: Path = VAULT_FILE,
     vault_password_file: Path = VAULT_PASSWORD_FILE,
@@ -74,52 +70,48 @@ def decrypt_vault(
     """Decrypt the vault file and validate it as VaultSecrets."""
     return VaultSecrets.model_validate(decrypt_vault_raw(vault_file, vault_password_file))
 
-
 def encrypt_vault(
     data: RawVaultData,
     output: Path | None = None,
     *,
     vault_file: Path = VAULT_FILE,
-    vault_password_file: Path = VAULT_PASSWORD_FILE,
 ) -> None:
-    """Write *data* to an encrypted vault file."""
-    target = output or vault_file
-    plaintext = yaml.dump(data, default_flow_style=False)
-
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".yml",
-        delete=False,
-        dir=ANSIBLE_DATA.ansible_dir,
-    ) as tmp:
-        tmp.write(plaintext)
-        tmp_path = Path(tmp.name)
-
-    try:
+    """Encrypt and write the vault file from a dict."""
+    with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+        yaml.safe_dump(data, tmp)
+        tmp.flush()
         result = run_resolved(
             [
                 "ansible-vault",
                 "encrypt",
-                str(tmp_path),
+                tmp.name,
                 "--vault-password-file",
-                str(vault_password_file),
+                str(VAULT_PASSWORD_FILE),
                 "--output",
-                str(target),
+                str(output or vault_file),
             ],
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
-            abort(f"ansible-vault encrypt failed:\n{result.stderr.strip()}")
-    finally:
-        tmp_path.unlink(missing_ok=True)
+            abort(f"Could not encrypt vault:\n{result.stderr.strip()}")
 
+def replace_vault_data(
+    data: RawVaultData,
+    *,
+    vault_file: Path = VAULT_FILE,
+    vault_password_file: Path = VAULT_PASSWORD_FILE,
+) -> None:
+    """Replace the vault file with new data."""
+    encrypt_vault(data, output=vault_file, vault_file=vault_file)
 
-def replace_vault_data(secret_updates: RawVaultData, vault_file: Path = VAULT_FILE) -> int:
-    """Merge *secret_updates* into the vault and replace the encrypted file atomically."""
-    raw = decrypt_vault_raw(vault_file)
-    raw.update(secret_updates)
-    tmp = vault_file.with_suffix(".tmp")
-    encrypt_vault(raw, output=tmp, vault_file=vault_file)
-    tmp.replace(vault_file)
-    return len(secret_updates)
+__all__ = [
+    "VAULT_FILE",
+    "VAULT_PASSWORD_FILE",
+    "abort",
+    "decrypt_vault",
+    "decrypt_vault_raw",
+    "encrypt_vault",
+    "replace_vault_data",
+    "setup_vault_password",
+]

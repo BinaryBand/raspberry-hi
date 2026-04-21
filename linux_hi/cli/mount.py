@@ -9,13 +9,13 @@ import shlex
 import sys
 from typing import cast
 
+from linux_hi.adapters.info_port import RemoteInfoPort
+from linux_hi.adapters.prompter import QuestionaryPrompter
+from linux_hi.ansible.connection import make_connection
+from linux_hi.orchestration.mount import MountOrchestrator
+from linux_hi.storage.devices import get_device_uuid
+from linux_hi.vault.service import decrypt_vault_raw
 from models import ANSIBLE_DATA
-from scripts.utils.ansible_connection import make_connection
-from scripts.utils.info_port import RemoteInfoPort
-from scripts.utils.mount_orchestrator import MountOrchestrator
-from scripts.utils.prompter import QuestionaryPrompter
-from scripts.utils.storage_utils import get_device_uuid
-from scripts.utils.vault_service import decrypt_vault_raw
 
 
 def _become_password(hostname: str) -> str:

@@ -6,9 +6,9 @@ control-flow can be exercised without performing any I/O.
 
 from __future__ import annotations
 
+from linux_hi.adapters.connection_types import RemoteConnection
+from linux_hi.orchestration.mount import MountOrchestrator
 from models import BlockDevice, MountInfo
-from scripts.utils.connection_types import RemoteConnection
-from scripts.utils.mount_orchestrator import MountOrchestrator
 from tests.support.connections import FakeConnection
 
 

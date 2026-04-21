@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.utils.inventory_service import discover_hosts, require_inventory_host
+from linux_hi.ansible.inventory import discover_hosts, require_inventory_host
 
 
 def test_discover_hosts_uses_inventory_aliases() -> None:

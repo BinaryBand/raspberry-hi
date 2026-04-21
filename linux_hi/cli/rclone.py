@@ -8,8 +8,8 @@ from pathlib import Path
 
 import questionary
 
-from scripts.utils.rclone_controller import RcloneSetupController
-from scripts.utils.vault_service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
+from linux_hi.orchestration.rclone import RcloneSetupController
+from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
 RCLONE_CONF = Path.home() / ".config" / "rclone" / "rclone.conf"
 

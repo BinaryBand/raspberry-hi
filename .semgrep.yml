@@ -4,7 +4,7 @@ rules:
 
   # Process execution seams
   - id: python-no-direct-subprocess-import
-    message: Use scripts.utils.exec_utils.run_resolved instead of importing subprocess directly.
+    message: Use linux_hi.process.exec.run_resolved instead of importing subprocess directly.
     severity: ERROR
     languages:
       - python
@@ -21,7 +21,7 @@ rules:
           - pattern: from subprocess import $X
 
   - id: python-no-direct-subprocess-call
-    message: Use scripts.utils.exec_utils.run_resolved instead of calling subprocess directly.
+    message: Use linux_hi.process.exec.run_resolved instead of calling subprocess directly.
     severity: ERROR
     languages:
       - python
@@ -91,7 +91,7 @@ rules:
 
   # Inventory and vault authority seams
   - id: python-ansible-vault-only-in-vault-service
-    message: ansible-vault access is reserved for scripts/utils/vault_service.py.
+    message: ansible-vault access is reserved for linux_hi.vault.service.
     severity: ERROR
     languages:
       - python
@@ -126,7 +126,7 @@ rules:
 
   # Python package boundary rules
   - id: python-no-external-internal-imports
-    message: Do not import internal implementation modules from outside scripts/internal or scripts/utils.
+    message: Do not import compatibility modules from scripts.internal outside compatibility shims.
     severity: ERROR
     languages:
       - python

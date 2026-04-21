@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.utils.storage_utils import (
+from linux_hi.storage.devices import (
     SYSTEM_MOUNT_PREFIXES,
     external_mounts,
     get_block_devices,

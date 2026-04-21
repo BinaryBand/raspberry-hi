@@ -5,8 +5,8 @@ Run with: make test-e2e
 
 import pytest
 
-from scripts.utils.connection_types import RemoteConnection
-from scripts.utils.storage_utils import get_block_devices, get_real_mounts
+from linux_hi.adapters.connection_types import RemoteConnection
+from linux_hi.storage.devices import get_block_devices, get_real_mounts
 
 
 @pytest.mark.e2e
@@ -37,7 +37,7 @@ def test_block_devices_discoverable(live_conn: RemoteConnection) -> None:
 @pytest.mark.e2e
 def test_root_device_classified_as_system(live_conn: RemoteConnection) -> None:
     """Verify the disk hosting the root filesystem is classified as a system device."""
-    from scripts.utils.storage_utils import is_system_device
+    from linux_hi.storage.devices import is_system_device
 
     devices = get_block_devices(live_conn)
     # Find whichever disk contains a partition mounted at /

@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from scripts.internal.rclone_controller import RcloneSetupController
+from linux_hi.orchestration.rclone import RcloneSetupController
 
 __all__ = ["RcloneSetupController"]

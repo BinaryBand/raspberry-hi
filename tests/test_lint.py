@@ -6,7 +6,7 @@ import configparser
 import os
 from pathlib import Path
 
-from scripts.utils.exec_utils import run_resolved
+from linux_hi.process.exec import run_resolved
 
 ROOT = Path(__file__).resolve().parents[1]
 

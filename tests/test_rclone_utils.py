@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scripts.utils.rclone_utils import list_remotes
+from linux_hi.storage.rclone import list_remotes
 
 
 class TestListRemotes:

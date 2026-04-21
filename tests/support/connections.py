@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from scripts.utils.connection_types import RemoteConnection
+from linux_hi.adapters.connection_types import RemoteConnection
 
 
 @dataclass
