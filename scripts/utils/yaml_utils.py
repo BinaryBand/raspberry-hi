@@ -1,15 +1,21 @@
-"""Small helpers for validating YAML data loaded into Python objects."""
+from typing import Any, BinaryIO, TextIO
 
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Any, cast
+from yaml import dump, safe_dump, safe_load
 
 
-def yaml_mapping(data: object, *, source: Path) -> dict[str, Any]:
-    """Return a string-keyed mapping loaded from a YAML document."""
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        raise TypeError(f"Expected YAML mapping in {source}, got {type(data).__name__}")
-    return cast(dict[str, Any], data)
+def yaml_load(stream: str | BinaryIO | TextIO) -> Any:
+    return safe_load(stream)
+
+
+yaml_dump = dump
+yaml_safe_load = safe_load
+yaml_safe_dump = safe_dump
+
+# Compatibility shim for legacy imports
+load = yaml_load
+dump = yaml_dump
+safe_load = yaml_safe_load
+safe_dump = yaml_safe_dump
+
+# This file re-exports all symbols from yaml
+# to maintain backward compatibility with older codebases.

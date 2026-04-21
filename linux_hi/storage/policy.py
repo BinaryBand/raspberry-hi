@@ -77,9 +77,13 @@ def mount_covering(mounts: list[MountInfo], path: str) -> str:
     return covering
 
 
-def external_mounts(mounts: list[MountInfo]) -> list[MountInfo]:
-    """Return all non-system mounts."""
-    return [m for m in mounts if not default_mount_policy(m.target)]
+def external_mounts(
+    mounts: list[MountInfo],
+    mount_policy: MountPolicy | None = None,
+) -> list[MountInfo]:
+    """Return all non-system mounts. Accepts optional mount_policy for test compatibility."""
+    policy = mount_policy or default_mount_policy
+    return [m for m in mounts if not policy(m.target)]
 
 
 __all__ = [

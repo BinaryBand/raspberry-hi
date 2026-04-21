@@ -15,6 +15,7 @@ rules:
         - /tests/**/*.py
       exclude:
         - /scripts/utils/exec_utils.py
+        - /linux_hi/process/exec.py
     patterns:
       - pattern-either:
           - pattern: import subprocess
@@ -32,6 +33,7 @@ rules:
         - /tests/**/*.py
       exclude:
         - /scripts/utils/exec_utils.py
+        - /linux_hi/process/exec.py
     patterns:
       - pattern-either:
           - pattern: subprocess.run(...)
@@ -101,7 +103,7 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /scripts/utils/vault_service.py
+        - /linux_hi/vault/service.py
     patterns:
       - pattern-either:
           - pattern: $F(["ansible-vault", ...], ...)
