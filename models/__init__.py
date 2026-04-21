@@ -1,3 +1,4 @@
+from .ansible import ANSIBLE_DATA, AnsibleDataStore
 from .ansible.hostvars import HostVars
 from .ansible.registry import (
     AppRegistry,
@@ -10,6 +11,8 @@ from .system.blockdevice import BlockDevice
 from .system.mount import MountInfo
 
 __all__ = [
+    "ANSIBLE_DATA",
+    "AnsibleDataStore",
     "AppRegistry",
     "AppRegistryEntry",
     "BlockDevice",

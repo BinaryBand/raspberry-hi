@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 import yaml
 
-from models import HostVars
+from models import ANSIBLE_DATA, HostVars
 from scripts.utils import ansible_utils
 
 
@@ -93,12 +93,24 @@ apps:
         calls += 1
         return original_safe_load(*args, **kwargs)
 
-    monkeypatch.setattr(ansible_utils, "REGISTRY_FILE", registry_file)
+    monkeypatch.setattr(ANSIBLE_DATA, "registry_file", registry_file)
     monkeypatch.setattr(ansible_utils.yaml, "safe_load", counting_safe_load)
-    ansible_utils.load_app_registry.cache_clear()
+    ANSIBLE_DATA.clear_cache()
 
     assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
     assert list(ansible_utils.load_app_registry().keys()) == ["minio"]
     assert calls == 1
 
-    ansible_utils.load_app_registry.cache_clear()
+    ANSIBLE_DATA.clear_cache()
+
+
+def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Missing host_vars should still produce a valid HostVars object."""
+    monkeypatch.setattr(ANSIBLE_DATA, "host_vars_dir", tmp_path)
+
+    host = ansible_utils.inventory_host_vars("rpi")
+
+    assert host.ansible_host == "rpi"

@@ -24,13 +24,10 @@ from typing import Any
 import questionary
 from utils.ansible_utils import (
     ANSIBLE_DIR,
-    get_app_entry,
-    read_host_vars_raw,
     role_required_vars,
-    write_host_vars_raw,
 )
 
-from models import AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
+from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, Any]
 
@@ -60,7 +57,7 @@ def load_preflight_spec(
     app: str, role_path: Path
 ) -> tuple[dict[str, PreflightVarSpec], list[VaultSecretSpec]]:
     """Return the prompt schema for *app* by combining registry metadata and role defaults."""
-    entry: AppRegistryEntry = get_app_entry(app)
+    entry: AppRegistryEntry = ANSIBLE_DATA.get_app_entry(app)
     required_vars = role_required_vars(role_path)
     var_hints = entry.preflight_vars or {}
     vars_spec = {var: var_hints.get(var, PreflightVarSpec(hint="")) for var in required_vars}
@@ -98,7 +95,7 @@ def collect_preflight_updates(
     """Prompt for any missing host vars and vault secrets and return the updates."""
     from bootstrap import decrypt_vault_raw
 
-    current_host_vars = read_host_vars_raw(hostname)
+    current_host_vars = ANSIBLE_DATA.read_host_vars_raw(hostname)
     current_vault = decrypt_vault_raw()
 
     host_updates: StoreData = {}
@@ -125,7 +122,7 @@ def write_preflight_updates(
 ) -> None:
     """Persist any prompted host vars and vault secrets."""
     if host_updates:
-        write_host_vars_raw(hostname, host_updates)
+        ANSIBLE_DATA.write_host_vars_raw(hostname, host_updates)
         print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
     if secret_updates:

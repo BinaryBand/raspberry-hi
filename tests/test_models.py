@@ -94,6 +94,18 @@ class TestHostVars:
         h = HostVars.model_validate({"ansible_host": "192.168.0.33", "minio_data_path": "/mnt/usb"})
         assert h.ansible_host == "192.168.0.33"
 
+    def test_from_inventory_uses_hostname_when_mapping_missing(self):
+        """Missing inventory data should fall back to the hostname alias."""
+        h = HostVars.from_inventory("rpi", None)
+        assert h.ansible_host == "rpi"
+
+    def test_from_inventory_validates_loaded_mapping(self):
+        """Inventory mappings should still go through model validation."""
+        h = HostVars.from_inventory(
+            "ignored", {"ansible_host": "192.168.0.33", "ansible_user": "pi"}
+        )
+        assert h.ansible_host == "192.168.0.33"
+
 
 class TestVaultSecrets:
     """Test suite for VaultSecrets model validation."""

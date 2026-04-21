@@ -17,9 +17,11 @@ import sys
 from typing import cast
 
 from internal.mount_orchestrator import MountOrchestrator
-from utils.ansible_utils import ANSIBLE_DIR, inventory_host_vars, make_connection
+from utils.ansible_utils import ANSIBLE_DIR, make_connection
 from utils.info_port import RemoteInfoPort
 from utils.prompter import QuestionaryPrompter
+
+from models import ANSIBLE_DATA
 
 
 def _become_password(hostname: str) -> str:
@@ -39,7 +41,7 @@ def main() -> None:
     hostname = os.environ.get("HOST")
     if not hostname:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
-    hvars = inventory_host_vars(hostname)
+    hvars = ANSIBLE_DATA.host_vars(hostname)
     become_pwd = _become_password(hostname)
     conn = make_connection(hvars, become_password=become_pwd)
 

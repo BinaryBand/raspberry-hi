@@ -1,57 +1,47 @@
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import yaml
 from fabric import Config, Connection
-from ruamel.yaml import YAML
-from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-from models import AppRegistry, AppRegistryEntry, HostVars
+from models import ANSIBLE_DATA, AppRegistryEntry, HostVars
 from utils.yaml_utils import yaml_mapping
 
-ROOT = Path(__file__).resolve().parents[2]
-ANSIBLE_DIR = ROOT / "ansible"
-INVENTORY_DIR = ANSIBLE_DIR / "inventory"
-HOST_VARS_DIR = INVENTORY_DIR / "host_vars"
-REGISTRY_FILE = ANSIBLE_DIR / "registry.yml"
+ROOT = ANSIBLE_DATA.root
+ANSIBLE_DIR = ANSIBLE_DATA.ansible_dir
+INVENTORY_DIR = ANSIBLE_DATA.inventory_dir
 
 
-@lru_cache(maxsize=1)
 def load_app_registry() -> dict[str, AppRegistryEntry]:
     """Return the validated app registry keyed by app name."""
-    data = yaml_mapping(yaml.safe_load(REGISTRY_FILE.read_text()), source=REGISTRY_FILE)
-    return AppRegistry.model_validate(data).apps
+    return ANSIBLE_DATA.load_app_registry()
 
 
 def all_apps() -> list[str]:
     """Return all registered app names in declared order."""
-    return list(load_app_registry().keys())
+    return ANSIBLE_DATA.all_apps()
 
 
 def containerized_apps() -> list[str]:
     """Return registered apps with a long-running container service."""
-    registry = load_app_registry()
-    return [name for name, entry in registry.items() if entry.service_type == "containerized"]
+    return ANSIBLE_DATA.containerized_apps()
 
 
 def restore_apps() -> list[str]:
     """Return registered apps that participate in restore flows."""
-    registry = load_app_registry()
-    return [name for name, entry in registry.items() if entry.restore]
+    return ANSIBLE_DATA.restore_apps()
 
 
 def cleanup_apps() -> list[str]:
     """Return registered apps that participate in cleanup flows."""
-    registry = load_app_registry()
-    return [name for name, entry in registry.items() if entry.cleanup]
+    return ANSIBLE_DATA.cleanup_apps()
 
 
 def get_app_entry(app: str) -> AppRegistryEntry:
     """Return a single validated registry entry."""
-    return load_app_registry()[app]
+    return ANSIBLE_DATA.get_app_entry(app)
 
 
 def role_required_vars(role_path: Path) -> list[str]:
@@ -66,47 +56,28 @@ def role_required_vars(role_path: Path) -> list[str]:
 
 def read_host_vars_raw(hostname: str) -> dict[str, Any]:
     """Read host_vars data for a host from the Ansible inventory."""
-    host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
-    if not host_vars_file.exists():
-        return {}
-    return yaml_mapping(yaml.safe_load(host_vars_file.read_text()), source=host_vars_file)
+    return ANSIBLE_DATA.read_host_vars_raw(hostname)
 
 
 def write_host_vars_raw(hostname: str, updates: dict[str, Any]) -> None:
     """Merge and persist host_vars data for a host."""
-    host_vars_file = HOST_VARS_DIR / f"{hostname}.yml"
-    current = read_host_vars_raw(hostname)
-    current.update(updates)
-
-    yaml_round_trip = YAML()
-    yaml_round_trip.preserve_quotes = True
-
-    if "ansible_become_password" in current:
-        value = current["ansible_become_password"]
-        if not isinstance(value, DoubleQuotedScalarString):
-            current["ansible_become_password"] = DoubleQuotedScalarString(str(value))
-
-    with host_vars_file.open("w", encoding="utf-8") as handle:
-        yaml_round_trip.dump(current, handle)
+    ANSIBLE_DATA.write_host_vars_raw(hostname, updates)
 
 
 def inventory_host_vars(hostname: str) -> HostVars:
     """Return validated inventory host vars for a host alias."""
-    raw = read_host_vars_raw(hostname)
-    if not raw:
-        return HostVars(ansible_host=hostname)
-    return HostVars.model_validate(raw)
+    return ANSIBLE_DATA.host_vars(hostname)
 
 
 def make_connection(host: str | HostVars, *, become_password: str | None = None) -> Connection:
     """Create a Fabric connection from a host alias or validated HostVars."""
-    host_vars = inventory_host_vars(host) if isinstance(host, str) else host
+    host_vars = ANSIBLE_DATA.host_vars(host) if isinstance(host, str) else host
 
     connect_kwargs: dict[str, str] = {}
     if host_vars.ansible_ssh_private_key_file:
         key_path = Path(host_vars.ansible_ssh_private_key_file)
         if not key_path.is_absolute():
-            key_path = ROOT / key_path
+            key_path = ANSIBLE_DATA.root / key_path
         connect_kwargs["key_filename"] = str(key_path)
 
     config = (
