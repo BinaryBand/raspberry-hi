@@ -107,7 +107,10 @@ def test_app_restart_handlers_delegate_to_service_adapter() -> None:
     """App restart handlers should call the shared service_adapter restart task."""
     for app in ANSIBLE_DATA.containerized_apps():
         content = _read_text(f"ansible/apps/{app}/handlers/main.yml")
-        assert "ansible.builtin.import_tasks:" in content
+        assert (
+            "ansible.builtin.include_tasks:" in content
+            or "ansible.builtin.import_tasks:" in content
+        )
         assert "../../../roles/service_adapter/tasks/restart.yml" in content
 
 

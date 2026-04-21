@@ -1,7 +1,7 @@
 ---
 - name: Restart minio
   listen: restart minio
-  ansible.builtin.import_tasks: ../../../roles/service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../../roles/service_adapter/tasks/restart.yml
   vars:
     svc_name: "{{ minio_service_name }}"
     svc_user: "{{ ansible_user }}"
