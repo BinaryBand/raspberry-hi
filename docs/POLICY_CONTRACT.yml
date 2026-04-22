@@ -1,0 +1,51 @@
+version: 1
+source: docs/ARCHITECTURE.md
+
+policies:
+  - id: authority-mechanical-rules
+    statement: ".semgrep.yml defines repository rules that must hold mechanically."
+    source_line: 7
+    status: enforced
+    controls:
+      - semgrep:.semgrep.yml
+      - make:lint->semgrep
+
+  - id: python-must-not-become-source-of-truth
+    statement: "Python must not become a second source of truth for declared state."
+    source_line: 20
+    status: enforced
+    controls:
+      - semgrep:python-must-not-run-ansible-playbook
+      - semgrep:python-ansible-vault-only-in-vault-service
+      - semgrep:python-ruamel-yaml-only-in-ansible-access
+
+  - id: make-style-contract-must-hold
+    statement: "All Makefile changes must satisfy the Make Style Contract."
+    source_line: 150
+    status: enforced
+    controls:
+      - make:checkmake
+      - semgrep:make-no-direct-poetry-run
+      - semgrep:make-no-hardcoded-py-dirs
+
+  - id: make-workflows-must-support-host-selector
+    statement: "Operator-facing workflows must keep HOST=<alias> support and default to the repo standard host selector."
+    source_line: 157
+    status: enforced
+    controls:
+      - repo-policy:makefile-host-selector
+      - make:repo-policy
+
+  - id: role-meta-dependencies-must-stay-empty
+    statement: "meta/main.yml dependencies must stay empty for app roles."
+    source_line: 182
+    status: enforced
+    controls:
+      - semgrep:ansible-meta-no-non-empty-dependencies
+
+  - id: app-data-paths-must-be-explicitly-declared
+    statement: "Application data paths must be explicitly declared."
+    source_line: 212
+    status: advisory
+    controls:
+      - docs:architecture-storage-policy

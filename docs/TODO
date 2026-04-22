@@ -43,6 +43,13 @@
   - [ ] Enforce the rule that inventory topology stays complete and auditable: each host declared in `ansible/inventory/hosts.ini` must have a matching `ansible/inventory/host_vars/<host>.yml`, and orphaned `host_vars/*.yml` files must be rejected. (needs a test, not Semgrep)
   - [x] Enforce the rule that durable secrets live only in `ansible/group_vars/all/vault.yml`: app credentials, sudo passwords, and other long-lived secrets must not be stored in `host_vars`, extra vault files, or ad hoc inventory data.
 
+### Policy Coverage Backlog
+
+- [ ] Every `ansible/apps/*` role must have a corresponding entry in `ansible/registry.yml`.
+- [ ] Every `ansible/apps/*` role must have `backup/`, `restore/`, and `tasks/` directories.
+- [ ] Every `ansible/apps/*` role must have coverage in `tests/test_ansible_apps.py` or `tests/e2e/`.
+- [ ] `group_vars` and `host_vars` remain the only allowed Ansible variable sources; playbooks must not define variables directly.
+
 ## Notes
 
 - `*` - Prioritize

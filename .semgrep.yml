@@ -397,12 +397,4 @@ rules:
     pattern-regex: '(?m)^\s*poetry run\b'
     pattern-not-regex: '(?m)^\s*POETRY\s*[:?+]?='
 
-# ---
-# TODO rules (not enforceable by Semgrep alone):
-#
-# - TODO: Every ansible/apps/* role must have a corresponding entry in ansible/registry.yml
-# - TODO: Every ansible/apps/* role must have backup/, restore/, and tasks/ directories
-# - TODO: Every ansible/apps/* role must have a test in tests/test_ansible_apps.py or e2e/
-# - TODO: group_vars/host_vars are the only allowed variable sources; playbooks must not define variables directly
-# ---
 

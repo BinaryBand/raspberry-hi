@@ -2,8 +2,11 @@
 
 import os
 import tempfile
+from pathlib import Path
 
 import linux_hi.policy_utils as rpc
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_registry_parsing_skips_metadata() -> None:
@@ -70,3 +73,60 @@ apps:
         rpc.check_playbook_vars(ansible_dir, failures)
 
         assert not failures, f"Should not flag registry metadata, got: {failures}"
+
+
+def test_deleted_compatibility_namespaces_detected() -> None:
+    """Ensure reintroduced scripts compatibility namespaces fail policy checks."""
+    with tempfile.TemporaryDirectory() as tmp:
+        scripts_dir = Path(tmp) / "scripts" / "internal"
+        scripts_dir.mkdir(parents=True)
+
+        failures: list[str] = []
+        rpc.check_deleted_compatibility_namespaces(tmp, failures)
+
+        assert any("scripts/internal" in failure for failure in failures)
+
+
+def test_wrapper_topology_detects_non_wrapper_script() -> None:
+    """Ensure top-level scripts remain thin linux_hi.cli wrappers."""
+    with tempfile.TemporaryDirectory() as tmp:
+        scripts_dir = Path(tmp) / "scripts"
+        scripts_dir.mkdir(parents=True)
+        (scripts_dir / "bootstrap.py").write_text(
+            "#!/usr/bin/env python3\n\nprint('not a wrapper')\n",
+            encoding="utf-8",
+        )
+
+        failures: list[str] = []
+        rpc.check_scripts_wrapper_topology(tmp, failures)
+
+        assert any("linux_hi.cli.bootstrap" in failure for failure in failures)
+
+
+def test_policy_registry_rejects_enforced_policy_without_controls() -> None:
+    """Enforced policies must name at least one control target."""
+    with tempfile.TemporaryDirectory() as tmp:
+        registry = Path(tmp) / "POLICY_CONTRACT.yml"
+        registry.write_text(
+            """
+version: 1
+policies:
+  - id: demo
+    status: enforced
+    controls: []
+""".lstrip(),
+            encoding="utf-8",
+        )
+
+        failures: list[str] = []
+        rpc.check_policy_registry_controls(str(registry), failures)
+
+        assert any("marked enforced but has no control targets" in failure for failure in failures)
+
+
+def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
+    """The live policy contract must map enforced architecture rules to controls."""
+    failures: list[str] = []
+    rpc.check_policy_registry_controls(str(ROOT / "docs" / "POLICY_CONTRACT.yml"), failures)
+
+    assert not failures, f"Unexpected policy coverage failures: {failures}"

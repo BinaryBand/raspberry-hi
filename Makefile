@@ -41,7 +41,7 @@ ANSIBLE_PLAY := $(_ANSIBLE_FLAGS) $(PLAYBOOK)
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake ci cleanup cpd
+.PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake ci cleanup cpd repo-policy
 .PHONY: format format-check help lint logs mount ping pyright rclone restore restore-check ruff
 .PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep site ssh status test test-e2e vault-edit vulture
 .PHONY: _backup_preflight _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
@@ -59,6 +59,7 @@ help:
 	@echo "  cpd           Fail on any copy-paste duplication (jscpd, threshold 0%)"
 	@echo "  vulture       Check for unused Python code (min confidence 80%)"
 	@echo "  checkmake     Lint Makefile style and quality with mbake"
+	@echo "  repo-policy   Run repository structural and architecture policy checks"
 	@echo "  ansible-lint  Run ansible-lint over ansible/"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
@@ -85,7 +86,7 @@ help:
 check:
 	$(POETRY) python -m linux_hi.cli.check
 
-lint: ruff format-check pyright semgrep cpd vulture ansible-lint checkmake
+lint: ruff format-check pyright semgrep cpd vulture ansible-lint checkmake repo-policy
 
 # Ruff targets: help / check / format / fix
 ruff: ruff-check
@@ -112,6 +113,7 @@ ci:
 	$(POETRY) pyright
 	$(POETRY) semgrep scan --config .semgrep.yml --error
 	$(POETRY) mbake format --check Makefile
+	$(POETRY) python -m linux_hi.cli.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
 pyright:
@@ -131,6 +133,9 @@ ansible-lint:
 
 checkmake:
 	$(POETRY) mbake format --check Makefile
+
+repo-policy:
+	$(POETRY) python -m linux_hi.cli.repo_policy_check
 
 test:
 	$(POETRY) pytest tests/ -v
