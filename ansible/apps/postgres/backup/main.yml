@@ -13,6 +13,7 @@
       pg_dump -U {{ postgres_user }} {{ postgres_database }} > {{ _pg_dump_path }}
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
   changed_when: false
 
 - name: Check PostgreSQL backup paths on host
@@ -23,13 +24,16 @@
   register: _postgres_backup_paths
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
 
 - name: Fail if PostgreSQL backup paths are missing
   ansible.builtin.fail:
     msg: >-
       PostgreSQL backup path does not exist: {{ item.item }}.
       PostgreSQL dump creation failed before snapshotting.
-  when: not item.stat.exists
+  when:
+    - not ansible_check_mode
+    - not item.stat.exists
   loop: "{{ _postgres_backup_paths.results }}"
 
 - name: Snapshot PostgreSQL dump to restic
@@ -47,3 +51,4 @@
     state: absent
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode

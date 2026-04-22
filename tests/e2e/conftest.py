@@ -16,8 +16,13 @@ from models import ANSIBLE_DATA
 
 
 @pytest.fixture(scope="session")
-def live_conn() -> RemoteConnection:
+def selected_host() -> str:
+    """Inventory host alias selected for e2e tests."""
+    return os.environ.get("HOST", "rpi")
+
+
+@pytest.fixture(scope="session")
+def live_conn(selected_host: str) -> RemoteConnection:
     """Fabric Connection to the host selected by HOST (default: rpi)."""
-    host = os.environ.get("HOST", "rpi")
-    hvars = ANSIBLE_DATA.host_vars(host)
+    hvars = ANSIBLE_DATA.host_vars(selected_host)
     return make_connection(hvars)

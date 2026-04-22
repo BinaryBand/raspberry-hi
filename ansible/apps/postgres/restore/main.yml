@@ -10,6 +10,7 @@
   vars:
     svc_name: "{{ postgres_service_name }}"
     svc_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
 
 - name: Restore PostgreSQL dump from restic
   ansible.builtin.include_role:
@@ -18,12 +19,14 @@
   vars:
     restic_snapshot_tag: postgres
     restic_restore_target: /
+  when: not ansible_check_mode
 
 - name: Clear PostgreSQL data directory for fresh cluster init
   ansible.builtin.file:
     path: "{{ postgres_data_path }}"
     state: absent
   become: true
+  when: not ansible_check_mode
 
 - name: Recreate PostgreSQL data directory
   ansible.builtin.file:
@@ -33,6 +36,7 @@
     group: "{{ ansible_user }}"
     mode: "0750"
   become: true
+  when: not ansible_check_mode
 
 - name: Fix PostgreSQL data directory ownership for rootless podman
   ansible.builtin.command:
@@ -45,6 +49,7 @@
       - "{{ postgres_data_path }}"
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
   changed_when: true
 
 - name: Start PostgreSQL service (fresh cluster init from empty data dir)
@@ -54,9 +59,11 @@
   vars:
     svc_name: "{{ postgres_service_name }}"
     svc_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
 
 - name: Wait for PostgreSQL before restore
   ansible.builtin.include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"
+  when: not ansible_check_mode
 
 - name: Load PostgreSQL database dump
   ansible.builtin.shell:
@@ -65,6 +72,7 @@
       psql -U {{ postgres_user }} {{ postgres_database }} < {{ _pg_dump_path }}
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
   changed_when: true
 
 - name: Remove PostgreSQL dump file
@@ -73,3 +81,4 @@
     state: absent
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode

@@ -22,5 +22,6 @@
     RESTIC_PASSWORD: "{{ restic_password }}"
   become: true
   become_user: "{{ ansible_user }}"
+  when: not ansible_check_mode
   changed_when: true
   no_log: true

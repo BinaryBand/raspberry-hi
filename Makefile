@@ -36,7 +36,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: help check ping bootstrap site mount vault-edit ssh add-hostkey \
         lint ruff format-check pyright semgrep cpd vulture ansible-lint \
-        test test-e2e status logs cleanup rclone backup restore \
+        test test-e2e status logs cleanup rclone backup backup-check restore restore-check \
         _vault_check _inv_check _backup_preflight _cleanup_preflight _restore_preflight \
         $(APPS)
 
@@ -61,7 +61,9 @@ help:
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Capture local rclone config into the vault"
 	@echo "  backup        Back up all apps to the restic repository"
+	@echo "  backup-check  Dry-run backup validation (no snapshots or prune writes)"
 	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"
+	@echo "  restore-check Dry-run restore validation for one app (APP=$(RESTORE_APPS))"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
@@ -106,7 +108,7 @@ test:
 	poetry run pytest tests/ -v
 
 test-e2e:
-	HOST=$(HOST) poetry run pytest tests/e2e/ -v -m e2e
+	HOST=$(HOST) poetry run pytest tests/e2e/ -v -m e2e -s
 
 ping:
 	ansible devices -m ping -i $(INV) || true
@@ -141,12 +143,18 @@ _backup_preflight: _vault_check
 backup: _backup_preflight
 	$(_ANSIBLE_FLAGS) ansible/backup.yml
 
+backup-check: _backup_preflight
+	$(_ANSIBLE_FLAGS) --check ansible/backup.yml
+
 _restore_preflight: _vault_check
 	@test -n "$(APP)" || { echo "Error: APP is required — supported restore apps: $(RESTORE_APPS)"; exit 1; }
 	@case " $(RESTORE_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not restorable. Supported restore apps: $(RESTORE_APPS)"; exit 1 ;; esac
 
 restore: _backup_preflight _restore_preflight
 	$(_ANSIBLE_FLAGS) ansible/restore.yml -e restore_app=$(APP)
+
+restore-check: _backup_preflight _restore_preflight
+	$(_ANSIBLE_FLAGS) --check ansible/restore.yml -e restore_app=$(APP)
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check
