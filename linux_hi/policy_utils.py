@@ -25,11 +25,6 @@ def check_registry_entries(app_roles: List[str], registry_path: str, failures: L
         failures.append(f"Missing registry file: {registry_path}")
         return
 
-    try:
-        import yaml
-    except ImportError:
-        yaml = None
-
     with open(registry_path) as f:
         if yaml is None:
             lines = f.readlines()

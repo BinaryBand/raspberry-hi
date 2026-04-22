@@ -72,13 +72,14 @@ convention = "google"
 [tool.ty.environment]
 python = ".venv"
 python-version = "3.12"
-extra-paths = ["models", "scripts"]
+extra-paths = []
+root = ["."]
 
 [tool.ty.src]
 include = ["linux_hi", "models", "scripts", "tests", "typings"]
 
 [tool.ty.analysis]
-allowed-unresolved-imports = ["tests.**", "typings.**"]
+allowed-unresolved-imports = ["tests.**", "typings.**", "ansible.**"]
 replace-imports-with-any = []
 respect-type-ignore-comments = true
 
@@ -87,5 +88,5 @@ error-on-warning = false
 output-format = "full"
 
 [tool.ty.rules]
-# Start with warnings to ease migration; bump to "error" after tuning.
-all = "warn"
+# Enforce strict typing by default.
+all = "error"
