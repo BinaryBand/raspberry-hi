@@ -3,7 +3,7 @@
 import os
 import tempfile
 
-import scripts.repo_policy_check as rpc
+import linux_hi.policy_utils as rpc
 
 
 def test_registry_parsing_skips_metadata() -> None:

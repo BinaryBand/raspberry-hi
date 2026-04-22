@@ -83,13 +83,11 @@ Generic package names are transitional, not preferred.
 
 - Prefer responsibility names such as `orchestration`, `adapters`, `ansible`, `storage`, `vault`, and `process`.
 - Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
-- Existing `scripts/internal/` and `scripts/utils/` packages are compatibility names. When packaging work next moves files across boundaries, rename those packages toward responsibility-oriented names instead of expanding the generic buckets.
+- Compatibility namespaces under `scripts/` are not part of the architecture. Keep importable modules under `linux_hi/` responsibility packages.
 
 ### Orchestration
 
 `linux_hi/orchestration/` is the canonical orchestration layer. It composes ports and helpers without becoming standalone CLI entry points.
-
-`scripts/internal/` remains only as a compatibility package during the rename.
 
 - `mount_orchestrator.py` composes an `InfoPort` with a `Prompter`
 - `rclone_controller.py` composes vault I/O with overwrite confirmation
@@ -108,8 +106,6 @@ Important boundaries:
 - `linux_hi/ansible/` contains inventory discovery, role-var introspection, connection setup, and YAML boundary helpers.
 - `linux_hi/adapters/` contains protocols and adapter implementations for interactive workflows.
 - `linux_hi/storage/` contains storage discovery, classification, display, and rclone parsing helpers.
-
-`scripts/utils/` remains only as a compatibility package during the rename.
 
 Semgrep enforces these boundaries directly.
 
@@ -264,8 +260,6 @@ scripts/
   preflight.py     compatibility wrapper for package preflight CLI
   mount.py         compatibility wrapper for package mount CLI
   rclone.py        compatibility wrapper for package rclone CLI
-  internal/        compatibility wrappers for orchestration modules
-  utils/           compatibility wrappers for legacy helper imports
 
 linux_hi/
   cli/             canonical importable CLI modules

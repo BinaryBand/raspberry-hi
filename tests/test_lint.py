@@ -1,8 +1,7 @@
-"""Linting tests — fail fast if the codebase has ruff violations."""
+"""Linting tests that enforce repository quality and architecture gates."""
 
 from __future__ import annotations
 
-import ast
 import configparser
 import os
 from pathlib import Path
@@ -12,57 +11,16 @@ from linux_hi.process.exec import run_resolved
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class TestShimGuard:
-    """Ensure compatibility shims in scripts/utils/ stay thin.
+class TestCompatibilityNamespacesRemoved:
+    """Ensure removed compatibility namespaces do not reappear."""
 
-    Re-export shims must contain only imports and ``__all__`` declarations.
-    Any function or class definition in a shim module signals that logic
-    has drifted into the compatibility layer — failing the build forces it
-    back into linux_hi where it belongs.
+    def test_scripts_internal_removed(self):
+        """scripts/internal must remain deleted."""
+        assert not (ROOT / "scripts" / "internal").exists()
 
-    The authoritative list of shim modules lives in scripts/utils/__init__.py
-    (``SHIM_MODULES``). Add new re-export files there; add intentional
-    implementations to ``INTENTIONAL_MODULES`` with a brief justification.
-    """
-
-    UTILS_DIR = ROOT / "scripts" / "utils"
-
-    def _shim_modules(self) -> frozenset[str]:
-        from scripts.utils import SHIM_MODULES  # noqa: PLC0415
-
-        return SHIM_MODULES
-
-    def test_shim_modules_are_classified(self):
-        """Every .py file in scripts/utils/ must appear in SHIM_MODULES or INTENTIONAL_MODULES."""
-        from scripts.utils import INTENTIONAL_MODULES, SHIM_MODULES  # noqa: PLC0415
-
-        all_classified = SHIM_MODULES | INTENTIONAL_MODULES
-        py_files = {p.stem for p in self.UTILS_DIR.glob("*.py") if p.stem != "__init__"}
-        unclassified = py_files - all_classified
-        assert not unclassified, (
-            f"Unclassified module(s) in scripts/utils/: {sorted(unclassified)}\n"
-            "Add each to SHIM_MODULES or INTENTIONAL_MODULES in scripts/utils/__init__.py."
-        )
-
-    def test_shim_modules_have_no_logic(self):
-        """Re-export shims must not define any functions or classes."""
-        violations: list[str] = []
-        for name in self._shim_modules():
-            path = self.UTILS_DIR / f"{name}.py"
-            if not path.exists():
-                violations.append(f"{name}.py: file missing")
-                continue
-            tree = ast.parse(path.read_text(), filename=str(path))
-            for node in ast.iter_child_nodes(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    violations.append(
-                        f"{name}.py: defines {type(node).__name__} "
-                        f"'{node.name}' at line {node.lineno}"
-                    )
-        assert not violations, (
-            "Shim module(s) contain logic — move it to linux_hi.* instead:\n"
-            + "\n".join(f"  {v}" for v in violations)
-        )
+    def test_scripts_utils_removed(self):
+        """scripts/utils must remain deleted."""
+        assert not (ROOT / "scripts" / "utils").exists()
 
 
 class TestCpd:

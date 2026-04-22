@@ -14,7 +14,6 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /scripts/utils/exec_utils.py
         - /linux_hi/process/exec.py
     patterns:
       - pattern-either:
@@ -32,7 +31,6 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /scripts/utils/exec_utils.py
         - /linux_hi/process/exec.py
     patterns:
       - pattern-either:
@@ -127,8 +125,11 @@ rules:
           - pattern: resolve_executable("ansible-inventory")
 
   # Python package boundary rules
-  - id: python-no-external-internal-imports
-    message: Do not import compatibility modules from scripts.internal outside compatibility shims.
+  - id: python-no-compatibility-namespace-imports
+    message: >-
+      scripts.internal and scripts.utils are removed compatibility namespaces.
+      Import canonical modules from linux_hi.adapters, linux_hi.orchestration,
+      linux_hi.storage, or linux_hi.ansible instead.
     severity: ERROR
     languages:
       - python
@@ -136,10 +137,8 @@ rules:
       include:
         - /scripts/**/*.py
         - /linux_hi/**/*.py
+        - /models/**/*.py
         - /tests/**/*.py
-      exclude:
-        - /scripts/internal/**/*.py
-        - /scripts/utils/**/*.py
     patterns:
       - pattern-either:
           - pattern: from internal import $X
@@ -150,7 +149,34 @@ rules:
           - pattern: import scripts.internal
           - pattern: from scripts.internal.$MOD import $X
           - pattern: import scripts.internal.$MOD
+          - pattern: from scripts.utils import $X
+          - pattern: import scripts.utils
+          - pattern: from scripts.utils.$MOD import $X
+          - pattern: import scripts.utils.$MOD
           
+  - id: python-scripts-entrypoints-must-be-thin
+    message: >-
+      Top-level scripts/*.py are entrypoints only and must not define functions or classes.
+      Move logic into linux_hi.cli.* and delegate from scripts/ with a one-line call.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/*.py
+      exclude:
+        - /scripts/__init__.py
+    pattern-either:
+      - pattern: |
+          def $F(...):
+            ...
+      - pattern: |
+          async def $F(...):
+            ...
+      - pattern: |
+          class $C(...):
+            ...
+
   - id: python-sys-path-insert-only-in-mount
     message: sys.path.insert is a temporary escape hatch and is only allowed in scripts/mount.py.
     severity: ERROR
@@ -201,30 +227,6 @@ rules:
           - pattern: from scripts.mount import $X
           - pattern: from scripts.preflight import $X
           - pattern: from scripts.rclone import $X
-
-  - id: python-compat-shims-must-stay-thin
-    message: Compatibility shim modules must remain re-export only. Move logic into linux_hi.* and keep scripts/utils shims thin.
-    severity: ERROR
-    languages:
-      - python
-    paths:
-      include:
-        - /scripts/utils/ansible_role_vars.py
-        - /scripts/utils/mount_orchestrator.py
-        - /scripts/utils/rclone_controller.py
-        - /scripts/utils/storage_display.py
-        - /scripts/utils/storage_policy.py
-        - /scripts/utils/storage_utils.py
-    pattern-either:
-      - pattern: |
-          def $F(...):
-            ...
-      - pattern: |
-          async def $F(...):
-            ...
-      - pattern: |
-          class $C(...):
-            ...
 
   # Durable secret and host_vars policies
   - id: host-vars-no-inline-secret-keys
