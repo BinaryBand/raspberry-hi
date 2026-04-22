@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict
 
 class BlockDevice(BaseModel):
     name: str
+    uuid: Optional[str] = None
+    path: Optional[str] = None
     size: Optional[str] = None
     type: Optional[str] = None
     mountpoint: Optional[str] = None
@@ -15,3 +17,7 @@ class BlockDevice(BaseModel):
     children: Optional[List["BlockDevice"]] = None
 
     model_config = ConfigDict(extra="allow")
+
+
+# Ensure forward refs are resolved for Pydantic v2
+BlockDevice.model_rebuild()
