@@ -42,10 +42,10 @@ This rule is enforced in Semgrep by forbidding Python-side playbook orchestratio
 
 Durable secrets live in `ansible/group_vars/all/vault.yml`.
 
-The vault model in `models/services/vault.py` holds:
+The vault model in `models/services/vault.py` uses a typed core plus allowed extras:
 
-- Static app credentials such as `minio_root_user` and `minio_root_password`
-- A `become_passwords` mapping keyed by inventory hostname
+- Explicit typed fields include shared operational secrets such as `become_passwords`, `rclone_config`, and `restic_password`
+- App-specific credentials (for example `minio_root_user` and `minio_root_password`) are accepted as additional keys and remain valid durable vault state
 
 Each host inventory file references that mapping dynamically:
 
