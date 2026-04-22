@@ -1,11 +1,16 @@
 """Utilities for repository policy checks."""
 
+from __future__ import annotations
+
 import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, cast
 
 import yaml
+from pydantic import ValidationError
+
+from models.policy import PolicyRegistry
 
 
 def get_app_roles(apps_dir: str) -> List[str]:
@@ -182,33 +187,22 @@ def check_policy_registry_controls(policy_registry_path: str, failures: List[str
         failures.append(f"Missing policy registry file: {registry_path}")
         return
 
-    loaded: Any = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
-    data: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
-    raw_policies_obj: Any = data.get("policies", [])
-    if not isinstance(raw_policies_obj, list):
+    loaded = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+    try:
+        reg = PolicyRegistry.model_validate(loaded or {})
+    except ValidationError:
         failures.append(
             f"Invalid policy registry format in {registry_path}: 'policies' must be a list"
         )
         return
-    raw_policies: List[object] = cast(List[object], raw_policies_obj)
 
-    for idx, policy_obj in enumerate(raw_policies, start=1):
-        if not isinstance(policy_obj, dict):
-            failures.append(f"Invalid policy entry #{idx} in {registry_path}: expected mapping")
-            continue
-
-        policy_map: Dict[str, Any] = cast(Dict[str, Any], policy_obj)
-
-        policy_id = str(policy_map.get("id", f"policy-{idx}"))
-        status = str(policy_map.get("status", "advisory")).lower()
-        controls_obj: Any = policy_map.get("controls", [])
+    for idx, policy in enumerate(reg.policies, start=1):
+        policy_id = policy.id or f"policy-{idx}"
+        status = (policy.status or "advisory").lower()
         if status != "enforced":
             continue
-        if not isinstance(controls_obj, list):
-            failures.append(f"Policy '{policy_id}' is marked enforced but has no control targets")
-            continue
-        controls: List[object] = cast(List[object], controls_obj)
-        if len(controls) == 0:
+        controls = policy.controls
+        if not controls:
             failures.append(f"Policy '{policy_id}' is marked enforced but has no control targets")
 
 
@@ -299,13 +293,12 @@ def check_policy_contract_integrity(policy_registry_path: str, failures: List[st
         return
 
     loaded = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
-    data: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
-    raw_policies_obj: Any = data.get("policies", [])
-    if not isinstance(raw_policies_obj, list):
+    try:
+        reg = PolicyRegistry.model_validate(loaded or {})
+    except ValidationError:
         msg = f"Invalid policy registry format in {registry_file}: 'policies' must be a list"
         failures.append(msg)
         return
-    raw_policies: List[object] = cast(List[object], raw_policies_obj)
 
     # Discover companion files: look in the policy registry dir and its parent
     base_dirs = [registry_file.parent, registry_file.parent.parent]
@@ -339,18 +332,9 @@ def check_policy_contract_integrity(policy_registry_path: str, failures: List[st
     except Exception:
         mod = None
 
-    for policy_obj in raw_policies:
-        if not isinstance(policy_obj, dict):
-            continue
-        policy_map: Dict[str, Any] = cast(Dict[str, Any], policy_obj)
-        controls_obj: Any = policy_map.get("controls", [])
-        if not isinstance(controls_obj, list):
-            continue
-        controls: List[object] = cast(List[object], controls_obj)
-
+    for policy in reg.policies:
+        controls = policy.controls
         for control in controls:
-            if not isinstance(control, str):
-                continue
             if control.startswith("semgrep:"):
                 _, val = control.split(":", 1)
                 if val == ".semgrep.yml":
