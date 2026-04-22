@@ -4,7 +4,6 @@
   "venvPath": ".",
   "venv": ".venv",
   "stubPath": "typings",
-  "reportExplicitAny": true,
   "executionEnvironments": [
     {
       "root": ".",

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, cast
 import yaml
 from pydantic import ValidationError
 
+from models.ansible.registry import AppRegistry, AppRegistryEntry, PreflightVarSpec
 from models.policy import PolicyRegistry
 
 
@@ -36,7 +37,7 @@ def check_registry_entries(app_roles: List[str], registry_path: str, failures: L
                 found = False
                 in_apps = False
                 for line in lines:
-                    if line.strip() == "apps:":
+                    if line.strip() == "apps":
                         in_apps = True
                     elif in_apps and line.strip().startswith(f"{app}:"):
                         found = True
@@ -47,16 +48,24 @@ def check_registry_entries(app_roles: List[str], registry_path: str, failures: L
                         "(YAML parser not installed, used fallback)"
                     )
         else:
-            reg_data = yaml.safe_load(f)
-            reg: Dict[str, Any] = cast(Dict[str, Any], reg_data) if reg_data else {}
+            loaded = yaml.safe_load(f)
+            apps_section_typed: dict[str, AppRegistryEntry] | None = None
             apps_section: Dict[str, Any] = {}
-            if "apps" in reg:
-                val = reg["apps"]
-                if isinstance(val, dict):
-                    apps_section = cast(Dict[str, Any], val)
-            for app in app_roles:
-                if app not in apps_section:
-                    failures.append(f"App '{app}' missing from registry.yml")
+            # Prefer typed validation via AppRegistry, fallback to dict parsing
+            try:
+                reg_typed: AppRegistry = AppRegistry.model_validate(loaded or {})
+                apps_section_typed = reg_typed.apps
+                for app in app_roles:
+                    if app not in apps_section_typed:
+                        failures.append(f"App '{app}' missing from registry.yml")
+            except ValidationError:
+                reg_dict: Dict[str, Any] = cast(Dict[str, Any], loaded) if loaded else {}
+                apps_val = reg_dict.get("apps", {})
+                if isinstance(apps_val, dict):
+                    apps_section = cast(Dict[str, Any], apps_val)
+                for app in app_roles:
+                    if app not in apps_section:
+                        failures.append(f"App '{app}' missing from registry.yml")
 
 
 def check_app_dirs(
@@ -71,27 +80,43 @@ def check_app_dirs(
     each app's lifecycle flags. Otherwise, backup/restore/tasks are required.
     """
     apps_section: Dict[str, Any] = {}
+    apps_registry: dict[str, AppRegistryEntry] | None = None
     if registry_path and os.path.exists(registry_path):
         with open(registry_path) as registry_file:
             reg_data = yaml.safe_load(registry_file)
-        reg = cast(Dict[str, Any], reg_data) if isinstance(reg_data, dict) else {}
-        apps_val = reg.get("apps", {})
-        if isinstance(apps_val, dict):
-            apps_section = cast(Dict[str, Any], apps_val)
+        # Try typed validation first.
+        try:
+            reg_typed: AppRegistry = AppRegistry.model_validate(reg_data or {})
+            apps_registry = reg_typed.apps
+        except ValidationError:
+            reg_dict = cast(Dict[str, Any], reg_data) if isinstance(reg_data, dict) else {}
+            apps_val = reg_dict.get("apps", {})
+            if isinstance(apps_val, dict):
+                apps_section = cast(Dict[str, Any], apps_val)
 
     for app in app_roles:
         app_path = os.path.join(apps_dir, app)
         required_dirs = ["tasks"]
 
-        app_entry = apps_section.get(app)
-        if isinstance(app_entry, dict):
-            app_entry_map = cast(Dict[str, Any], app_entry)
-            if bool(app_entry_map.get("backup", False)):
-                required_dirs.append("backup")
-            if bool(app_entry_map.get("restore", False)):
-                required_dirs.append("restore")
+        if apps_registry is not None:
+            entry = apps_registry.get(app)
+            if entry is not None:
+                if bool(entry.backup):
+                    required_dirs.append("backup")
+                if bool(entry.restore):
+                    required_dirs.append("restore")
+            else:
+                required_dirs.extend(["backup", "restore"])
         else:
-            required_dirs.extend(["backup", "restore"])
+            app_entry = apps_section.get(app)
+            if isinstance(app_entry, dict):
+                app_entry_map = cast(Dict[str, Any], app_entry)
+                if bool(app_entry_map.get("backup", False)):
+                    required_dirs.append("backup")
+                if bool(app_entry_map.get("restore", False)):
+                    required_dirs.append("restore")
+            else:
+                required_dirs.extend(["backup", "restore"])
 
         for subdir in required_dirs:
             if not os.path.isdir(os.path.join(app_path, subdir)):
@@ -237,22 +262,36 @@ def check_registry_conflicts(
         return
 
     loaded = yaml.safe_load(reg_file.read_text(encoding="utf-8"))
-    reg: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
     apps_section: Dict[str, Any] = {}
-    if "apps" in reg and isinstance(reg.get("apps"), dict):
-        apps_section = cast(Dict[str, Any], reg.get("apps"))
+    apps_section_typed: dict[str, AppRegistryEntry] | None = None
+    # Prefer typed AppRegistry when possible
+    try:
+        reg_typed: AppRegistry = AppRegistry.model_validate(loaded or {})
+        apps_section_typed = reg_typed.apps
+    except ValidationError:
+        reg_dict: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
+        apps_val = reg_dict.get("apps", {})
+        if isinstance(apps_val, dict):
+            apps_section = cast(Dict[str, Any], apps_val)
 
     apps_root = Path(apps_dir)
     for app in app_roles:
-        app_entry_obj = apps_section.get(app)
-        if not isinstance(app_entry_obj, dict):
-            continue
-        app_entry = cast(Dict[str, Any], app_entry_obj)
-
-        preflight_vars_obj = app_entry.get("preflight_vars", {})
-        preflight_vars = (
-            cast(Dict[str, Any], preflight_vars_obj) if isinstance(preflight_vars_obj, dict) else {}
-        )
+        if apps_section_typed is not None:
+            entry_typed = apps_section_typed.get(app)
+            if entry_typed is None:
+                continue
+            preflight_vars = entry_typed.preflight_vars
+        else:
+            entry_obj = apps_section.get(app)
+            if not isinstance(entry_obj, dict):
+                continue
+            entry_map = cast(Dict[str, Any], entry_obj)
+            preflight_vars_obj = entry_map.get("preflight_vars", {})
+            preflight_vars = (
+                cast(Dict[str, Any], preflight_vars_obj)
+                if isinstance(preflight_vars_obj, dict)
+                else {}
+            )
 
         defaults_path = apps_root / app / "defaults" / "main.yml"
         if not defaults_path.is_file():
@@ -267,7 +306,9 @@ def check_registry_conflicts(
             role_default = defaults.get(key)
             registry_default = None
             var_spec = preflight_vars.get(key)
-            if isinstance(var_spec, dict):
+            if isinstance(var_spec, PreflightVarSpec):
+                registry_default = var_spec.default
+            elif isinstance(var_spec, dict):
                 spec_map = cast(Dict[str, Any], var_spec)
                 registry_default = spec_map.get("default")
 
@@ -431,29 +472,52 @@ def check_app_data_paths(app_roles: List[str], registry_path: str, failures: Lis
     if not registry_file.is_file():
         failures.append(f"Missing registry file: {registry_file}")
         return
-
     loaded = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
-    data = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
-    apps_obj = data.get("apps", {})
-    apps = cast(Dict[str, Any], apps_obj) if isinstance(apps_obj, dict) else {}
+
+    apps_section: Dict[str, Any] = {}
+    apps_typed: dict[str, AppRegistryEntry] | None = None
+    try:
+        reg_typed: AppRegistry = AppRegistry.model_validate(loaded or {})
+        apps_typed = reg_typed.apps
+    except ValidationError:
+        data = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
+        apps_obj = data.get("apps", {})
+        if isinstance(apps_obj, dict):
+            apps_section = cast(Dict[str, Any], apps_obj)
 
     for app in app_roles:
-        entry_obj = apps.get(app)
-        if not isinstance(entry_obj, dict):
-            continue
-        entry = cast(Dict[str, Any], entry_obj)
-        requires_declared_path = (
-            entry.get("service_type") == "containerized"
-            or bool(entry.get("backup", False))
-            or bool(entry.get("restore", False))
-        )
-        if not requires_declared_path:
+        if apps_typed is not None:
+            entry_obj = apps_typed.get(app)
+        else:
+            entry_obj = apps_section.get(app)
+
+        if isinstance(entry_obj, AppRegistryEntry):
+            requires_declared_path = (
+                entry_obj.service_type == "containerized"
+                or bool(entry_obj.backup)
+                or bool(entry_obj.restore)
+            )
+            if not requires_declared_path:
+                continue
+            preflight_vars = entry_obj.preflight_vars
+        elif isinstance(entry_obj, dict):
+            entry_map = cast(Dict[str, Any], entry_obj)
+            requires_declared_path = (
+                entry_map.get("service_type") == "containerized"
+                or bool(entry_map.get("backup", False))
+                or bool(entry_map.get("restore", False))
+            )
+            if not requires_declared_path:
+                continue
+            preflight_vars_obj = entry_map.get("preflight_vars", {})
+            preflight_vars = (
+                cast(Dict[str, Any], preflight_vars_obj)
+                if isinstance(preflight_vars_obj, dict)
+                else {}
+            )
+        else:
             continue
 
-        preflight_vars_obj = entry.get("preflight_vars", {})
-        preflight_vars = (
-            cast(Dict[str, Any], preflight_vars_obj) if isinstance(preflight_vars_obj, dict) else {}
-        )
         if not preflight_vars:
             failures.append(
                 f"App '{app}' requires persistence but declares no preflight_vars for data paths"
@@ -525,21 +589,27 @@ def check_makefile_phony_and_style(
 
     text = makefile.read_text(encoding="utf-8")
     phony_targets: list[str] = []
-    for match in re.finditer(r"^\.PHONY:\s*(.+)$", text, re.MULTILINE):
-        phony_targets.extend(token for token in match.group(1).split() if token)
+    for ln in text.splitlines():
+        stripped = ln.lstrip()
+        if stripped.startswith(".PHONY:"):
+            rest = stripped[len(".PHONY:") :].strip()
+            phony_targets.extend(token for token in rest.split() if token)
 
     if not phony_targets:
         failures.append("Makefile missing .PHONY declarations for public targets")
         return
 
-    help_has_app_meta_entry = re.search(r'@echo ".*<app>', text) is not None
+    help_lines = [ln for ln in text.splitlines() if "@echo" in ln]
     for target in phony_targets:
         if target.startswith("_") or "$(" in target:
             continue
         if not re.fullmatch(r"[a-z0-9-]+", target):
             failures.append(f"Public target '{target}' should use lowercase kebab-case")
 
-        if target in app_roles and help_has_app_meta_entry:
+        # If the target is annotated as an app role and the help contains
+        # an app meta entry, consider it covered.
+        if target in app_roles and any(re.search(r"<app", ln) for ln in help_lines):
             continue
-        if re.search(rf'@echo ".*\b{re.escape(target)}\b', text) is None:
+
+        if not any(re.search(rf"\b{re.escape(target)}\b", ln) for ln in help_lines):
             failures.append(f"Public target '{target}' must appear in make help output")

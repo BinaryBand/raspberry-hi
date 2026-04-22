@@ -7,10 +7,10 @@
     "hvars",
     "monkeypatch",
     "mountpoint",
-    "Pydantic",
+    "pydantic",
     "rclone",
     "ryaml",
-    "Semgrep"
+    "semgrep"
   ],
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
@@ -26,6 +26,7 @@
     "source.organizeImports.ruff": "explicit"
   },
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
   }
 }
