@@ -8,7 +8,7 @@ policies:
     status: enforced
     controls:
       - semgrep:.semgrep.yml
-      - make:lint->semgrep
+      - make:lint
 
   - id: python-must-not-become-source-of-truth
     statement: "Python must not become a second source of truth for declared state."
