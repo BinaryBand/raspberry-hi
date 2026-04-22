@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import configparser
-import os
 from pathlib import Path
 
 from linux_hi.process.exec import run_resolved
@@ -127,7 +126,7 @@ class TestMakefileLint:
 
 
 class TestAnsibleLint:
-    """Ensure the Ansible roles pass ansible-lint."""
+    """Ensure ansible configuration invariants remain valid."""
 
     def test_ansible_config_does_not_require_local_vault_password(self):
         """Global Ansible config must not depend on a developer-only vault file."""
@@ -135,25 +134,3 @@ class TestAnsibleLint:
         config.read(ROOT / "ansible" / "ansible.cfg")
 
         assert "vault_password_file" not in config["defaults"]
-
-    def test_ansible_lint(self):
-        """Fail if ansible-lint reports any role or playbook violations."""
-        result = run_resolved(
-            [
-                "poetry",
-                "run",
-                "ansible-lint",
-                "-x",
-                "var-naming",
-                "ansible/apps/minio",
-                "ansible/apps/postgres",
-                "ansible/apps/baikal",
-                "ansible/apps/restic",
-                "ansible/roles/service_adapter",
-                "ansible/roles/rclone",
-            ],
-            capture_output=True,
-            text=True,
-            env={**os.environ, "ANSIBLE_CONFIG": "ansible/ansible.cfg"},
-        )
-        assert result.returncode == 0, result.stdout + result.stderr

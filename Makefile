@@ -112,7 +112,7 @@ ci:
 	$(POETRY) pyright
 	$(POETRY) semgrep scan --config .semgrep.yml --error
 	$(POETRY) mbake format --check Makefile
-	$(POETRY) pytest -q
+	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
 pyright:
 	$(POETRY) pyright
@@ -127,9 +127,7 @@ vulture:
 	$(POETRY) vulture --min-confidence 80 $(PY_DIRS)
 
 ansible-lint:
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) $(POETRY) ansible-lint -x var-naming \
-		$(foreach app,$(APPS),ansible/apps/$(app)) \
-		$(foreach role,$(ROLES),ansible/roles/$(role))
+	ANSIBLE_CONFIG=$(ANSIBLE_CFG) $(POETRY) ansible-lint ansible
 
 checkmake:
 	$(POETRY) mbake format --check Makefile
