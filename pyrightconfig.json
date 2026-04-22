@@ -1,17 +1,10 @@
 {
   "typeCheckingMode": "strict",
   "include": ["linux_hi", "models", "scripts", "tests", "typings"],
-  "exclude": [
-    "runbook/analysis",
-    "**/node_modules",
-    "**/__pycache__",
-    "**/.*",
-    ".venv"
-  ],
   "venvPath": ".",
   "venv": ".venv",
   "stubPath": "typings",
-  "reportMissingImports": true,
+  "reportExplicitAny": true,
   "executionEnvironments": [
     {
       "root": ".",

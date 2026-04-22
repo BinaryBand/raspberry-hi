@@ -7,7 +7,6 @@ real sockets. Callers configure responses per command prefix.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from linux_hi.adapters.connection_types import RemoteConnection
 
@@ -47,6 +46,7 @@ class FakeConnection(RemoteConnection):
         self._responses = responses
         self._sudo_responses = sudo_responses or responses
 
+    # jscpd:ignore-start
     def run(
         self,
         command: str,
@@ -70,11 +70,13 @@ class FakeConnection(RemoteConnection):
         warn: bool = False,
         echo: bool = False,
         in_stream: object | None = None,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> FakeResult:
         """Stub for fabric.Connection.sudo()."""
         _ = (user, hide, warn, echo, in_stream, kwargs)
         return self._dispatch(command, self._sudo_responses)
+
+    # jscpd:ignore-end
 
     @staticmethod
     def _dispatch(

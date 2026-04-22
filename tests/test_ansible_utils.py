@@ -22,7 +22,7 @@ def _capture_connection_kwargs(
     captured: dict[str, Any] = {}
 
     class CapturingConnectionFactory(RecordingConnectionFactory):
-        def __init__(self, **kwargs: Any) -> None:
+        def __init__(self, **kwargs: object) -> None:
             super().__init__(**kwargs)
             captured.update(kwargs)
 

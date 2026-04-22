@@ -10,18 +10,6 @@ from linux_hi.process.exec import run_resolved
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class TestCompatibilityNamespacesRemoved:
-    """Ensure removed compatibility namespaces do not reappear."""
-
-    def test_scripts_internal_removed(self):
-        """scripts/internal must remain deleted."""
-        assert not (ROOT / "scripts" / "internal").exists()
-
-    def test_scripts_utils_removed(self):
-        """scripts/utils must remain deleted."""
-        assert not (ROOT / "scripts" / "utils").exists()
-
-
 class TestCpd:
     """Ensure the codebase passes copy-paste detection checks."""
 

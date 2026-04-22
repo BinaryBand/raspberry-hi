@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Protocol
 
 
 class CommandResult(Protocol):
@@ -35,7 +35,9 @@ class RemoteConnection(Protocol):
         user: str | None = None,
         hide: bool | str = False,
         warn: bool = False,
-        **kwargs: Any,
+        echo: bool = False,
+        in_stream: object | None = None,
+        **kwargs: object,
     ) -> CommandResult:
         """Execute a remote command with privilege escalation."""
         ...

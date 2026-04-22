@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Any
 
 import questionary
 
@@ -14,7 +13,7 @@ from linux_hi.ansible.role_vars import role_required_vars
 from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
-StoreData = dict[str, Any]
+StoreData = dict[str, str]
 
 
 def _pick_rclone_remote(label: str) -> str | None:

@@ -43,6 +43,7 @@
   - [ ] Enforce the rule that inventory topology stays complete and auditable: each host declared in `ansible/inventory/hosts.ini` must have a matching `ansible/inventory/host_vars/<host>.yml`, and orphaned `host_vars/*.yml` files must be rejected. (needs a test, not Semgrep)
   - [x] Enforce the rule that durable secrets live only in `ansible/group_vars/all/vault.yml`: app credentials, sudo passwords, and other long-lived secrets must not be stored in `host_vars`, extra vault files, or ad hoc inventory data.
 - [ ] Ban generic dicts and any types.
+- [ ] Don't store entire file contents in vault. Use templates and store secrets instead.
 
 ### Policy Coverage Backlog
 
