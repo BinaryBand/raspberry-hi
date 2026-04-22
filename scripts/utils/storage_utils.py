@@ -1,3 +1,8 @@
+"""Compatibility shim: re-exports storage utilities from canonical location.
+
+DEPRECATED: Import directly from linux_hi.storage instead.
+"""
+
 from linux_hi.storage import (
     DEFAULT_MOUNT_POLICY,
     SYSTEM_MOUNT_PREFIXES,

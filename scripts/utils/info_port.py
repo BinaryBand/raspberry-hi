@@ -1,8 +1,11 @@
 """Info port abstractions for remote device and mount discovery.
 
-Provides a small `InfoPort` protocol and a `RemoteInfoPort` adapter that
-delegates to the existing `storage_utils` helpers so discovery logic can be
-reused and substituted in tests.
+DEPRECATED: This module is not actively used. Provides a protocol-based abstraction
+for remote device and mount discovery, but the RemoteInfoPort implementation is not
+imported anywhere in the current codebase.
+
+If you need device/mount discovery, import directly from scripts.utils.storage_discovery
+or linux_hi.storage for local operations.
 """
 
 from __future__ import annotations

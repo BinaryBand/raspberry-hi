@@ -1,8 +1,14 @@
 """Shared connection protocols for remote command execution.
 
+Defines protocol types for remote connections and command results. These protocols
+enable test stubbing and decoupling from the fabric library implementation.
+
 All SSH-facing code should depend on these structural types instead of
 importing ``fabric.Connection`` directly. Fabric satisfies the protocol as-is,
 and tests can implement the same interface with lightweight fakes.
+
+NOTE: This is an intentional design pattern module, not a re-export shim.
+      Not deprecated—used for test abstraction.
 """
 
 from __future__ import annotations

@@ -1,8 +1,10 @@
-"""Prompting port implementations used by interactive setup scripts.
+"""Prompting port definitions for interactive setup scripts.
 
-Defines a small `Prompter` protocol and a `QuestionaryPrompter` that
-delegates to `questionary` + `rich` for display. Kept intentionally small
-so tests can stub the protocol.
+Defines a small `Prompter` protocol and a `QuestionaryPrompter` implementation.
+The protocol is kept intentionally small to allow test stubbing.
+
+NOTE: This is an intentional design pattern module, not a re-export shim.
+      Not deprecated—used for interactive prompt abstraction.
 """
 
 from __future__ import annotations

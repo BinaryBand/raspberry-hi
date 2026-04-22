@@ -1,4 +1,15 @@
-"""Remote storage discovery helpers that execute commands on a connection."""
+"""Remote storage discovery helpers for fabric connections.
+
+Provides functions to discover block devices and mount points on remote hosts
+by executing commands over SSH via fabric connections.
+
+These functions are specific to remote operations and fabric's Command Result
+interface. They are NOT duplicated in linux_hi because linux_hi is designed for
+local system operations only.
+
+NOTE: This is NOT a re-export shim. This module contains intentional implementations
+      specific to remote (fabric-based) operations.
+"""
 
 from __future__ import annotations
 
