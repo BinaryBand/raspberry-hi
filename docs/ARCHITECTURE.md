@@ -145,6 +145,18 @@ The Makefile is the operator-facing entry point.
 
 Missing prerequisites should be rejected at the edge of the workflow.
 
+### Make Style Contract
+
+All Makefile changes must satisfy this contract:
+
+- Public operator targets are `.PHONY` and appear in `make help` with a one-line description.
+- Public target names use lowercase kebab style (`format-check`, `backup-check`) and read as verbs or verb-noun actions.
+- Internal workflow targets are prefixed with `_` and are not listed as operator-facing commands.
+- Shared command fragments and reusable values live in variables to avoid repeating long command lines.
+- Targets that require runtime inputs fail fast with explicit guard checks and actionable error messages.
+- Operator-facing workflows must keep `HOST=<alias>` support and default to the repo standard host selector.
+- Makefile style is machine-checked with `mbake` (`make checkmake`) and included in CI quality gates.
+
 ---
 
 ## App and Dependency Policy

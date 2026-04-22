@@ -15,10 +15,10 @@ from models.ansible import access as ansible_access
 from tests.support.connections import RecordingConnectionFactory
 
 
-def test_make_connection_uses_relative_ssh_key_from_repo_root(
+def _capture_connection_kwargs(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Relative SSH key paths should be resolved against the repository root."""
+) -> dict[str, Any]:
+    """Patch Connection with a recording test double and return captured kwargs."""
     captured: dict[str, Any] = {}
 
     class CapturingConnectionFactory(RecordingConnectionFactory):
@@ -27,6 +27,14 @@ def test_make_connection_uses_relative_ssh_key_from_repo_root(
             captured.update(kwargs)
 
     monkeypatch.setattr(ansible_connection, "Connection", CapturingConnectionFactory)
+    return captured
+
+
+def test_make_connection_uses_relative_ssh_key_from_repo_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Relative SSH key paths should be resolved against the repository root."""
+    captured = _capture_connection_kwargs(monkeypatch)
 
     host = HostVars(
         ansible_host="example.local",
@@ -50,14 +58,7 @@ def test_make_connection_can_configure_sudo_password(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Sudo password should be forwarded into Fabric config when requested."""
-    captured: dict[str, Any] = {}
-
-    class CapturingConnectionFactory(RecordingConnectionFactory):
-        def __init__(self, **kwargs: Any) -> None:
-            super().__init__(**kwargs)
-            captured.update(kwargs)
-
-    monkeypatch.setattr(ansible_connection, "Connection", CapturingConnectionFactory)
+    captured = _capture_connection_kwargs(monkeypatch)
 
     host = HostVars(ansible_host="example.local", ansible_user="owen")
     sudo_value = "mount-sudo-value"

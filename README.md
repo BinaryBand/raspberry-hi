@@ -92,6 +92,7 @@ If you want to prepare external storage on the host, run `make mount`. That comm
 | `make pyright` | Run Pyright type checks over the repository |
 | `make semgrep` | Run Semgrep audits for current architectural/process constraints |
 | `make cpd` | Check for copy-paste duplication (jscpd, threshold 3%) |
+| `make checkmake` | Lint Makefile style and quality with mbake |
 | `make ansible-lint` | Run ansible-lint over `ansible/` |
 | `make test` | Run unit and stub tests (no infrastructure needed) |
 | `make test-e2e` | Run live host tests (requires a reachable host) |

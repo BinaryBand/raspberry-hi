@@ -27,7 +27,7 @@ class TestCpd:
     """Ensure the codebase passes copy-paste detection checks."""
 
     def test_cpd(self):
-        """Fail if jscpd reports copy-paste duplication above the threshold."""
+        """Fail if jscpd reports any copy-paste duplication."""
         result = run_resolved(
             [
                 "npx",
@@ -37,7 +37,7 @@ class TestCpd:
                 "--min-tokens",
                 "50",
                 "--threshold",
-                "3",
+                "0",
                 "--ignore",
                 "**/.venv/**,**/typings/**",
                 ".",
@@ -107,6 +107,19 @@ class TestVulture:
         """Fail if Vulture reports unused code at or above 80% confidence."""
         result = run_resolved(
             ["poetry", "run", "vulture", "--min-confidence", "80", *self.PATHS],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestMakefileLint:
+    """Ensure the repository Makefile passes style checks."""
+
+    def test_makefile_style(self):
+        """Fail if mbake reports Makefile formatting or style violations."""
+        result = run_resolved(
+            ["poetry", "run", "mbake", "format", "--check", "Makefile"],
             capture_output=True,
             text=True,
         )

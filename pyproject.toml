@@ -24,6 +24,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ruff (>=0.15.10,<0.16.0)",
+    "mbake (>=1.0.0,<2.0.0)",
     "pyright (>=1.1.408,<2.0.0)",
     "semgrep (>=1.122.0,<2.0.0)",
     "vulture (>=2.14,<3.0)",
@@ -59,8 +60,8 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # Scripts set up sys.path before importing project modules — E402 is expected.
-# Docstrings are not enforced outside of tests.
-"scripts/*.py" = ["E402", "D"]
+# Docstrings are enforced for scripts/ wrappers.
+"scripts/*.py" = ["E402"]
 "linux_hi/cli/*.py" = ["D"]
 "models/*.py" = ["D"]
 "conftest.py" = ["D"]
