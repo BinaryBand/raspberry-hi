@@ -1,6 +1,7 @@
 """Utilities for repository policy checks."""
 
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, cast
 
@@ -224,3 +225,174 @@ def check_makefile_host_selector(makefile_path: str, failures: List[str]) -> Non
 
     if "HOST defaults to 'rpi'" not in text:
         failures.append("Makefile help must document the default HOST selector")
+
+
+def check_site_become_password_assertion(site_playbook_path: str, failures: List[str]) -> None:
+    """Ensure ansible/site.yml asserts become_passwords for the current host."""
+    site_playbook = Path(site_playbook_path)
+    if not site_playbook.is_file():
+        failures.append(f"Missing site playbook: {site_playbook}")
+        return
+
+    loaded = yaml.safe_load(site_playbook.read_text(encoding="utf-8"))
+    if not isinstance(loaded, list):
+        failures.append(f"{site_playbook} must define a play list")
+        return
+
+    plays = cast(List[object], loaded)
+    for play_obj in plays:
+        if not isinstance(play_obj, dict):
+            continue
+        play = cast(Dict[str, Any], play_obj)
+        pre_tasks_obj = play.get("pre_tasks", [])
+        if not isinstance(pre_tasks_obj, list):
+            continue
+        pre_tasks = cast(List[object], pre_tasks_obj)
+        for task_obj in pre_tasks:
+            if not isinstance(task_obj, dict):
+                continue
+            task = cast(Dict[str, Any], task_obj)
+            assert_task_obj = task.get("ansible.builtin.assert", task.get("assert"))
+            if not isinstance(assert_task_obj, dict):
+                continue
+            task_text = yaml.safe_dump(task, sort_keys=False)
+            if "become_passwords" not in task_text:
+                continue
+            tags_obj = task.get("tags", [])
+            if isinstance(tags_obj, str):
+                tags = [tags_obj]
+            elif isinstance(tags_obj, list):
+                tags = [str(tag) for tag in cast(List[object], tags_obj)]
+            else:
+                tags = []
+            if "always" not in tags:
+                failures.append(
+                    f"{site_playbook} assert task verifying "
+                    "become_passwords must be tagged 'always'"
+                )
+            return
+
+    failures.append(
+        f"{site_playbook} missing a pre_tasks assert that verifies "
+        "become_passwords for inventory_hostname"
+    )
+
+
+def check_app_data_paths(app_roles: List[str], registry_path: str, failures: List[str]) -> None:
+    """Ensure persistent apps declare explicit data paths in registry preflight vars."""
+    registry_file = Path(registry_path)
+    if not registry_file.is_file():
+        failures.append(f"Missing registry file: {registry_file}")
+        return
+
+    loaded = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
+    data = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
+    apps_obj = data.get("apps", {})
+    apps = cast(Dict[str, Any], apps_obj) if isinstance(apps_obj, dict) else {}
+
+    for app in app_roles:
+        entry_obj = apps.get(app)
+        if not isinstance(entry_obj, dict):
+            continue
+        entry = cast(Dict[str, Any], entry_obj)
+        requires_declared_path = (
+            entry.get("service_type") == "containerized"
+            or bool(entry.get("backup", False))
+            or bool(entry.get("restore", False))
+        )
+        if not requires_declared_path:
+            continue
+
+        preflight_vars_obj = entry.get("preflight_vars", {})
+        preflight_vars = (
+            cast(Dict[str, Any], preflight_vars_obj) if isinstance(preflight_vars_obj, dict) else {}
+        )
+        if not preflight_vars:
+            failures.append(
+                f"App '{app}' requires persistence but declares no preflight_vars for data paths"
+            )
+            continue
+
+        if not any("data_path" in key for key in preflight_vars):
+            failures.append(
+                f"App '{app}' requires persistence but has no explicit '*_data_path' preflight var"
+            )
+
+
+def check_makefile_guard_checks(makefile_path: str, failures: List[str]) -> None:
+    """Ensure runtime Make variables are guarded with explicit fast-fail checks."""
+    makefile = Path(makefile_path)
+    if not makefile.is_file():
+        failures.append(f"Missing Makefile: {makefile}")
+        return
+
+    text = makefile.read_text(encoding="utf-8")
+    for var_name in ("APP", "SVC"):
+        if f"$({var_name})" not in text:
+            continue
+        has_nonempty_guard = re.search(rf'test -n "\$\({var_name}\)"', text) is not None
+        has_error_message = re.search(rf"Error: {var_name}\b", text) is not None
+        if not (has_nonempty_guard and has_error_message):
+            failures.append(
+                f"Makefile references $({var_name}) but must fail fast "
+                "with an explicit guard check and error message"
+            )
+
+
+def check_no_direct_host_group_writes(root_dir: str, failures: List[str]) -> None:
+    """Detect direct writes to host_vars/group_vars outside the dedicated seams."""
+    root = Path(root_dir)
+    allowed_files = {
+        root / "models" / "ansible" / "access.py",
+        root / "linux_hi" / "vault" / "service.py",
+    }
+
+    path_markers = ("host_vars", "group_vars", "ansible/group_vars", "ansible/inventory")
+    write_markers = ("write_text(", "write_bytes(", ".write(")
+    skip_dirs = {root / "tests", root / ".venv"}
+
+    for py_file in sorted(root.rglob("*.py")):
+        if py_file in allowed_files:
+            continue
+        if any(py_file.is_relative_to(d) for d in skip_dirs):
+            continue
+        text = py_file.read_text(encoding="utf-8")
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if not any(marker in line for marker in path_markers):
+                continue
+            if any(marker in line for marker in write_markers):
+                failures.append(
+                    f"Direct write to Ansible state detected in {py_file}:{line_no}; "
+                    "use models/ansible/access.py or linux_hi/vault/service.py"
+                )
+
+
+def check_makefile_phony_and_style(
+    makefile_path: str, app_roles: List[str], failures: List[str]
+) -> None:
+    """Validate public .PHONY targets, help visibility, and kebab-case style."""
+    makefile = Path(makefile_path)
+    if not makefile.is_file():
+        failures.append(f"Missing Makefile: {makefile}")
+        return
+
+    text = makefile.read_text(encoding="utf-8")
+    phony_targets: list[str] = []
+    for match in re.finditer(r"^\.PHONY:\s*(.+)$", text, re.MULTILINE):
+        phony_targets.extend(token for token in match.group(1).split() if token)
+
+    if not phony_targets:
+        failures.append("Makefile missing .PHONY declarations for public targets")
+        return
+
+    help_has_app_meta_entry = re.search(r'@echo ".*<app>', text) is not None
+    for target in phony_targets:
+        if target.startswith("_") or "$(" in target:
+            continue
+        if not re.fullmatch(r"[a-z0-9-]+", target):
+            failures.append(f"Public target '{target}' should use lowercase kebab-case")
+
+        if target in app_roles and help_has_app_meta_entry:
+            continue
+        if re.search(rf'@echo ".*\b{re.escape(target)}\b', text) is None:
+            failures.append(f"Public target '{target}' must appear in make help output")

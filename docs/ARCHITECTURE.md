@@ -4,7 +4,7 @@
 
 This repository has two architecture authorities with different jobs.
 
-- [.semgrep.yml](../.semgrep.yml) is the enforceable authority. It defines the repository rules that must hold mechanically.
+- [.semgrep.yml](../.semgrep.yml) is the enforceable authority. It defines the repository rules that must hold mechanically. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L5-L11); Semgrep rules: [.semgrep.yml](.semgrep.yml))
 - This document is the explanatory authority. It explains why the rules exist, how the seams are intended to work, and which patterns are architectural rather than incidental.
 
 When the two disagree, treat [.semgrep.yml](../.semgrep.yml) as the source of truth for what contributors may or may not do, then fix this document to match.
@@ -17,10 +17,10 @@ This repository separates declared state from operational tooling.
 
 - Ansible is the sole provisioning driver.
 - Python handles interactive, one-shot, and pre-flight operations.
-- Ansible-owned state stays authoritative. Python may read or update it through narrow seams, but it must not become a second source of truth.
+- Ansible-owned state stays authoritative. Python may read or update it through narrow seams, but it must not become a second source of truth. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L13-L20))
 - The boundary is intentional. Ansible does not call Python to decide state, and Python does not orchestrate playbook execution.
 
-This rule is enforced in Semgrep by forbidding Python-side playbook orchestration, raw `ansible-vault` access outside the vault helper, and direct inventory/vault writes outside their dedicated seams.
+This rule is enforced in Semgrep by forbidding Python-side playbook orchestration, raw `ansible-vault` access outside the vault helper, and direct inventory/vault writes outside their dedicated seams. (Semgrep rules: [.semgrep.yml](.semgrep.yml) — see `python-must-not-run-ansible-playbook`, `python-ansible-vault-only-in-vault-service`, `python-ruamel-yaml-only-in-ansible-access`, `python-no-ansible-inventory-cli`.) Repo-level checks also validate playbook-level variables via [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L120-L132).
 
 ---
 
@@ -67,6 +67,8 @@ Top-level files in `scripts/` are entry points. Importable support code lives be
 
 Canonical importable CLI modules live in `linux_hi/cli/`. The matching files in `scripts/` are compatibility wrappers only.
 
+(Enforcement: Semgrep rules in [.semgrep.yml](.semgrep.yml) — `python-scripts-entrypoints-must-be-thin`, `python-no-script-entrypoint-imports`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L147-L175).)
+
 ### Entry points
 
 - `scripts/bootstrap.py`: first-time vault setup and missing secret collection
@@ -84,6 +86,8 @@ Generic package names are transitional, not preferred.
 - Prefer responsibility names such as `orchestration`, `adapters`, `ansible`, `storage`, `vault`, and `process`.
 - Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
 - Compatibility namespaces under `scripts/` are not part of the architecture. Keep importable modules under `linux_hi/` responsibility packages.
+
+(Enforcement: Semgrep: [.semgrep.yml](.semgrep.yml) — `python-no-compatibility-namespace-imports`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L135-L144).)
 
 ### Orchestration
 
@@ -107,7 +111,7 @@ Important boundaries:
 - `linux_hi/adapters/` contains protocols and adapter implementations for interactive workflows.
 - `linux_hi/storage/` contains storage discovery, classification, display, and rclone parsing helpers.
 
-Semgrep enforces these boundaries directly.
+Semgrep enforces these boundaries directly (see [.semgrep.yml](.semgrep.yml) for rules such as `python-no-direct-subprocess-import`, `python-no-direct-subprocess-call`, and `python-ruamel-yaml-only-in-ansible-access`).
 
 ---
 
@@ -147,14 +151,14 @@ Missing prerequisites should be rejected at the edge of the workflow.
 
 ### Make Style Contract
 
-All Makefile changes must satisfy this contract:
+All Makefile changes must satisfy this contract: (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L22-L29); Semgrep: [.semgrep.yml](.semgrep.yml) — `make-no-direct-poetry-run`, `make-no-hardcoded-py-dirs`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L214-L226))
 
 - Public operator targets are `.PHONY` and appear in `make help` with a one-line description.
 - Public target names use lowercase kebab style (`format-check`, `backup-check`) and read as verbs or verb-noun actions.
 - Internal workflow targets are prefixed with `_` and are not listed as operator-facing commands.
 - Shared command fragments and reusable values live in variables to avoid repeating long command lines.
 - Targets that require runtime inputs fail fast with explicit guard checks and actionable error messages.
-- Operator-facing workflows must keep `HOST=<alias>` support and default to the repo standard host selector.
+- Operator-facing workflows must keep `HOST=<alias>` support and default to the repo standard host selector. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L31-L37))
 - Makefile style is machine-checked with `mbake` (`make checkmake`) and included in CI quality gates.
 
 ---
@@ -179,7 +183,7 @@ That dependency is declared in the registry for tooling and documentation, but p
 - `baikal` is tagged with `baikal`
 - `make baikal` therefore runs PostgreSQL first without relying on role metadata dependencies
 
-`meta/main.yml` dependencies must stay empty for these roles. Non-empty role dependencies cause duplicate execution under tag-based runs and are forbidden by Semgrep.
+`meta/main.yml` dependencies must stay empty for these roles. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L39-L44); Semgrep: [.semgrep.yml](.semgrep.yml) — `ansible-meta-no-non-empty-dependencies`; Repo checks: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L15-L53) and [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L56-L93)). Non-empty role dependencies cause duplicate execution under tag-based runs and are forbidden by Semgrep.
 
 This pattern is for repo-owned service relationships, not hidden external prerequisites.
 
@@ -205,11 +209,13 @@ Backend responsibilities:
 
 For OpenRC or runit targets, use `manual` and wire the generated run script into the local init system manually.
 
+(Enforcement: Semgrep: [.semgrep.yml](.semgrep.yml) — `host-vars-service-adapter-backend-literal`.)
+
 ---
 
 ## Storage Policy
 
-Application data paths must be explicitly declared, but the storage medium is an operator choice.
+Application data paths must be explicitly declared (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L46-L51)), but the storage medium is an operator choice.
 
 - Persistence is required.
 - The medium is an operator choice.
@@ -248,6 +254,8 @@ SSH-dependent logic uses `tests/support/FakeConnection` and canned payloads from
 ### Static architecture checks
 
 The repository treats Semgrep, ansible-lint, Ruff, Pyright, Vulture, and duplication checks as part of the maintainability model, not just style tooling.
+
+See Semgrep rules in [.semgrep.yml](.semgrep.yml) and repo-level policy validations in [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L177-L212).
 
 ---
 
@@ -302,5 +310,7 @@ tests/
 - Keep top-level scripts thin and move reusable logic downward.
 - Keep durable state changes behind the dedicated inventory and vault helpers.
 - Treat Semgrep failures as architecture failures, not stylistic warnings.
+
+(Enforcement examples: Semgrep rule `ansible-facts-top-level-injection` in [.semgrep.yml](.semgrep.yml).)
 
 Ansible declares and converges durable state. Python assists through narrow seams. Semgrep keeps the boundary from drifting.

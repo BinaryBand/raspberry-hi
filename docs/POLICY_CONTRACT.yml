@@ -27,6 +27,7 @@ policies:
       - make:checkmake
       - semgrep:make-no-direct-poetry-run
       - semgrep:make-no-hardcoded-py-dirs
+      - repo-policy:makefile-phony-and-style
 
   - id: make-workflows-must-support-host-selector
     statement: "Operator-facing workflows must keep HOST=<alias> support and default to the repo standard host selector."
@@ -35,6 +36,31 @@ policies:
     controls:
       - repo-policy:makefile-host-selector
       - make:repo-policy
+
+  - id: site-must-assert-become-passwords
+    statement: "ansible/site.yml includes an always-on assertion that the current host has a become_passwords entry."
+    source_line: 61
+    status: enforced
+    controls:
+      - repo-policy:site-become-password-assertion
+      - make:repo-policy
+
+  - id: make-targets-must-fail-fast-on-runtime-inputs
+    statement: "Targets that require runtime inputs fail fast with explicit guard checks and actionable error messages."
+    source_line: 156
+    status: enforced
+    controls:
+      - repo-policy:makefile-guard-checks
+      - make:repo-policy
+
+  - id: durable-state-writes-use-dedicated-seams
+    statement: "Keep durable state changes behind the dedicated inventory and vault helpers."
+    source_line: 309
+    status: enforced
+    controls:
+      - repo-policy:no-direct-host-group-writes
+      - semgrep:python-ansible-vault-only-in-vault-service
+      - semgrep:python-ruamel-yaml-only-in-ansible-access
 
   - id: role-meta-dependencies-must-stay-empty
     statement: "meta/main.yml dependencies must stay empty for app roles."
@@ -46,6 +72,7 @@ policies:
   - id: app-data-paths-must-be-explicitly-declared
     statement: "Application data paths must be explicitly declared."
     source_line: 212
-    status: advisory
+    status: enforced
     controls:
-      - docs:architecture-storage-policy
+      - repo-policy:app-data-paths
+      - make:repo-policy

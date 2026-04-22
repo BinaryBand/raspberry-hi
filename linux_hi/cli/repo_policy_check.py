@@ -5,14 +5,19 @@ from __future__ import annotations
 import sys
 
 from linux_hi.policy_utils import (
+    check_app_data_paths,
     check_app_dirs,
     check_app_tests,
     check_deleted_compatibility_namespaces,
+    check_makefile_guard_checks,
     check_makefile_host_selector,
+    check_makefile_phony_and_style,
+    check_no_direct_host_group_writes,
     check_playbook_vars,
     check_policy_registry_controls,
     check_registry_entries,
     check_scripts_wrapper_topology,
+    check_site_become_password_assertion,
     get_app_roles,
 )
 from models import ANSIBLE_DATA
@@ -33,10 +38,15 @@ def main() -> None:
     check_app_dirs(app_roles, _APPS_DIR, failures, _REGISTRY_PATH)
     check_app_tests(app_roles, _TESTS_DIR, _E2E_DIR, failures)
     check_playbook_vars(str(_ROOT / "ansible"), failures)
+    check_site_become_password_assertion(str(_ROOT / "ansible" / "site.yml"), failures)
+    check_app_data_paths(app_roles, _REGISTRY_PATH, failures)
     check_deleted_compatibility_namespaces(str(_ROOT), failures)
     check_scripts_wrapper_topology(str(_ROOT), failures)
     check_policy_registry_controls(_POLICY_REGISTRY, failures)
     check_makefile_host_selector(str(_ROOT / "Makefile"), failures)
+    check_makefile_guard_checks(str(_ROOT / "Makefile"), failures)
+    check_makefile_phony_and_style(str(_ROOT / "Makefile"), app_roles, failures)
+    check_no_direct_host_group_writes(str(_ROOT), failures)
     if failures:
         print("\nREPO POLICY CHECK FAILED:")
         for fail in failures:

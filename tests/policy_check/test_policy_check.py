@@ -124,6 +124,103 @@ policies:
         assert any("marked enforced but has no control targets" in failure for failure in failures)
 
 
+def test_site_requires_always_tagged_become_password_assertion() -> None:
+    """The site playbook must keep the always-on become_passwords assertion."""
+    site_content = """
+---
+- name: Provision devices
+  hosts: devices
+  pre_tasks:
+    - name: Verify become password is configured for this host
+      ansible.builtin.assert:
+        that: (become_passwords | default({})).get(inventory_hostname, '') | length > 0
+"""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        site_path = Path(tmp) / "site.yml"
+        site_path.write_text(site_content.lstrip(), encoding="utf-8")
+
+        failures: list[str] = []
+        rpc.check_site_become_password_assertion(str(site_path), failures)
+
+        assert any("tagged 'always'" in failure for failure in failures)
+
+
+def test_persistent_apps_require_explicit_data_paths() -> None:
+    """Persistent apps must declare data paths through registry preflight vars."""
+    registry_content = """
+apps:
+  foo:
+    service_type: containerized
+    backup: true
+    restore: false
+    preflight_vars:
+      foo_config_path:
+        hint: config path
+"""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        registry_path = Path(tmp) / "registry.yml"
+        registry_path.write_text(registry_content.lstrip(), encoding="utf-8")
+
+        failures: list[str] = []
+        rpc.check_app_data_paths(["foo"], str(registry_path), failures)
+
+        assert any("*_data_path" in failure for failure in failures)
+
+
+def test_makefile_runtime_inputs_require_guard_checks() -> None:
+    """Runtime Make variables must be guarded with explicit fast-fail checks."""
+    makefile_content = """
+status:
+	ssh host "echo $(SVC)"
+"""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        makefile_path = Path(tmp) / "Makefile"
+        makefile_path.write_text(makefile_content.lstrip(), encoding="utf-8")
+
+        failures: list[str] = []
+        rpc.check_makefile_guard_checks(str(makefile_path), failures)
+
+        assert any("$(SVC)" in failure for failure in failures)
+
+
+def test_direct_host_group_writes_are_rejected_outside_allowed_seams() -> None:
+    """Direct writes to host/group vars must stay behind the dedicated helpers."""
+    with tempfile.TemporaryDirectory() as tmp:
+        writer = Path(tmp) / "writer.py"
+        writer.write_text(
+            'Path("ansible/inventory/host_vars/rpi.yml").write_text("x")\n',
+            encoding="utf-8",
+        )
+
+        failures: list[str] = []
+        rpc.check_no_direct_host_group_writes(tmp, failures)
+
+        assert any("Direct write to Ansible state" in failure for failure in failures)
+
+
+def test_makefile_public_targets_require_help_and_kebab_case() -> None:
+    """Public .PHONY targets must be kebab-case and visible in help output."""
+    makefile_content = """
+.PHONY: BadTarget good-target
+
+help:
+	@echo "  good-target  ok"
+"""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        makefile_path = Path(tmp) / "Makefile"
+        makefile_path.write_text(makefile_content.lstrip(), encoding="utf-8")
+
+        failures: list[str] = []
+        rpc.check_makefile_phony_and_style(str(makefile_path), [], failures)
+
+        assert any("kebab-case" in failure for failure in failures)
+        assert any("must appear in make help output" in failure for failure in failures)
+
+
 def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
     """The live policy contract must map enforced architecture rules to controls."""
     failures: list[str] = []
