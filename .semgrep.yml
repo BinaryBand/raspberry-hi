@@ -176,6 +176,9 @@ rules:
       - pattern: |
           class $C(...):
             ...
+      - pattern: |
+          class $C:
+            ...
 
   - id: python-sys-path-insert-only-in-mount
     message: sys.path.insert is a temporary escape hatch and is only allowed in scripts/mount.py.
@@ -361,6 +364,38 @@ rules:
       include:
         - /ansible/**/*.j2
     pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'
+
+  # Makefile style checks
+  - id: make-no-direct-poetry-run
+    message: Prefer using the `POETRY` Makefile variable instead of invoking `poetry run` directly.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*poetry run\b'
+
+  - id: make-no-hardcoded-py-dirs
+    message: Use the `$(PY_DIRS)` Makefile variable instead of hardcoded directory lists for Python tools.
+    severity: WARNING
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*(?:\$\(\s*POETRY\s*\)\s*|poetry run\s+)?ruff (?:check|format)\b.*linux_hi/'
+
+  - id: make-no-direct-poetry-run-if-no-poetry-var
+    message: Avoid `poetry run` in the Makefile; define `POETRY := poetry run` and use `$(POETRY)`.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*poetry run\b'
+    pattern-not-regex: '(?m)^\s*POETRY\s*[:?+]?='
 
 # ---
 # TODO rules (not enforceable by Semgrep alone):
