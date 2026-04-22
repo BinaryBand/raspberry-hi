@@ -202,6 +202,30 @@ rules:
           - pattern: from scripts.preflight import $X
           - pattern: from scripts.rclone import $X
 
+  - id: python-compat-shims-must-stay-thin
+    message: Compatibility shim modules must remain re-export only. Move logic into linux_hi.* and keep scripts/utils shims thin.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /scripts/utils/ansible_role_vars.py
+        - /scripts/utils/mount_orchestrator.py
+        - /scripts/utils/rclone_controller.py
+        - /scripts/utils/storage_display.py
+        - /scripts/utils/storage_policy.py
+        - /scripts/utils/storage_utils.py
+    pattern-either:
+      - pattern: |
+          def $F(...):
+            ...
+      - pattern: |
+          async def $F(...):
+            ...
+      - pattern: |
+          class $C(...):
+            ...
+
   # Durable secret and host_vars policies
   - id: host-vars-no-inline-secret-keys
     message: host_vars must not store secret-like keys or app credentials; keep secrets in group_vars/all/vault.yml.
