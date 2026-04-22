@@ -221,6 +221,67 @@ help:
         assert any("must appear in make help output" in failure for failure in failures)
 
 
+def test_registry_role_defaults_conflict_detected() -> None:
+    """Conflicting defaults between registry and role defaults should be flagged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        apps_dir = Path(tmp) / "ansible" / "apps"
+        defaults_dir = apps_dir / "foo" / "defaults"
+        defaults_dir.mkdir(parents=True)
+        (defaults_dir / "main.yml").write_text(
+            "foo_config_path: /role/default\n",
+            encoding="utf-8",
+        )
+
+        registry_path = Path(tmp) / "ansible" / "registry.yml"
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(
+            """
+apps:
+    foo:
+        service_type: containerized
+        preflight_vars:
+            foo_config_path:
+                hint: config path
+                default: /registry/default
+""".lstrip(),
+            encoding="utf-8",
+        )
+
+        failures: list[str] = []
+        rpc.check_registry_conflicts(["foo"], str(apps_dir), str(registry_path), failures)
+
+        assert any("Registry/role defaults conflict" in f for f in failures)
+
+
+def test_policy_contract_integrity_detects_missing_references() -> None:
+    """Missing semgrep rules / repo-policy functions / make targets should be flagged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        policy_path = Path(tmp) / "POLICY_CONTRACT.yml"
+        policy_content = (
+            "version: 1\n"
+            "policies:\n"
+            "  - id: p1\n"
+            "    status: enforced\n"
+            "    controls:\n"
+            "      - semgrep:missing-rule\n"
+            "      - repo-policy:missing-check\n"
+            "      - make:nonexistent-target\n"
+        )
+        policy_path.write_text(policy_content, encoding="utf-8")
+
+        # Provide a semgrep file that does NOT contain 'missing-rule'
+        semgrep_content = "rules:\n  - id: existing-rule\n    message: dummy\n"
+        (Path(tmp) / ".semgrep.yml").write_text(semgrep_content, encoding="utf-8")
+
+        failures: list[str] = []
+        rpc.check_policy_contract_integrity(str(policy_path), failures)
+
+        assert any(
+            "missing-rule" in f or "missing-check" in f or "nonexistent-target" in f
+            for f in failures
+        )
+
+
 def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
     """The live policy contract must map enforced architecture rules to controls."""
     failures: list[str] = []

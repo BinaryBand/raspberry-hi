@@ -227,6 +227,169 @@ def check_makefile_host_selector(makefile_path: str, failures: List[str]) -> Non
         failures.append("Makefile help must document the default HOST selector")
 
 
+def check_registry_conflicts(
+    app_roles: List[str], apps_dir: str, registry_path: str, failures: List[str]
+) -> None:
+    """Fail on conflicting default values between registry.yml and role defaults.
+
+    Compare `ansible/apps/<app>/defaults/main.yml` against the entry in
+    *registry_path* under `apps.<app>.preflight_vars`. If both sources declare a
+    non-null default for the same variable and the values differ, record a
+    failure.
+    """
+    reg_file = Path(registry_path)
+    if not reg_file.is_file():
+        failures.append(f"Missing registry file: {reg_file}")
+        return
+
+    loaded = yaml.safe_load(reg_file.read_text(encoding="utf-8"))
+    reg: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
+    apps_section: Dict[str, Any] = {}
+    if "apps" in reg and isinstance(reg.get("apps"), dict):
+        apps_section = cast(Dict[str, Any], reg.get("apps"))
+
+    apps_root = Path(apps_dir)
+    for app in app_roles:
+        app_entry_obj = apps_section.get(app)
+        if not isinstance(app_entry_obj, dict):
+            continue
+        app_entry = cast(Dict[str, Any], app_entry_obj)
+
+        preflight_vars_obj = app_entry.get("preflight_vars", {})
+        preflight_vars = (
+            cast(Dict[str, Any], preflight_vars_obj) if isinstance(preflight_vars_obj, dict) else {}
+        )
+
+        defaults_path = apps_root / app / "defaults" / "main.yml"
+        if not defaults_path.is_file():
+            continue
+
+        defaults_loaded = yaml.safe_load(defaults_path.read_text(encoding="utf-8"))
+        defaults: Dict[str, Any] = (
+            cast(Dict[str, Any], defaults_loaded) if isinstance(defaults_loaded, dict) else {}
+        )
+
+        for key in set(preflight_vars.keys()) & set(defaults.keys()):
+            role_default = defaults.get(key)
+            registry_default = None
+            var_spec = preflight_vars.get(key)
+            if isinstance(var_spec, dict):
+                spec_map = cast(Dict[str, Any], var_spec)
+                registry_default = spec_map.get("default")
+
+            if role_default is not None and registry_default is not None:
+                if str(role_default) != str(registry_default):
+                    failures.append(
+                        f"Registry/role defaults conflict for app '{app}', var '{key}': "
+                        f"registry default {registry_default!r} != role default {role_default!r}"
+                    )
+
+
+def check_policy_contract_integrity(policy_registry_path: str, failures: List[str]) -> None:
+    """Validate that policy controls reference real enforcement artifacts.
+
+    Controls of the form `semgrep:<rule-id>` must map to a rule in a discovered
+    `.semgrep.yml`. Controls of the form `repo-policy:<kebab-name>` must map to a
+    `check_<kebab_name>` function in `linux_hi.policy_utils`. Controls of the form
+    `make:<target>` must exist in a discovered `Makefile`.
+    """
+    registry_file = Path(policy_registry_path)
+    if not registry_file.is_file():
+        failures.append(f"Missing policy registry file: {registry_file}")
+        return
+
+    loaded = yaml.safe_load(registry_file.read_text(encoding="utf-8"))
+    data: Dict[str, Any] = cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
+    raw_policies_obj: Any = data.get("policies", [])
+    if not isinstance(raw_policies_obj, list):
+        msg = f"Invalid policy registry format in {registry_file}: 'policies' must be a list"
+        failures.append(msg)
+        return
+    raw_policies: List[object] = cast(List[object], raw_policies_obj)
+
+    # Discover companion files: look in the policy registry dir and its parent
+    base_dirs = [registry_file.parent, registry_file.parent.parent]
+
+    semgrep_ids: set[str] = set()
+    semgrep_found = False
+    for d in base_dirs:
+        candidate = d / ".semgrep.yml"
+        if candidate.is_file():
+            semgrep_found = True
+            semgrep_text = candidate.read_text(encoding="utf-8")
+            # Fallback: extract rule ids with a regex to avoid complex typed YAML shapes
+            for m in re.finditer(r"(?m)^\s*-\s*id\s*:\s*([^\s#]+)", semgrep_text):
+                semgrep_ids.add(m.group(1).strip())
+            break
+
+    makefile_text = ""
+    makefile_found = False
+    for d in base_dirs:
+        candidate = d / "Makefile"
+        if candidate.is_file():
+            makefile_found = True
+            makefile_text = candidate.read_text(encoding="utf-8")
+            break
+
+    # Import this module to check for repo-policy function targets
+    try:
+        import importlib
+
+        mod = importlib.import_module("linux_hi.policy_utils")
+    except Exception:
+        mod = None
+
+    for policy_obj in raw_policies:
+        if not isinstance(policy_obj, dict):
+            continue
+        policy_map: Dict[str, Any] = cast(Dict[str, Any], policy_obj)
+        controls_obj: Any = policy_map.get("controls", [])
+        if not isinstance(controls_obj, list):
+            continue
+        controls: List[object] = cast(List[object], controls_obj)
+
+        for control in controls:
+            if not isinstance(control, str):
+                continue
+            if control.startswith("semgrep:"):
+                _, val = control.split(":", 1)
+                if val == ".semgrep.yml":
+                    if not semgrep_found:
+                        failures.append(
+                            f"Policy control {control} references .semgrep.yml but none was found"
+                        )
+                    continue
+                if val not in semgrep_ids:
+                    failures.append(
+                        f"Policy control {control} references unknown semgrep rule '{val}'"
+                    )
+            elif control.startswith("repo-policy:"):
+                _, val = control.split(":", 1)
+                fn = "check_" + val.replace("-", "_")
+                if mod is None or not hasattr(mod, fn):
+                    failures.append(
+                        f"Policy control {control} references missing function '{fn}' "
+                        "in linux_hi.policy_utils"
+                    )
+            elif control.startswith("make:"):
+                _, val = control.split(":", 1)
+                if not makefile_found:
+                    failures.append(
+                        f"Policy control {control} references make target '{val}' "
+                        "but no Makefile was found"
+                    )
+                    continue
+
+                pattern1 = re.search(rf"(^|\n){re.escape(val)}\s*:", makefile_text)
+                pattern2 = re.search(rf"\.PHONY:.*\b{re.escape(val)}\b", makefile_text)
+                if pattern1 is None and pattern2 is None:
+                    failures.append(
+                        f"Policy control {control} references missing Make target '{val}'"
+                    )
+            else:
+                failures.append(f"Policy control {control} uses unknown control scheme")
+
+
 def check_site_become_password_assertion(site_playbook_path: str, failures: List[str]) -> None:
     """Ensure ansible/site.yml asserts become_passwords for the current host."""
     site_playbook = Path(site_playbook_path)
