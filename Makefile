@@ -42,7 +42,7 @@ ANSIBLE_PLAY := $(_ANSIBLE_FLAGS) $(PLAYBOOK)
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake cleanup cpd repo-policy
-.PHONY: format format-check help lint logs mount ping pyright rclone restore restore-check ruff
+.PHONY: format format-check help lint logs mount ping ty rclone restore restore-check ruff
 .PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep site ssh status test test-e2e vault-edit vulture
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
 
@@ -58,7 +58,7 @@ help:
 	@echo "  ruff-format   Reformat Python files with Ruff"
 	@echo "  ruff-help     Show Ruff command-line help"
 	@echo "  format-check  Run Ruff formatting checks over scripts/, models/, and tests/"
-	@echo "  pyright       Run Pyright type checks over the repository"
+	@echo "  ty            Run ty type checks over the repository"
 	@echo "  semgrep       Run Semgrep architectural and process audits"
 	@echo "  cpd           Fail on any copy-paste duplication (jscpd, threshold 0%)"
 	@echo "  vulture       Check for unused Python code (min confidence 80%)"
@@ -90,7 +90,7 @@ help:
 check:
 	$(POETRY) python -m linux_hi.cli.check
 
-lint: ruff format-check pyright semgrep cpd vulture ansible-lint checkmake repo-policy
+lint: ruff format-check ty semgrep cpd vulture ansible-lint checkmake repo-policy
 
 # Ruff targets: help / check / format / fix
 ruff: ruff-check
@@ -114,14 +114,14 @@ format: ruff-format
 
 _ci:
 	$(POETRY) ruff check $(PY_DIRS)
-	$(POETRY) pyright
+	$(POETRY) ty check
 	$(POETRY) semgrep scan --config .semgrep.yml --error
 	$(POETRY) mbake format --check Makefile
 	$(POETRY) python -m linux_hi.cli.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
-pyright:
-	$(POETRY) pyright
+ty:
+	$(POETRY) ty check
 
 semgrep:
 	$(POETRY) semgrep scan --config .semgrep.yml --error
