@@ -1,4 +1,8 @@
-"""Helpers for parsing rclone configuration (INI format)."""
+"""Helpers for parsing rclone configuration (INI format).
+
+This module enforces the structured representation: a mapping of
+remote-name -> { key: value }.
+"""
 
 from __future__ import annotations
 
@@ -6,44 +10,40 @@ import configparser
 from typing import Dict
 
 
-def parse_rclone_config(value: str | dict) -> Dict[str, Dict[str, str]]:
-    """Return a mapping of remotes -> key/value mapping for *value*.
+def parse_rclone_ini(ini_text: str) -> Dict[str, Dict[str, str]]:
+    """Parse a raw rclone INI string into a mapping of remotes.
 
-    Accepts either a raw INI string (old format) or a structured mapping
-    (new format). Values are coerced to strings.
+    Empty or whitespace-only input returns an empty mapping. Invalid INI
+    raises ValueError.
     """
-    if isinstance(value, str):
-        cfg = configparser.ConfigParser()
-        cfg.read_string(value)
-        result: Dict[str, Dict[str, str]] = {}
-        for section in cfg.sections():
-            # configparser returns lowercase keys by default; preserve as-is
-            items = {k: v for k, v in cfg.items(section)}
-            result[section] = {str(k): str(v) for k, v in items.items()}
-        return result
+    if not isinstance(ini_text, str):
+        raise TypeError("parse_rclone_ini expects a string")
 
-    if isinstance(value, dict):
-        result: Dict[str, Dict[str, str]] = {}
-        for remote, mapping in value.items():
-            if mapping is None:
-                result[str(remote)] = {}
-                continue
-            if not isinstance(mapping, dict):
-                raise TypeError("rclone config mapping values must be dicts")
-            result[str(remote)] = {str(k): str(v) for k, v in mapping.items()}
-        return result
+    if not ini_text.strip():
+        return {}
 
-    raise TypeError("Unsupported rclone config type: %r" % type(value))
+    cfg = configparser.ConfigParser()
+    try:
+        cfg.read_string(ini_text)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise ValueError("Invalid rclone INI") from exc
+
+    result: Dict[str, Dict[str, str]] = {}
+    for section in cfg.sections():
+        items = {k: v for k, v in cfg.items(section)}
+        result[section] = {str(k): str(v) for k, v in items.items()}
+    return result
 
 
-def list_remotes(config_text: str | dict) -> list[str]:
-    """Return all remote names defined in *config_text*.
+def list_remotes(rclone_config: Dict[str, Dict[str, str]]) -> list[str]:
+    """Return remote names from a structured `rclone_config` mapping.
 
-    Accepts either a raw INI string (old behavior) or the structured mapping
-    produced by :func:`parse_rclone_config`.
+    The function expects a mapping as produced by :func:`parse_rclone_ini`
+    or read from the vault. Passing other types raises ``TypeError``.
     """
-    parsed = parse_rclone_config(config_text)
-    return list(parsed.keys())
+    if not isinstance(rclone_config, dict):
+        raise TypeError("list_remotes expects a mapping of remotes")
+    return list(rclone_config.keys())
 
 
-__all__ = ["parse_rclone_config", "list_remotes"]
+__all__ = ["parse_rclone_ini", "list_remotes"]

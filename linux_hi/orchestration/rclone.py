@@ -36,23 +36,28 @@ class RcloneSetupController:
 
     def run(self, config_text: str) -> list[str]:
         """Persist config_text in the vault and return the remote names saved."""
-        from linux_hi.storage.rclone import list_remotes, parse_rclone_config
+        from linux_hi.storage.rclone import list_remotes, parse_rclone_ini
 
-        new_remotes = list_remotes(config_text)
+        parsed_new = parse_rclone_ini(config_text)
+        new_remotes = list_remotes(parsed_new)
         if not new_remotes:
             raise ValueError("No remotes found in config.")
 
         vault_data = self._vault.read()
         # vault_data comes from an untyped backend; cast into the expected
-        # union so the type checker accepts it when passed to list_remotes().
-        existing_config = cast(str | dict, vault_data.get("rclone_config") or "")
+        # mapping so the type checker accepts it when passed to list_remotes().
+        existing_raw = vault_data.get("rclone_config") or {}
+        existing_config = cast(dict[str, dict[str, str]], existing_raw)
+
+        if not isinstance(existing_config, dict):
+            existing_config = {}
 
         if existing_config:
             existing_remotes = list_remotes(existing_config)
             if not self._prompter.confirm_overwrite(existing_remotes, new_remotes):
                 sys.exit("Aborted.")
 
-        # Persist structured mapping into the vault (coerce from raw INI if needed)
-        vault_data["rclone_config"] = parse_rclone_config(config_text)
+        # Persist the structured mapping into the vault
+        vault_data["rclone_config"] = parsed_new
         self._vault.write(vault_data)
         return new_remotes

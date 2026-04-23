@@ -21,8 +21,12 @@ def _pick_rclone_remote(label: str) -> str | None:
     from linux_hi.storage.rclone import list_remotes
 
     raw = decrypt_vault_raw()
-    config_text = str(raw.get("rclone_config") or "")
-    remotes = list_remotes(config_text)
+    rclone_cfg = raw.get("rclone_config") or {}
+    if not isinstance(rclone_cfg, dict):
+        print("  [WARN]  No rclone remotes found in vault. Run 'make rclone' to configure one.")
+        sys.exit(1)
+
+    remotes = list_remotes(rclone_cfg)
     if not remotes:
         print("  [WARN]  No rclone remotes found in vault. Run 'make rclone' to configure one.")
         sys.exit(1)

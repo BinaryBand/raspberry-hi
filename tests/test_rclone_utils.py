@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from linux_hi.storage.rclone import list_remotes, parse_rclone_config
+from linux_hi.storage.rclone import list_remotes, parse_rclone_ini
 
 
 class TestListRemotes:
@@ -11,20 +11,24 @@ class TestListRemotes:
     def test_single_remote(self) -> None:
         """A single INI section is returned as one remote name."""
         config = "[pcloud]\ntype = pcloud\nclient_id = abc123\n"
-        assert list_remotes(config) == ["pcloud"]
+        parsed = parse_rclone_ini(config)
+        assert list_remotes(parsed) == ["pcloud"]
 
     def test_multiple_remotes(self) -> None:
         """Multiple sections are returned in declaration order."""
         config = "[pcloud]\ntype = pcloud\n\n[gdrive]\ntype = drive\n"
-        assert list_remotes(config) == ["pcloud", "gdrive"]
+        parsed = parse_rclone_ini(config)
+        assert list_remotes(parsed) == ["pcloud", "gdrive"]
 
     def test_empty_config(self) -> None:
         """Empty string yields no remotes."""
-        assert list_remotes("") == []
+        parsed = parse_rclone_ini("")
+        assert list_remotes(parsed) == []
 
     def test_whitespace_only(self) -> None:
         """Whitespace-only string yields no remotes."""
-        assert list_remotes("   \n  \n") == []
+        parsed = parse_rclone_ini("   \n  \n")
+        assert list_remotes(parsed) == []
 
     def test_remote_with_multiple_keys(self) -> None:
         """Remote sections with many keys still resolve to one name each."""
@@ -36,7 +40,8 @@ class TestListRemotes:
             "secret_access_key = SECRET\n"
             "endpoint = https://example.com\n"
         )
-        assert list_remotes(config) == ["myremote"]
+        parsed = parse_rclone_ini(config)
+        assert list_remotes(parsed) == ["myremote"]
 
     def test_mapping_input(self) -> None:
         """Passing a structured mapping returns the remote names in order."""
@@ -46,12 +51,8 @@ class TestListRemotes:
         }
         assert list_remotes(mapping) == ["pcloud", "gdrive"]
 
-    def test_parse_rclone_config_from_string_and_mapping(self) -> None:
-        """parse_rclone_config accepts both INI strings and mappings."""
+    def test_parse_rclone_ini_from_string(self) -> None:
+        """parse_rclone_ini accepts INI strings and returns the mapping."""
         ini = "[pcloud]\ntype = pcloud\n"
-        parsed_from_str = parse_rclone_config(ini)
+        parsed_from_str = parse_rclone_ini(ini)
         assert parsed_from_str == {"pcloud": {"type": "pcloud"}}
-
-        mapping = {"pcloud": {"type": "pcloud"}}
-        parsed_from_map = parse_rclone_config(mapping)
-        assert parsed_from_map == mapping

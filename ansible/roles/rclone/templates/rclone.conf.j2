@@ -1,9 +1,6 @@
 {# Render either the legacy raw INI blob or the new structured mapping of remotes. #}
-{% if rclone_config is string %}
-{{ rclone_config }}
-
-{% elif rclone_config is mapping %}
 {# rclone_config is expected to be a mapping: remote_name -> { key: value } #}
+{% if rclone_config is mapping %}
 {% for remote, remote_cfg in rclone_config.items() %}
 [{{ remote }}]
 {% for key, value in remote_cfg.items() %}
@@ -11,7 +8,6 @@
 {% endfor %}
 
 {% endfor %}
-
 {% else %}
-{# No rclone config provided #}
+{# No rclone config provided or invalid type - nothing to render #}
 {% endif %}
