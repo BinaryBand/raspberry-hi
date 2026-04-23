@@ -135,7 +135,7 @@ Compatibility wrapper for `linux_hi.cli.mount`. The package entrypoint owns inte
 
 ### `scripts/rclone.py`
 
-Compatibility wrapper for `linux_hi.cli.rclone`. The package entrypoint owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config blob into the vault so the `rclone` Ansible role can deploy it to hosts. No SSH or Fabric session is opened.
+Compatibility wrapper for `linux_hi.cli.rclone`. The package entrypoint owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config into the vault so the `rclone` Ansible role can deploy it to hosts. Historically the config was stored as a raw INI blob; the code now prefers a structured mapping (remote → key/value) but template and parsing helpers accept either format for compatibility. No SSH or Fabric session is opened.
 
 ---
 

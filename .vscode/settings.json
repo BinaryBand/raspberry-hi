@@ -26,7 +26,6 @@
     "source.organizeImports.ruff": "explicit"
   },
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }

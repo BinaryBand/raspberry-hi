@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from linux_hi.storage.rclone import list_remotes
+from linux_hi.storage.rclone import list_remotes, parse_rclone_config
 
 
 class TestListRemotes:
@@ -37,3 +37,21 @@ class TestListRemotes:
             "endpoint = https://example.com\n"
         )
         assert list_remotes(config) == ["myremote"]
+
+    def test_mapping_input(self) -> None:
+        """Passing a structured mapping returns the remote names in order."""
+        mapping = {
+            "pcloud": {"type": "pcloud", "client_id": "abc"},
+            "gdrive": {"type": "drive"},
+        }
+        assert list_remotes(mapping) == ["pcloud", "gdrive"]
+
+    def test_parse_rclone_config_from_string_and_mapping(self) -> None:
+        """parse_rclone_config accepts both INI strings and mappings."""
+        ini = "[pcloud]\ntype = pcloud\n"
+        parsed_from_str = parse_rclone_config(ini)
+        assert parsed_from_str == {"pcloud": {"type": "pcloud"}}
+
+        mapping = {"pcloud": {"type": "pcloud"}}
+        parsed_from_map = parse_rclone_config(mapping)
+        assert parsed_from_map == mapping
