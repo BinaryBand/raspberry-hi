@@ -35,15 +35,14 @@ REMOTE_KEY := $(word 4,$(_INV))
 ANSIBLE_CFG := $(CURDIR)/ansible/ansible.cfg
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
 INV := ansible/inventory/hosts.ini
-PLAYBOOK := ansible/site.yml
 _ANSIBLE_FLAGS := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
-ANSIBLE_PLAY := $(_ANSIBLE_FLAGS) $(PLAYBOOK)
+SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake cleanup cpd repo-policy
-.PHONY: format format-check help lint logs mount ping ty rclone restore restore-check ruff
-.PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep site ssh status test test-e2e vault-edit vulture
+.PHONY: format format-check generate-apps help lint logs mount ping ty rclone restore restore-check ruff
+.PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep setup ssh status test test-e2e vault-edit vulture
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
 
 help:
@@ -67,7 +66,8 @@ help:
 	@echo "  ansible-lint  Run ansible-lint over ansible/"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
-	@echo "  site          Provision a host (HOST=rpi|rpi2|debian)"
+	@echo "  setup         Provision base dependencies on a host (HOST=rpi|rpi2|debian)"
+	@echo "  generate-apps Regenerate per-app playbooks from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Configure project rclone remotes and vault the config"
@@ -147,6 +147,9 @@ test:
 test-e2e:
 	HOST=$(HOST) $(POETRY) pytest tests/e2e/ -v -m e2e -s
 
+generate-apps:
+	$(POETRY) python -m linux_hi.cli.generate_apps
+
 ping:
 	ansible devices -m ping -i $(INV) || true
 
@@ -197,12 +200,10 @@ restore-check: _backup_preflight _restore_preflight
 _%_preflight: _vault_check
 	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight $*
 
-# Generic app provisioning — each app in APPS gets: make <app> → preflight → playbook.
+# Generic app provisioning — each app in APPS gets: make <app> → preflight → per-app playbook.
+# Dependency preflight chaining is handled by linux_hi.cli.preflight via registry.yml.
 $(APPS): %: _%_preflight
-	$(ANSIBLE_PLAY) --tags $@
-
-# Baikal also needs postgres to be ready before provisioning.
-baikal: _postgres_preflight
+	$(_ANSIBLE_FLAGS) ansible/apps/$@/playbook.yml
 
 status: _inv_check
 	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make status SVC=minio"; exit 1; }
@@ -219,8 +220,8 @@ _cleanup_preflight: _vault_check
 cleanup: _cleanup_preflight
 	$(_ANSIBLE_FLAGS) ansible/cleanup.yml -e cleanup_app=$(APP)
 
-site: _vault_check
-	$(ANSIBLE_PLAY) --skip-tags apps
+setup: _vault_check
+	$(SETUP_PLAY)
 
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1

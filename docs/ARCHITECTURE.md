@@ -55,7 +55,7 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 
 This keeps sudo credentials centralized and out of `host_vars`.
 
-`ansible/site.yml` includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error.
+`ansible/setup.yml` includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error. Each per-app playbook (`ansible/apps/<app>/playbook.yml`) carries the same assertion.
 
 Semgrep enforces the secret boundary by rejecting secret-like keys in `host_vars`, rejecting plaintext secrets in non-vault `group_vars`, and requiring the shared `ansible_become_password` vault lookup template.
 
@@ -177,13 +177,14 @@ Each app entry declares:
 
 The current example is Baikal depending on PostgreSQL.
 
-That dependency is declared in the registry for tooling and documentation, but provisioning order is enforced in `ansible/site.yml` through tag composition, not through `meta/main.yml` role dependencies:
+That dependency is declared in the registry and enforced at two levels:
 
-- `postgres` is tagged with both `postgres` and `baikal`
-- `baikal` is tagged with `baikal`
-- `make baikal` therefore runs PostgreSQL first without relying on role metadata dependencies
+- `linux_hi.cli.preflight` walks `registry.yml` dependencies depth-first, so `make baikal` automatically prompts for any missing PostgreSQL vars before Baikal's own preflight runs.
+- `ansible/apps/baikal/playbook.yml` opens with `import_playbook: ../postgres/playbook.yml`, so Ansible converges PostgreSQL before Baikal during provisioning.
 
-`meta/main.yml` dependencies must stay empty for these roles. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L39-L44); Semgrep: [.semgrep.yml](.semgrep.yml) — `ansible-meta-no-non-empty-dependencies`; Repo checks: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L15-L53) and [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L56-L93)). Non-empty role dependencies cause duplicate execution under tag-based runs and are forbidden by Semgrep.
+Both files are generated from `registry.yml` and must not be edited by hand. Run `make generate-apps` to regenerate after registry changes.
+
+`meta/main.yml` dependencies must stay empty for these roles. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml); Semgrep: [.semgrep.yml](.semgrep.yml) — `ansible-meta-no-non-empty-dependencies`.) Non-empty role dependencies cause duplicate execution under per-app playbook invocation and are forbidden by Semgrep.
 
 This pattern is for repo-owned service relationships, not hidden external prerequisites.
 
@@ -272,7 +273,7 @@ ansible/
     vars.yml       shared non-secret variables
     vault.yml      encrypted durable secrets
   registry.yml     app metadata consumed by Python tooling and tests
-  site.yml         single provisioning entry point
+  setup.yml        base provisioning playbook (auto-updates, podman, rclone)
 
 scripts/
   bootstrap.py     compatibility wrapper for package bootstrap CLI

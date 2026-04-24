@@ -462,6 +462,17 @@ def check_site_become_password_assertion(site_playbook_path: str, failures: List
     )
 
 
+def check_app_playbooks(app_roles: List[str], apps_dir: str, failures: List[str]) -> None:
+    """Ensure every registered app has a generated per-app playbook."""
+    for app in app_roles:
+        playbook = Path(apps_dir) / app / "playbook.yml"
+        if not playbook.is_file():
+            failures.append(
+                f"App '{app}' missing per-app playbook: {playbook} "
+                "(run 'make generate-apps' to regenerate)"
+            )
+
+
 def check_app_data_paths(app_roles: List[str], registry_path: str, failures: List[str]) -> None:
     """Ensure persistent apps declare explicit data paths in registry preflight vars."""
     registry_file = Path(registry_path)
@@ -614,6 +625,7 @@ def check_makefile_phony_and_style(
 __all__ = [
     "check_app_data_paths",
     "check_app_dirs",
+    "check_app_playbooks",
     "check_app_tests",
     "check_deleted_compatibility_namespaces",
     "check_makefile_guard_checks",

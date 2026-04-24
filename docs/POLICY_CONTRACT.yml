@@ -37,13 +37,20 @@ policies:
       - repo-policy:makefile-host-selector
       - make:repo-policy
 
-  - id: site-must-assert-become-passwords
-    statement: "ansible/site.yml includes an always-on assertion that the current host has a become_passwords entry."
+  - id: setup-must-assert-become-passwords
+    statement: "ansible/setup.yml includes an always-on assertion that the current host has a become_passwords entry."
     source_line: 61
     status: enforced
     controls:
       - repo-policy:site-become-password-assertion
       - make:repo-policy
+
+  - id: app-playbooks-must-exist-for-all-registered-apps
+    statement: "Every app in ansible/registry.yml must have a generated per-app playbook at ansible/apps/<app>/playbook.yml."
+    status: enforced
+    controls:
+      - repo-policy:app-playbooks
+      - make:generate-apps
 
   - id: make-targets-must-fail-fast-on-runtime-inputs
     statement: "Targets that require runtime inputs fail fast with explicit guard checks and actionable error messages."

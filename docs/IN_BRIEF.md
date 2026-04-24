@@ -48,14 +48,15 @@ python -m linux_hi.cli.preflight --host raspi1
 scripts/preflight.py
 ```
 
-Notes: app dependencies are documented in `ansible/registry.yml`. Provisioning order is enforced via tags in `ansible/site.yml`, not by `meta/main.yml` role dependencies.
+Notes: app dependencies are declared in `ansible/registry.yml`. Preflight chains them automatically, and `make generate-apps` produces per-app playbooks with `import_playbook` ordering. `meta/main.yml` dependencies must stay empty.
 
 ```mermaid
 graph LR
   registry[ansible/registry.yml] --> make[make baikal]
-  make --> site[ansible/site.yml (tags)]
-  site --> postgres[postgres role]
-  site --> baikal[baikal role]
+  make --> preflight[preflight: postgres → baikal]
+  make --> playbook[apps/baikal/playbook.yml]
+  playbook --> postgres[import postgres/playbook.yml]
+  playbook --> baikal[baikal role]
   postgres --> baikal
 ```
 
@@ -104,7 +105,7 @@ Static checks enforced in CI: Semgrep, ansible-lint, Ruff, Pyright, Vulture, dup
 
 ## Repo shape (at-a-glance)
 
-- `ansible/` — roles, apps, inventory, registry, site.yml
+- `ansible/` — roles, apps, inventory, registry, setup.yml
 - `scripts/` — thin wrappers for package CLIs
 - `linux_hi/` — the package code (cli, adapters, vault, storage, orchestration)
 - `models/` — typed models and ansible-access helpers

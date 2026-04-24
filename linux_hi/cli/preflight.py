@@ -111,8 +111,24 @@ def _resolve_role_path(app: str) -> Path:
         sys.exit(f"  [FAIL]  {exc}")
 
 
+def _run_preflight_for(app: str, hostname: str, _seen: set[str] | None = None) -> None:
+    """Run preflight for *app* and all its registry dependencies (depth-first, cycle-safe)."""
+    if _seen is None:
+        _seen = set()
+    if app in _seen:
+        return
+    _seen.add(app)
+    entry = ANSIBLE_DATA.get_app_entry(app)
+    for dep in entry.dependencies:
+        _run_preflight_for(dep, hostname, _seen)
+    role_path = _resolve_role_path(app)
+    vars_spec, secrets_spec = load_preflight_spec(app, role_path)
+    host_updates, secret_updates = collect_preflight_updates(hostname, vars_spec, secrets_spec)
+    write_preflight_updates(hostname, host_updates, secret_updates)
+
+
 def main(argv: list[str] | None = None) -> None:
-    """Prompt for missing role vars and secrets for a single app."""
+    """Prompt for missing role vars and secrets for an app and its dependencies."""
     args = argv if argv is not None else sys.argv[1:]
     if len(args) < 1:
         sys.exit("Usage: preflight.py <app>")
@@ -121,10 +137,7 @@ def main(argv: list[str] | None = None) -> None:
     if not hostname:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
     hostname = require_inventory_host(hostname)
-    role_path = _resolve_role_path(app)
-    vars_spec, secrets_spec = load_preflight_spec(app, role_path)
-    host_updates, secret_updates = collect_preflight_updates(hostname, vars_spec, secrets_spec)
-    write_preflight_updates(hostname, host_updates, secret_updates)
+    _run_preflight_for(app, hostname)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import sys
 from linux_hi.policy_utils import (
     check_app_data_paths,
     check_app_dirs,
+    check_app_playbooks,
     check_app_tests,
     check_deleted_compatibility_namespaces,
     check_makefile_guard_checks,
@@ -41,7 +42,8 @@ def main() -> None:
     check_registry_conflicts(app_roles, _APPS_DIR, _REGISTRY_PATH, failures)
     check_app_tests(app_roles, _TESTS_DIR, _E2E_DIR, failures)
     check_playbook_vars(str(_ROOT / "ansible"), failures)
-    check_site_become_password_assertion(str(_ROOT / "ansible" / "site.yml"), failures)
+    check_site_become_password_assertion(str(_ROOT / "ansible" / "setup.yml"), failures)
+    check_app_playbooks(app_roles, _APPS_DIR, failures)
     check_app_data_paths(app_roles, _REGISTRY_PATH, failures)
     check_deleted_compatibility_namespaces(str(_ROOT), failures)
     check_scripts_wrapper_topology(str(_ROOT), failures)
