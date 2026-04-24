@@ -259,6 +259,19 @@ rules:
       - pattern: from ruamel.yaml import $X
       - pattern: import ruamel.yaml
 
+  - id: rclone-conf-not-tracked
+    message: >-
+      .rclone.conf contains rclone OAuth tokens and must not be committed.
+      Ensure .rclone.conf is listed in .gitignore. If this file appeared in a
+      scan, the gitignore entry may have been removed or bypassed.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - "/.rclone.conf"
+    pattern-regex: '(?m)^\[.+\]'
+
   - id: group-vars-no-plain-text-secrets
     message: Durable secrets must live in vault.yml, not plain group_vars files.
     severity: ERROR

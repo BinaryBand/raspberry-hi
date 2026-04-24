@@ -1,4 +1,4 @@
-"""Capture local rclone config into the Ansible vault."""
+"""Configure project rclone remotes and persist the config to the Ansible vault."""
 
 from __future__ import annotations
 
@@ -9,9 +9,10 @@ from pathlib import Path
 import questionary
 
 from linux_hi.orchestration.rclone import RcloneSetupController
+from linux_hi.process.exec import run_resolved
 from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
-RCLONE_CONF = Path.home() / ".config" / "rclone" / "rclone.conf"
+RCLONE_CONF = Path(".rclone.conf")
 
 
 class _VaultAdapter:
@@ -33,12 +34,15 @@ class _QuestionaryConfirm:
 
 
 def main() -> None:
-    """Persist local rclone config into the encrypted vault."""
-    if not RCLONE_CONF.exists():
-        sys.exit(
-            f"No rclone config found at {RCLONE_CONF}.\n"
-            "Run 'rclone config' locally to add a remote, then retry."
-        )
+    """Open rclone config for project remotes, then persist the config to the vault."""
+    print(f"Opening rclone config (project file: {RCLONE_CONF})\n")
+    try:
+        run_resolved(["rclone", "config", "--config", str(RCLONE_CONF)])
+    except FileNotFoundError:
+        sys.exit("rclone is not installed or not in PATH. Install it and retry.")
+
+    if not RCLONE_CONF.exists() or not RCLONE_CONF.read_text().strip():
+        sys.exit("  [FAIL]  No remotes configured — add at least one remote and retry.")
 
     config_text = RCLONE_CONF.read_text()
     controller = RcloneSetupController(

@@ -70,7 +70,7 @@ help:
 	@echo "  site          Provision a host (HOST=rpi|rpi2|debian)"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
-	@echo "  rclone        Capture local rclone config into the vault"
+	@echo "  rclone        Configure project rclone remotes and vault the config"
 	@echo "  backup        Back up all apps to the restic repository"
 	@echo "  backup-check  Dry-run backup validation (no snapshots or prune writes)"
 	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"

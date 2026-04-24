@@ -76,3 +76,9 @@ policies:
     controls:
       - repo-policy:app-data-paths
       - make:repo-policy
+
+  - id: rclone-conf-must-not-be-committed
+    statement: ".rclone.conf contains rclone OAuth tokens and must never be tracked by git."
+    status: enforced
+    controls:
+      - semgrep:rclone-conf-not-tracked
