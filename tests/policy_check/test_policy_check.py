@@ -288,3 +288,11 @@ def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
     rpc.check_policy_registry_controls(str(ROOT / "docs" / "POLICY_CONTRACT.yml"), failures)
 
     assert not failures, f"Unexpected policy coverage failures: {failures}"
+
+
+def test_live_policy_contract_integrity() -> None:
+    """POLICY_CONTRACT.yml controls must reference Semgrep rules, policy_utils, and Make targets."""
+    failures: list[str] = []
+    rpc.check_policy_contract_integrity(str(ROOT / "docs" / "POLICY_CONTRACT.yml"), failures)
+
+    assert not failures, "Policy contract integrity failures:\n" + "\n".join(failures)
