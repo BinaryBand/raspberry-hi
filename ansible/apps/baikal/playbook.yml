@@ -1,5 +1,6 @@
 ---
-- import_playbook: ../postgres/playbook.yml
+- name: Import postgres playbook
+  import_playbook: ../postgres/playbook.yml
 
 - name: Provision baikal
   hosts: devices

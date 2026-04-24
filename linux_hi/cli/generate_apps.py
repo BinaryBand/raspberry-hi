@@ -21,7 +21,8 @@ _BECOME_ASSERT = """\
 def _render_playbook(app: str, dependencies: list[str]) -> str:
     parts: list[str] = ["---"]
     for dep in dependencies:
-        parts.append(f"- import_playbook: ../{dep}/playbook.yml")
+        parts.append(f"- name: Import {dep} playbook")
+        parts.append(f"  import_playbook: ../{dep}/playbook.yml")
         parts.append("")
     parts.append(f"- name: Provision {app}")
     parts.append("  hosts: devices")
