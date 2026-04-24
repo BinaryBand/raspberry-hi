@@ -10,7 +10,7 @@ import questionary
 
 from linux_hi.ansible.inventory import require_inventory_host
 from linux_hi.ansible.role_vars import role_required_vars
-from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, replace_vault_data
+from linux_hi.vault.service import VAULT_FILE, decrypt_vault, decrypt_vault_raw, replace_vault_data
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, str]
@@ -20,13 +20,8 @@ def _pick_rclone_remote(label: str) -> str | None:
     """Present existing vault rclone remotes as a selection prompt."""
     from linux_hi.storage.rclone import list_remotes
 
-    raw = decrypt_vault_raw()
-    rclone_cfg = raw.get("rclone_config") or {}
-    if not isinstance(rclone_cfg, dict):
-        print("  [WARN]  No rclone remotes found in vault. Run 'make rclone' to configure one.")
-        sys.exit(1)
-
-    remotes = list_remotes(rclone_cfg)
+    secrets = decrypt_vault()
+    remotes = list_remotes(secrets.rclone_config or {})
     if not remotes:
         print("  [WARN]  No rclone remotes found in vault. Run 'make rclone' to configure one.")
         sys.exit(1)

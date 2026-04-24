@@ -29,7 +29,7 @@
 - [x] Add app clean-up protocol.
 - [x] Create a backup and restore plan.
 - [ ] Setup reverse-proxy management.
-- [ ] Don't store entire file contents in vault.
+- [x] Don't store entire file contents in vault.
 
 ## Style
 

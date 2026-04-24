@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import configparser
+import re
 from pathlib import Path
 
+import yaml
+
 from linux_hi.process.exec import run_resolved
+from models import VaultSecrets
+from models.ansible.registry import AppRegistry
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -122,3 +127,55 @@ class TestAnsibleLint:
         config.read(ROOT / "ansible" / "ansible.cfg")
 
         assert "vault_password_file" not in config["defaults"]
+
+
+# Vault keys whose names end in a recognised secret suffix are already caught
+# by the generic host-vars-no-inline-secret-keys pattern-regex.
+_GENERIC_SECRET_SUFFIX = re.compile(
+    r".*(?:password|secret|token|api_key|private_key)$",
+    re.IGNORECASE,
+)
+
+
+class TestVaultSchemaIntegrity:
+    """Semgrep vault rules must stay in sync with VaultSecrets and the app registry."""
+
+    def _semgrep_rules(self) -> dict[str, object]:
+        semgrep = yaml.safe_load((ROOT / ".semgrep.yml").read_text(encoding="utf-8"))
+        return {r["id"]: r for r in semgrep["rules"]}
+
+    def test_become_password_rule_references_vault_schema_field(self) -> None:
+        """Semgrep become-password rule must reference the exact VaultSecrets field name."""
+        field = "become_passwords"
+        assert field in VaultSecrets.model_fields, (
+            f"{field!r} removed from VaultSecrets — update "
+            "host-vars-become-password-must-use-vault-template"
+        )
+        rules = self._semgrep_rules()
+        rule_text = yaml.safe_dump(rules["host-vars-become-password-must-use-vault-template"])
+        assert field in rule_text, (
+            f"Semgrep rule host-vars-become-password-must-use-vault-template "
+            f"no longer references vault field {field!r}"
+        )
+
+    def test_registry_vault_keys_without_generic_suffix_are_in_semgrep(self) -> None:
+        """Registry keys not covered by generic suffix patterns must be explicit in Semgrep."""
+        registry = AppRegistry.model_validate(
+            yaml.safe_load((ROOT / "ansible" / "registry.yml").read_text(encoding="utf-8"))
+        )
+        rules = self._semgrep_rules()
+        rule_text = yaml.safe_dump(rules["host-vars-no-inline-secret-keys"])
+
+        needs_explicit = {
+            spec.key
+            for entry in registry.apps.values()
+            for spec in entry.vault_secrets
+            if not _GENERIC_SECRET_SUFFIX.match(spec.key)
+        }
+        missing = [k for k in sorted(needs_explicit) if k not in rule_text]
+        assert not missing, (
+            f"Registry vault keys with non-generic names are missing from "
+            f"host-vars-no-inline-secret-keys in .semgrep.yml: {missing}. "
+            f"Add them explicitly or rename to end with a covered suffix "
+            f"(password|secret|token|api_key|private_key)."
+        )

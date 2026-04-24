@@ -7,22 +7,20 @@ import os
 import re
 import shlex
 import sys
-from typing import cast
 
 from linux_hi.adapters.info_port import RemoteInfoPort
 from linux_hi.adapters.prompter import QuestionaryPrompter
 from linux_hi.ansible.connection import make_connection
 from linux_hi.orchestration.mount import MountOrchestrator
 from linux_hi.storage.devices import get_device_uuid
-from linux_hi.vault.service import decrypt_vault_raw
+from linux_hi.vault.service import decrypt_vault
 from models import ANSIBLE_DATA
 
 
 def _become_password(hostname: str) -> str:
     """Read the become (sudo) password for *hostname* from the vault."""
-    raw = decrypt_vault_raw()
-    become_passwords = cast(dict[str, str], raw.get("become_passwords") or {})
-    pwd = become_passwords.get(hostname, "")
+    secrets = decrypt_vault()
+    pwd = (secrets.become_passwords or {}).get(hostname, "")
     if not pwd:
         sys.exit(f"No become password in vault for '{hostname}'. Run: make bootstrap")
     return pwd

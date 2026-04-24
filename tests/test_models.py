@@ -111,9 +111,10 @@ class TestVaultSecrets:
     """Test suite for VaultSecrets model validation."""
 
     def test_all_fields_optional(self):
-        """Ensure all fields are optional."""
+        """Ensure all declared fields are optional and default to None."""
         v = VaultSecrets()
-        assert v.become_passwords is None
+        for field in VaultSecrets.model_fields:
+            assert getattr(v, field) is None, f"Expected {field!r} to default to None"
 
     def test_become_passwords_dict(self):
         """Verify become_passwords stores per-host passwords as a dict."""
