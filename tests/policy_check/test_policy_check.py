@@ -1,6 +1,5 @@
 """Unit tests for the repository policy check CLI and utilities."""
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -20,9 +19,8 @@ apps:
 """
 
     with tempfile.TemporaryDirectory() as tmp:
-        reg_path = os.path.join(tmp, "registry.yml")
-        with open(reg_path, "w") as file_handle:
-            file_handle.write(registry_content)
+        reg_path = Path(tmp) / "registry.yml"
+        reg_path.write_text(registry_content, encoding="utf-8")
 
         failures: list[str] = []
         rpc.check_registry_entries(["foo", "bar"], reg_path, failures)
@@ -41,11 +39,9 @@ def test_variable_detection_in_playbook() -> None:
 """
 
     with tempfile.TemporaryDirectory() as tmp:
-        ansible_dir = os.path.join(tmp, "ansible")
-        os.makedirs(ansible_dir)
-        playbook_path = os.path.join(ansible_dir, "playbook.yml")
-        with open(playbook_path, "w") as file_handle:
-            file_handle.write(playbook_content)
+        ansible_dir = Path(tmp) / "ansible"
+        ansible_dir.mkdir()
+        (ansible_dir / "playbook.yml").write_text(playbook_content, encoding="utf-8")
 
         failures: list[str] = []
         rpc.check_playbook_vars(ansible_dir, failures)
@@ -63,11 +59,9 @@ apps:
 """
 
     with tempfile.TemporaryDirectory() as tmp:
-        ansible_dir = os.path.join(tmp, "ansible")
-        os.makedirs(ansible_dir)
-        reg_path = os.path.join(ansible_dir, "registry.yml")
-        with open(reg_path, "w") as file_handle:
-            file_handle.write(registry_content)
+        ansible_dir = Path(tmp) / "ansible"
+        ansible_dir.mkdir()
+        (ansible_dir / "registry.yml").write_text(registry_content, encoding="utf-8")
 
         failures: list[str] = []
         rpc.check_playbook_vars(ansible_dir, failures)
@@ -91,7 +85,7 @@ policies:
         )
 
         failures: list[str] = []
-        rpc.check_policy_registry_controls(str(registry), failures)
+        rpc.check_policy_registry_controls(registry, failures)
 
         assert any("marked enforced but has no control targets" in failure for failure in failures)
 
@@ -113,7 +107,7 @@ def test_site_requires_always_tagged_become_password_assertion() -> None:
         site_path.write_text(site_content.lstrip(), encoding="utf-8")
 
         failures: list[str] = []
-        rpc.check_site_become_password_assertion(str(site_path), failures)
+        rpc.check_site_become_password_assertion(site_path, failures)
 
         assert any("tagged 'always'" in failure for failure in failures)
 
@@ -136,7 +130,7 @@ apps:
         registry_path.write_text(registry_content.lstrip(), encoding="utf-8")
 
         failures: list[str] = []
-        rpc.check_app_data_paths(["foo"], str(registry_path), failures)
+        rpc.check_app_data_paths(["foo"], registry_path, failures)
 
         assert any("*_data_path" in failure for failure in failures)
 
@@ -145,7 +139,7 @@ def test_makefile_runtime_inputs_require_guard_checks() -> None:
     """Runtime Make variables must be guarded with explicit fast-fail checks."""
     makefile_content = """
 status:
-	ssh host "echo $(SVC)"
+\tssh host "echo $(SVC)"
 """
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -153,7 +147,7 @@ status:
         makefile_path.write_text(makefile_content.lstrip(), encoding="utf-8")
 
         failures: list[str] = []
-        rpc.check_makefile_guard_checks(str(makefile_path), failures)
+        rpc.check_makefile_guard_checks(makefile_path, failures)
 
         assert any("$(SVC)" in failure for failure in failures)
 
@@ -168,7 +162,7 @@ def test_direct_host_group_writes_are_rejected_outside_allowed_seams() -> None:
         )
 
         failures: list[str] = []
-        rpc.check_no_direct_host_group_writes(tmp, failures)
+        rpc.check_no_direct_host_group_writes(Path(tmp), failures)
 
         assert any("Direct write to Ansible state" in failure for failure in failures)
 
@@ -179,7 +173,7 @@ def test_makefile_public_targets_require_help_and_kebab_case() -> None:
 .PHONY: BadTarget good-target
 
 help:
-	@echo "  good-target  ok"
+\t@echo "  good-target  ok"
 """
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -187,7 +181,7 @@ help:
         makefile_path.write_text(makefile_content.lstrip(), encoding="utf-8")
 
         failures: list[str] = []
-        rpc.check_makefile_phony_and_style(str(makefile_path), [], failures)
+        rpc.check_makefile_phony_and_style(makefile_path, [], failures)
 
         assert any("kebab-case" in failure for failure in failures)
         assert any("must appear in make help output" in failure for failure in failures)
@@ -220,7 +214,7 @@ apps:
         )
 
         failures: list[str] = []
-        rpc.check_registry_conflicts(["foo"], str(apps_dir), str(registry_path), failures)
+        rpc.check_registry_conflicts(["foo"], apps_dir, registry_path, failures)
 
         assert any("Registry/role defaults conflict" in f for f in failures)
 
@@ -246,7 +240,7 @@ def test_policy_contract_integrity_detects_missing_references() -> None:
         (Path(tmp) / ".semgrep.yml").write_text(semgrep_content, encoding="utf-8")
 
         failures: list[str] = []
-        rpc.check_policy_contract_integrity(str(policy_path), failures)
+        rpc.check_policy_contract_integrity(policy_path, failures)
 
         assert any(
             "missing-rule" in f or "missing-check" in f or "nonexistent-target" in f
@@ -257,7 +251,7 @@ def test_policy_contract_integrity_detects_missing_references() -> None:
 def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
     """The live policy contract must map enforced architecture rules to controls."""
     failures: list[str] = []
-    rpc.check_policy_registry_controls(str(ROOT / "docs" / "POLICY_CONTRACT.yml"), failures)
+    rpc.check_policy_registry_controls(ROOT / "docs" / "POLICY_CONTRACT.yml", failures)
 
     assert not failures, f"Unexpected policy coverage failures: {failures}"
 
@@ -265,6 +259,6 @@ def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
 def test_live_policy_contract_integrity() -> None:
     """POLICY_CONTRACT.yml controls must reference Semgrep rules, policy_utils, and Make targets."""
     failures: list[str] = []
-    rpc.check_policy_contract_integrity(str(ROOT / "docs" / "POLICY_CONTRACT.yml"), failures)
+    rpc.check_policy_contract_integrity(ROOT / "docs" / "POLICY_CONTRACT.yml", failures)
 
     assert not failures, "Policy contract integrity failures:\n" + "\n".join(failures)

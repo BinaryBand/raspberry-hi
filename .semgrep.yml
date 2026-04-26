@@ -270,6 +270,46 @@ rules:
         - /ansible/**/*.j2
     pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'
 
+  # pathlib enforcement
+  - id: python-no-os-path
+    message: >-
+      Use pathlib.Path instead of os.path and os-level path helpers.
+      os.path.join(a, b) → Path(a) / b; os.path.exists → .exists();
+      os.path.isdir → .is_dir(); os.path.isfile → .is_file();
+      os.path.abspath / os.path.realpath → .resolve();
+      os.path.expanduser → .expanduser();
+      os.path.dirname → .parent; os.path.basename → .name;
+      os.listdir → .iterdir(); os.makedirs → .mkdir(parents=True, exist_ok=True);
+      os.getcwd → Path.cwd(); os.walk → .rglob().
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /models/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/process/exec.py
+    pattern-either:
+      - pattern: os.path.join(...)
+      - pattern: os.path.exists(...)
+      - pattern: os.path.isdir(...)
+      - pattern: os.path.isfile(...)
+      - pattern: os.path.abspath(...)
+      - pattern: os.path.realpath(...)
+      - pattern: os.path.relpath(...)
+      - pattern: os.path.expanduser(...)
+      - pattern: os.path.dirname(...)
+      - pattern: os.path.basename(...)
+      - pattern: os.path.splitext(...)
+      - pattern: os.path.sep
+      - pattern: os.listdir(...)
+      - pattern: os.makedirs(...)
+      - pattern: os.getcwd()
+      - pattern: os.walk(...)
+      - pattern: os.scandir(...)
+
   # Makefile style checks
   - id: make-no-direct-poetry-run
     message: Prefer using the `POETRY` Makefile variable instead of invoking `poetry run` directly.

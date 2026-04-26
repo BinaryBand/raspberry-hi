@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any, Iterable, List, cast
 
 
@@ -20,10 +21,10 @@ def resolve_executable(name: str) -> str:
     If *name* already contains a path separator it is treated as a path
     and validated. Otherwise ``shutil.which`` is used.
     """
-    if os.path.sep in name or name.startswith("."):
-        path = os.path.expanduser(name)
-        if os.path.exists(path) and os.access(path, os.X_OK):
-            return os.path.abspath(path)
+    if os.sep in name or name.startswith("."):
+        p = Path(name).expanduser()
+        if p.exists() and os.access(p, os.X_OK):
+            return str(p.resolve())
         raise FileNotFoundError(f"Executable not found or not executable: {name}")
 
     path = shutil.which(name)
