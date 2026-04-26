@@ -26,41 +26,24 @@ def check_registry_entries(app_roles: List[str], registry_path: str, failures: L
         return
 
     with open(registry_path) as f:
-        if yaml is None:
-            lines = f.readlines()
+        loaded = yaml.safe_load(f)
+        apps_section_typed: dict[str, AppRegistryEntry] | None = None
+        apps_section: Dict[str, Any] = {}
+        # Prefer typed validation via AppRegistry, fallback to dict parsing
+        try:
+            reg_typed: AppRegistry = AppRegistry.model_validate(loaded or {})
+            apps_section_typed = reg_typed.apps
             for app in app_roles:
-                found = False
-                in_apps = False
-                for line in lines:
-                    if line.strip() == "apps":
-                        in_apps = True
-                    elif in_apps and line.strip().startswith(f"{app}:"):
-                        found = True
-                        break
-                if not found:
-                    failures.append(
-                        f"App '{app}' missing from registry.yml "
-                        "(YAML parser not installed, used fallback)"
-                    )
-        else:
-            loaded = yaml.safe_load(f)
-            apps_section_typed: dict[str, AppRegistryEntry] | None = None
-            apps_section: Dict[str, Any] = {}
-            # Prefer typed validation via AppRegistry, fallback to dict parsing
-            try:
-                reg_typed: AppRegistry = AppRegistry.model_validate(loaded or {})
-                apps_section_typed = reg_typed.apps
-                for app in app_roles:
-                    if app not in apps_section_typed:
-                        failures.append(f"App '{app}' missing from registry.yml")
-            except ValidationError:
-                reg_dict: Dict[str, Any] = cast(Dict[str, Any], loaded) if loaded else {}
-                apps_val = reg_dict.get("apps", {})
-                if isinstance(apps_val, dict):
-                    apps_section = cast(Dict[str, Any], apps_val)
-                for app in app_roles:
-                    if app not in apps_section:
-                        failures.append(f"App '{app}' missing from registry.yml")
+                if app not in apps_section_typed:
+                    failures.append(f"App '{app}' missing from registry.yml")
+        except ValidationError:
+            reg_dict: Dict[str, Any] = cast(Dict[str, Any], loaded) if loaded else {}
+            apps_val = reg_dict.get("apps", {})
+            if isinstance(apps_val, dict):
+                apps_section = cast(Dict[str, Any], apps_val)
+            for app in app_roles:
+                if app not in apps_section:
+                    failures.append(f"App '{app}' missing from registry.yml")
 
 
 def check_app_dirs(

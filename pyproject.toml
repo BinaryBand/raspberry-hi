@@ -42,10 +42,7 @@ markers = ["e2e: requires a live Pi — run with: make test-e2e"]
 addopts = "-m 'not e2e'"
 
 [tool.poetry]
-packages = [
-    { include = "linux_hi" },
-    { include = "models" },
-]
+packages = [{ include = "linux_hi" }, { include = "models" }]
 
 [tool.ruff]
 target-version = "py312"
@@ -58,7 +55,6 @@ select = ["E", "F", "W", "I", "N", "A", "B", "S", "D"]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# Scripts set up sys.path before importing project modules — E402 is expected.
 "linux_hi/cli/*.py" = ["D"]
 "models/*.py" = ["D"]
 "conftest.py" = ["D"]
