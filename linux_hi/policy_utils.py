@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, cast
 
@@ -563,7 +564,49 @@ def check_makefile_phony_and_style(
             failures.append(f"Public target '{target}' must appear in make help output")
 
 
+class PolicyRunner:
+    """Coordinates all repository policy checks against a fixed project root."""
+
+    def __init__(self, root: Path) -> None:
+        """Derive all check paths from the repository root."""
+        self._root = root
+        self._apps_dir = str(root / "ansible" / "apps")
+        self._registry = str(root / "ansible" / "registry.yml")
+        self._tests_dir = str(root / "tests")
+        self._e2e_dir = str(root / "tests" / "e2e")
+        self._policy_contract = str(root / "docs" / "POLICY_CONTRACT.yml")
+        self._makefile = str(root / "Makefile")
+        self._ansible_dir = str(root / "ansible")
+        self._setup_playbook = str(root / "ansible" / "setup.yml")
+
+    def run(self) -> None:
+        """Run all checks and exit non-zero if any fail."""
+        failures: list[str] = []
+        app_roles = get_app_roles(self._apps_dir)
+        check_registry_entries(app_roles, self._registry, failures)
+        check_app_dirs(app_roles, self._apps_dir, failures, self._registry)
+        check_registry_conflicts(app_roles, self._apps_dir, self._registry, failures)
+        check_app_tests(app_roles, self._tests_dir, self._e2e_dir, failures)
+        check_playbook_vars(self._ansible_dir, failures)
+        check_site_become_password_assertion(self._setup_playbook, failures)
+        check_app_playbooks(app_roles, self._apps_dir, failures)
+        check_app_data_paths(app_roles, self._registry, failures)
+        check_policy_registry_controls(self._policy_contract, failures)
+        check_policy_contract_integrity(self._policy_contract, failures)
+        check_makefile_host_selector(self._makefile, failures)
+        check_makefile_guard_checks(self._makefile, failures)
+        check_makefile_phony_and_style(self._makefile, app_roles, failures)
+        check_no_direct_host_group_writes(str(self._root), failures)
+        if failures:
+            print("\nREPO POLICY CHECK FAILED:")
+            for fail in failures:
+                print(f"- {fail}")
+            sys.exit(1)
+        print("All repo policy checks passed.")
+
+
 __all__ = [
+    "PolicyRunner",
     "check_app_data_paths",
     "check_app_dirs",
     "check_app_playbooks",
