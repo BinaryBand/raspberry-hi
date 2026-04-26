@@ -87,8 +87,8 @@ If you want to prepare external storage on the host, run `make mount`. That comm
 | Command | What it does |
 | --- | --- |
 | `make lint` | Run the full static quality gate: Ruff, format check, ty, Semgrep, cpd, and ansible-lint |
-| `make ruff` | Run Ruff lint checks over `scripts/`, `models/`, and `tests/` |
-| `make format-check` | Run Ruff formatting checks over `scripts/`, `models/`, and `tests/` |
+| `make ruff` | Run Ruff lint checks over `linux_hi/`, `models/`, and `tests/` |
+| `make format-check` | Run Ruff formatting checks over `linux_hi/`, `models/`, and `tests/` |
 | `make ty` | Run ty type checks over the repository |
 | `make semgrep` | Run Semgrep audits for current architectural/process constraints |
 | `make cpd` | Fail on any copy-paste duplication (jscpd, threshold 0%) |

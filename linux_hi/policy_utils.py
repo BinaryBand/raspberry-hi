@@ -158,48 +158,6 @@ def check_playbook_vars(ansible_dir: str, failures: List[str]) -> None:
                 )
 
 
-def check_deleted_compatibility_namespaces(root_dir: str, failures: List[str]) -> None:
-    """Ensure removed compatibility namespaces do not reappear under scripts/."""
-    scripts_dir = Path(root_dir) / "scripts"
-    for namespace in ("internal", "utils"):
-        namespace_path = scripts_dir / namespace
-        if namespace_path.exists():
-            failures.append(
-                f"Removed compatibility namespace reintroduced: {namespace_path} "
-                "(use linux_hi responsibility packages instead)"
-            )
-
-
-def check_scripts_wrapper_topology(root_dir: str, failures: List[str]) -> None:
-    """Validate that top-level script entrypoints remain thin CLI wrappers."""
-    scripts_dir = Path(root_dir) / "scripts"
-    if not scripts_dir.is_dir():
-        failures.append(f"Missing scripts directory: {scripts_dir}")
-        return
-
-    for script_path in sorted(scripts_dir.glob("*.py")):
-        if script_path.name == "__init__.py":
-            continue
-
-        module = script_path.stem
-        text = script_path.read_text(encoding="utf-8")
-        required_import = f"from linux_hi.cli.{module} import main"
-
-        if required_import not in text:
-            failures.append(
-                f"{script_path} must import main from linux_hi.cli.{module} "
-                f"(expected: '{required_import}')"
-            )
-
-        if 'if __name__ == "__main__":' not in text:
-            failures.append(f"{script_path} missing __main__ entrypoint guard")
-            continue
-
-        guard_index = text.find('if __name__ == "__main__":')
-        if "main(" not in text[guard_index:]:
-            failures.append(f"{script_path} must invoke main(...) under __main__ guard")
-
-
 def check_policy_registry_controls(policy_registry_path: str, failures: List[str]) -> None:
     """Ensure every enforced policy has at least one explicit control target."""
     registry_path = Path(policy_registry_path)
@@ -627,7 +585,6 @@ __all__ = [
     "check_app_dirs",
     "check_app_playbooks",
     "check_app_tests",
-    "check_deleted_compatibility_namespaces",
     "check_makefile_guard_checks",
     "check_makefile_host_selector",
     "check_makefile_phony_and_style",
@@ -637,7 +594,6 @@ __all__ = [
     "check_policy_registry_controls",
     "check_registry_conflicts",
     "check_registry_entries",
-    "check_scripts_wrapper_topology",
     "check_site_become_password_assertion",
     "get_app_roles",
 ]

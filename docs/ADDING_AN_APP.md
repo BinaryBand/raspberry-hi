@@ -47,7 +47,6 @@ apps:
 |---|---|---|
 | `service_type` | `containerized` \| `tool` | `containerized` apps are required to have `backup/` and `restore/` subdirs (enforced by repo-policy). |
 | `backup` / `restore` / `cleanup` | bool | Gates inclusion in `make backup`, `make restore`, and `make cleanup`. Also drives repo-policy dir checks. |
-| `service_name_var` | string | Name of the Ansible variable that holds the service unit name. Used by backup/restore scripts to stop and start the service. |
 | `dependencies` | list | Apps that must be preflighted and provisioned before this one. Preflight chaining and `import_playbook` ordering are both derived from this list. |
 | `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: rclone_remote` to get an interactive remote selector. |
 | `vault_secrets` | list | Secrets written to the vault before provisioning. `hidden: true` uses password-style input. |

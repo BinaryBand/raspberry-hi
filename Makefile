@@ -2,10 +2,8 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 MAKEFLAGS += --warn-undefined-variables
 
-export PYTHONPATH := $(CURDIR):$(CURDIR)/scripts
-
 POETRY := poetry run
-PY_DIRS := linux_hi/ scripts/ models/ tests/
+PY_DIRS := linux_hi/ models/ tests/
 
 ANSIBLE_DIR := ansible
 ROLES := service_adapter rclone
@@ -51,12 +49,12 @@ help:
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
 	@echo "  lint          Run the full static quality gate (Ruff, format check, Pyright, Semgrep, cpd, ansible-lint)"
-	@echo "  ruff          Run Ruff lint checks over scripts/, models/, and tests/"
+	@echo "  ruff          Run Ruff lint checks over linux_hi/, models/, and tests/"
 	@echo "  ruff-check    Run Ruff lint without auto-fix"
 	@echo "  ruff-fix      Auto-fix Ruff lint violations"
 	@echo "  ruff-format   Reformat Python files with Ruff"
 	@echo "  ruff-help     Show Ruff command-line help"
-	@echo "  format-check  Run Ruff formatting checks over scripts/, models/, and tests/"
+	@echo "  format-check  Run Ruff formatting checks over linux_hi/, models/, and tests/"
 	@echo "  ty            Run ty type checks over the repository"
 	@echo "  semgrep       Run Semgrep architectural and process audits"
 	@echo "  cpd           Fail on any copy-paste duplication (jscpd, threshold 0%)"

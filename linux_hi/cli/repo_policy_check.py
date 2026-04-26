@@ -9,7 +9,6 @@ from linux_hi.policy_utils import (
     check_app_dirs,
     check_app_playbooks,
     check_app_tests,
-    check_deleted_compatibility_namespaces,
     check_makefile_guard_checks,
     check_makefile_host_selector,
     check_makefile_phony_and_style,
@@ -19,7 +18,6 @@ from linux_hi.policy_utils import (
     check_policy_registry_controls,
     check_registry_conflicts,
     check_registry_entries,
-    check_scripts_wrapper_topology,
     check_site_become_password_assertion,
     get_app_roles,
 )
@@ -45,8 +43,6 @@ def main() -> None:
     check_site_become_password_assertion(str(_ROOT / "ansible" / "setup.yml"), failures)
     check_app_playbooks(app_roles, _APPS_DIR, failures)
     check_app_data_paths(app_roles, _REGISTRY_PATH, failures)
-    check_deleted_compatibility_namespaces(str(_ROOT), failures)
-    check_scripts_wrapper_topology(str(_ROOT), failures)
     check_policy_registry_controls(_POLICY_REGISTRY, failures)
     check_policy_contract_integrity(_POLICY_REGISTRY, failures)
     check_makefile_host_selector(str(_ROOT / "Makefile"), failures)

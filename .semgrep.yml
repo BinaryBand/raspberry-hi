@@ -10,7 +10,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
@@ -27,7 +27,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
@@ -47,7 +47,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
@@ -62,7 +62,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
@@ -77,11 +77,10 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /scripts/check.py
         - /linux_hi/cli/check.py
     patterns:
       - pattern-either:
@@ -97,7 +96,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
@@ -115,7 +114,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
@@ -123,113 +122,6 @@ rules:
           - pattern: $F(["ansible-inventory", ...], ...)
           - pattern: $F(("ansible-inventory", ...), ...)
           - pattern: resolve_executable("ansible-inventory")
-
-  # Python package boundary rules
-  - id: python-no-compatibility-namespace-imports
-    message: >-
-      scripts.internal and scripts.utils are removed compatibility namespaces.
-      Import canonical modules from linux_hi.adapters, linux_hi.orchestration,
-      linux_hi.storage, or linux_hi.ansible instead.
-    severity: ERROR
-    languages:
-      - python
-    paths:
-      include:
-        - /scripts/**/*.py
-        - /linux_hi/**/*.py
-        - /models/**/*.py
-        - /tests/**/*.py
-    patterns:
-      - pattern-either:
-          - pattern: from internal import $X
-          - pattern: import internal
-          - pattern: from internal.$MOD import $X
-          - pattern: import internal.$MOD
-          - pattern: from scripts.internal import $X
-          - pattern: import scripts.internal
-          - pattern: from scripts.internal.$MOD import $X
-          - pattern: import scripts.internal.$MOD
-          - pattern: from scripts.utils import $X
-          - pattern: import scripts.utils
-          - pattern: from scripts.utils.$MOD import $X
-          - pattern: import scripts.utils.$MOD
-          
-  - id: python-scripts-entrypoints-must-be-thin
-    message: >-
-      Top-level scripts/*.py are entrypoints only and must not define functions or classes.
-      Move logic into linux_hi.cli.* and delegate from scripts/ with a one-line call.
-    severity: ERROR
-    languages:
-      - python
-    paths:
-      include:
-        - /scripts/*.py
-      exclude:
-        - /scripts/__init__.py
-    pattern-either:
-      - pattern: |
-          def $F(...):
-            ...
-      - pattern: |
-          async def $F(...):
-            ...
-      - pattern: |
-          class $C(...):
-            ...
-      - pattern: |
-          class $C:
-            ...
-
-  - id: python-sys-path-insert-only-in-mount
-    message: sys.path.insert is a temporary escape hatch and is only allowed in scripts/mount.py.
-    severity: ERROR
-    languages:
-      - python
-    paths:
-      include:
-        - /scripts/**/*.py
-        - /linux_hi/**/*.py
-        - /tests/**/*.py
-      exclude:
-        - /scripts/mount.py
-    pattern: sys.path.insert(...)
-
-  - id: python-no-script-entrypoint-imports
-    message: Top-level scripts are entrypoints only. Move shared logic into linux_hi or dedicated support packages instead of importing script modules from scripts.
-    severity: ERROR
-    languages:
-      - python
-    paths:
-      include:
-        - /scripts/**/*.py
-        - /linux_hi/**/*.py
-    patterns:
-      - pattern-either:
-          - pattern: from bootstrap import $X
-          - pattern: import bootstrap
-          - pattern: from check import $X
-          - pattern: import check
-          - pattern: from mount import $X
-          - pattern: import mount
-          - pattern: from preflight import $X
-          - pattern: import preflight
-          - pattern: from rclone import $X
-          - pattern: import rclone
-          - pattern: from scripts import bootstrap
-          - pattern: from scripts import check
-          - pattern: from scripts import mount
-          - pattern: from scripts import preflight
-          - pattern: from scripts import rclone
-          - pattern: import scripts.bootstrap
-          - pattern: import scripts.check
-          - pattern: import scripts.mount
-          - pattern: import scripts.preflight
-          - pattern: import scripts.rclone
-          - pattern: from scripts.bootstrap import $X
-          - pattern: from scripts.check import $X
-          - pattern: from scripts.mount import $X
-          - pattern: from scripts.preflight import $X
-          - pattern: from scripts.rclone import $X
 
   # Durable secret and host_vars policies
   - id: host-vars-no-inline-secret-keys
@@ -249,7 +141,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
         - /models/**/*.py
@@ -292,7 +184,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
     patterns:
@@ -307,7 +199,7 @@ rules:
       - python
     paths:
       include:
-        - /scripts/**/*.py
+
         - /linux_hi/**/*.py
         - /tests/**/*.py
     pattern-either:

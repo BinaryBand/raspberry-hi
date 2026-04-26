@@ -31,7 +31,7 @@ This rule is enforced in Semgrep by forbidding Python-side playbook orchestratio
 | `HOST` | Inventory alias for the target host. All operator-facing make targets accept `HOST=<alias>`. |
 | `host_vars` | Per-host YAML files in `ansible/inventory/host_vars/` containing connection and host-specific declared settings. |
 | `vault` | The encrypted durable secret store at `ansible/group_vars/all/vault.yml`. |
-| `app_user_home` | Home directory for `ansible_user` on the target host. App roles use it for config, scripts, and quadlet paths. |
+| `app_user_home` | Home directory for `ansible_user` on the target host. App roles use it for config and quadlet paths. |
 | `service_adapter_backend` | Init-system adapter selected for app lifecycle management. Supported values are `systemd`, `cron`, and `manual`. |
 | `quadlet` | A systemd `.container` unit file used by rootless Podman services. |
 | `preflight` | Python-side prompting and persistence of any missing host vars or vault secrets required before a role can converge. |
@@ -63,21 +63,7 @@ Semgrep enforces the secret boundary by rejecting secret-like keys in `host_vars
 
 ## Python Structure
 
-Top-level files in `scripts/` are entry points. Importable support code lives below them.
-
-Canonical importable CLI modules live in `linux_hi/cli/`. The matching files in `scripts/` are compatibility wrappers only.
-
-(Enforcement: Semgrep rules in [.semgrep.yml](.semgrep.yml) — `python-scripts-entrypoints-must-be-thin`, `python-no-script-entrypoint-imports`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L147-L175).)
-
-### Entry points
-
-- `scripts/bootstrap.py`: first-time vault setup and missing secret collection
-- `scripts/check.py`: prerequisite checks and minimal reachability validation
-- `scripts/preflight.py`: registry-driven prompting for missing host vars and vault secrets
-- `scripts/mount.py`: interactive storage mounting via Fabric
-- `scripts/rclone.py`: capture local rclone config into the vault
-
-Top-level scripts are entry points only. Shared logic belongs in importable packages, with `scripts/` kept as a thin compatibility layer.
+Canonical importable CLI modules live in `linux_hi/cli/`.
 
 ### Package naming policy
 
@@ -85,8 +71,6 @@ Generic package names are transitional, not preferred.
 
 - Prefer responsibility names such as `orchestration`, `adapters`, `ansible`, `storage`, `vault`, and `process`.
 - Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
-- Compatibility namespaces under `scripts/` are not part of the architecture. Keep importable modules under `linux_hi/` responsibility packages.
-
 (Enforcement: Semgrep: [.semgrep.yml](.semgrep.yml) — `python-no-compatibility-namespace-imports`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L135-L144).)
 
 ### Orchestration
@@ -112,30 +96,6 @@ Important boundaries:
 - `linux_hi/storage/` contains storage discovery, classification, display, and rclone parsing helpers.
 
 Semgrep enforces these boundaries directly (see [.semgrep.yml](.semgrep.yml) for rules such as `python-no-direct-subprocess-import`, `python-no-direct-subprocess-call`, and `python-ruamel-yaml-only-in-ansible-access`).
-
----
-
-## Python Entry Point Policy
-
-### `scripts/bootstrap.py`
-
-Compatibility wrapper for `linux_hi.cli.bootstrap`. The package entrypoint owns first-time vault setup, may read `ansible/inventory/hosts.ini`, prompt for credentials, and write the encrypted vault.
-
-### `scripts/check.py`
-
-Compatibility wrapper for `linux_hi.cli.check`. The package entrypoint owns prerequisite validation, may verify local prerequisites, decrypt the vault, assert required secret completeness, and perform a minimal reachability check.
-
-### `scripts/preflight.py`
-
-Compatibility wrapper for `linux_hi.cli.preflight`. The package entrypoint owns registry-driven prompting before provisioning. App metadata is loaded from `ansible/registry.yml`, role-required vars are inferred from `defaults/main.yml`, and any missing values are written through the dedicated inventory and vault helpers.
-
-### `scripts/mount.py`
-
-Compatibility wrapper for `linux_hi.cli.mount`. The package entrypoint owns interactive storage mounting. It may read inventory and vault data, open a Fabric session, and make direct remote changes.
-
-### `scripts/rclone.py`
-
-Compatibility wrapper for `linux_hi.cli.rclone`. The package entrypoint owns rclone vault setup. It reads `~/.config/rclone/rclone.conf` locally and saves the config into the vault so the `rclone` Ansible role can deploy it to hosts. Historically the config was stored as a raw INI blob; the code now prefers a structured mapping (remote → key/value) but template and parsing helpers accept either format for compatibility. No SSH or Fabric session is opened.
 
 ---
 
@@ -275,13 +235,6 @@ ansible/
   registry.yml     app metadata consumed by Python tooling and tests
   setup.yml        base provisioning playbook (auto-updates, podman, rclone)
 
-scripts/
-  bootstrap.py     compatibility wrapper for package bootstrap CLI
-  check.py         compatibility wrapper for package check CLI
-  preflight.py     compatibility wrapper for package preflight CLI
-  mount.py         compatibility wrapper for package mount CLI
-  rclone.py        compatibility wrapper for package rclone CLI
-
 linux_hi/
   cli/             canonical importable CLI modules
   orchestration/   orchestration flows composed from adapters and stores
@@ -308,7 +261,6 @@ tests/
 
 - Use `ansible_facts['key']` bracket notation instead of top-level injected fact variables.
 - Use Pydantic models at data boundaries rather than untyped dict plumbing.
-- Keep top-level scripts thin and move reusable logic downward.
 - Keep durable state changes behind the dedicated inventory and vault helpers.
 - Treat Semgrep failures as architecture failures, not stylistic warnings.
 

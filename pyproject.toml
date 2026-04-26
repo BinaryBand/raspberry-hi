@@ -45,7 +45,6 @@ addopts = "-m 'not e2e'"
 packages = [
     { include = "linux_hi" },
     { include = "models" },
-    { include = "scripts" },
 ]
 
 [tool.ruff]
@@ -60,8 +59,6 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # Scripts set up sys.path before importing project modules — E402 is expected.
-# Docstrings are enforced for scripts/ wrappers.
-"scripts/*.py" = ["E402"]
 "linux_hi/cli/*.py" = ["D"]
 "models/*.py" = ["D"]
 "conftest.py" = ["D"]
@@ -76,7 +73,7 @@ extra-paths = []
 root = ["."]
 
 [tool.ty.src]
-include = ["linux_hi", "models", "scripts", "tests", "typings"]
+include = ["linux_hi", "models", "tests", "typings"]
 
 [tool.ty.analysis]
 allowed-unresolved-imports = ["tests.**", "typings.**", "ansible.**"]
