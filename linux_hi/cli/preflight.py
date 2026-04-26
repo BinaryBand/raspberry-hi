@@ -8,9 +8,8 @@ from pathlib import Path
 
 import questionary
 
-from linux_hi.ansible.inventory import require_inventory_host
 from linux_hi.ansible.role_vars import role_required_vars
-from linux_hi.vault.service import VAULT_FILE, decrypt_vault, decrypt_vault_raw, replace_vault_data
+from linux_hi.vault.service import VAULT_FILE, decrypt_vault, decrypt_vault_raw, encrypt_vault
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, str]
@@ -99,7 +98,7 @@ def write_preflight_updates(
         print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
     if secret_updates:
-        replace_vault_data(secret_updates, vault_file=VAULT_FILE)
+        encrypt_vault(secret_updates, output=VAULT_FILE)
         print(f"  [OK  ]  Wrote {len(secret_updates)} vault secret(s)")
 
 
@@ -136,7 +135,7 @@ def main(argv: list[str] | None = None) -> None:
     hostname = os.environ.get("HOST")
     if not hostname:
         sys.exit("HOST is required — set HOST=<inventory-alias> and retry.")
-    hostname = require_inventory_host(hostname)
+    hostname = ANSIBLE_DATA.require_inventory_host(hostname)
     _run_preflight_for(app, hostname)
 
 

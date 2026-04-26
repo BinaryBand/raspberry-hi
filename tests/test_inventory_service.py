@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from linux_hi.ansible.inventory import discover_hosts, require_inventory_host
+from linux_hi.ansible.inventory import discover_hosts
+from models import ANSIBLE_DATA
 
 
 def test_discover_hosts_uses_inventory_aliases() -> None:
@@ -27,4 +28,4 @@ def test_discover_hosts_from_temp_inventory(tmp_path: Path) -> None:
 def test_require_inventory_host_rejects_unknown_host() -> None:
     """Unknown inventory aliases should raise a clear error."""
     with pytest.raises(KeyError, match="Unknown inventory host"):
-        require_inventory_host("missing")
+        ANSIBLE_DATA.require_inventory_host("missing")

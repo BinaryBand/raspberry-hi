@@ -7,7 +7,6 @@ from .service import (
     decrypt_vault,
     decrypt_vault_raw,
     encrypt_vault,
-    replace_vault_data,
     setup_vault_password,
 )
 
@@ -18,6 +17,5 @@ __all__ = [
     "decrypt_vault",
     "decrypt_vault_raw",
     "encrypt_vault",
-    "replace_vault_data",
     "setup_vault_password",
 ]

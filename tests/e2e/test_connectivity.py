@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 from linux_hi.adapters.connection_types import RemoteConnection
-from linux_hi.ansible.inventory import require_inventory_host
 from linux_hi.ansible.role_vars import role_required_vars
 from linux_hi.process.exec import run_resolved
 from linux_hi.storage.devices import get_block_devices, get_real_mounts
@@ -61,7 +60,7 @@ def test_root_device_classified_as_system(live_conn: RemoteConnection) -> None:
 @pytest.mark.e2e
 def test_inventory_host_wiring_sanity(selected_host: str) -> None:
     """Verify selected host is in inventory with usable connection details."""
-    assert require_inventory_host(selected_host) == selected_host
+    assert ANSIBLE_DATA.require_inventory_host(selected_host) == selected_host
 
     host_vars = ANSIBLE_DATA.host_vars(selected_host)
     assert host_vars.ansible_host, f"Host '{selected_host}' is missing ansible_host"

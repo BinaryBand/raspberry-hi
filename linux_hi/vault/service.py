@@ -102,16 +102,6 @@ def encrypt_vault(
             abort(f"Could not encrypt vault:\n{result.stderr.strip()}")
 
 
-def replace_vault_data(
-    data: RawVaultData,
-    *,
-    vault_file: Path = VAULT_FILE,
-    vault_password_file: Path = VAULT_PASSWORD_FILE,
-) -> None:
-    """Replace the vault file with new data."""
-    encrypt_vault(data, output=vault_file, vault_file=vault_file)
-
-
 __all__ = [
     "VAULT_FILE",
     "VAULT_PASSWORD_FILE",
@@ -119,6 +109,5 @@ __all__ = [
     "decrypt_vault",
     "decrypt_vault_raw",
     "encrypt_vault",
-    "replace_vault_data",
     "setup_vault_password",
 ]

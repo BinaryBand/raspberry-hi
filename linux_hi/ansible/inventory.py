@@ -16,9 +16,4 @@ def discover_hosts(inventory_file: Path = INVENTORY_FILE) -> list[str]:
     return ANSIBLE_DATA.inventory_hosts()
 
 
-def require_inventory_host(hostname: str) -> str:
-    """Validate that *hostname* exists in inventory and return it unchanged."""
-    return ANSIBLE_DATA.require_inventory_host(hostname)
-
-
-__all__ = ["discover_hosts", "require_inventory_host"]
+__all__ = ["discover_hosts"]
