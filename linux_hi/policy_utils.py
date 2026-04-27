@@ -307,7 +307,7 @@ def check_policy_contract_integrity(policy_registry_path: Path, failures: Failur
 
 
 def check_site_become_password_assertion(site_playbook_path: Path, failures: Failures) -> None:
-    """Ensure ansible/site.yml asserts become_passwords for the current host."""
+    """Ensure canonical setup playbook asserts become_passwords for the current host."""
     if not site_playbook_path.is_file():
         failures.append(f"Missing site playbook: {site_playbook_path}")
         return
@@ -505,7 +505,7 @@ class PolicyRunner:
         check_registry_conflicts(app_roles, apps_dir, registry, failures)
         check_app_tests(app_roles, root / "tests", root / "tests" / "e2e", failures)
         check_playbook_vars(ansible_dir, failures)
-        check_site_become_password_assertion(ansible_dir / "setup.yml", failures)
+        check_site_become_password_assertion(ansible_dir / "playbooks" / "setup.yml", failures)
         check_app_playbooks(app_roles, apps_dir, failures)
         check_app_data_paths(app_roles, registry, failures)
         check_policy_registry_controls(policy_contract, failures)

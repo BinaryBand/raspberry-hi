@@ -55,7 +55,7 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 
 This keeps sudo credentials centralized and out of `host_vars`.
 
-`ansible/setup.yml` includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error. Each per-app playbook (`ansible/apps/<app>/playbook.yml`) carries the same assertion.
+`ansible/playbooks/setup.yml` includes an always-on assertion that the current host has a `become_passwords` entry, so provisioning fails early with a clear error. Each per-app playbook (`ansible/apps/<app>/playbook.yml`) carries the same assertion.
 
 Semgrep enforces the secret boundary by rejecting secret-like keys in `host_vars`, rejecting plaintext secrets in non-vault `group_vars`, and requiring the shared `ansible_become_password` vault lookup template.
 

@@ -34,7 +34,7 @@ ANSIBLE_CFG := $(CURDIR)/ansible/ansible.cfg
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
 INV := ansible/inventory/hosts.yml
 _ANSIBLE_FLAGS := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
-SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/setup.yml
+SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
@@ -204,20 +204,20 @@ _backup_preflight: _vault_check
 	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight restic
 
 backup: _backup_preflight
-	$(_ANSIBLE_FLAGS) ansible/backup.yml
+	$(_ANSIBLE_FLAGS) ansible/playbooks/backup.yml
 
 backup-check: _backup_preflight
-	$(_ANSIBLE_FLAGS) --check ansible/backup.yml
+	$(_ANSIBLE_FLAGS) --check ansible/playbooks/backup.yml
 
 _restore_preflight: _vault_check
 	@test -n "$(APP)" || { echo "Error: APP is required — supported restore apps: $(RESTORE_APPS)"; exit 1; }
 	@case " $(RESTORE_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not restorable. Supported restore apps: $(RESTORE_APPS)"; exit 1 ;; esac
 
 restore: _backup_preflight _restore_preflight
-	$(_ANSIBLE_FLAGS) ansible/restore.yml -e restore_app=$(APP)
+	$(_ANSIBLE_FLAGS) ansible/playbooks/restore.yml -e restore_app=$(APP)
 
 restore-check: _backup_preflight _restore_preflight
-	$(_ANSIBLE_FLAGS) --check ansible/restore.yml -e restore_app=$(APP)
+	$(_ANSIBLE_FLAGS) --check ansible/playbooks/restore.yml -e restore_app=$(APP)
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check
@@ -241,7 +241,7 @@ _cleanup_preflight: _vault_check
 	@case " $(CLEANUP_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not cleanable. Supported cleanup apps: $(CLEANUP_APPS)"; exit 1 ;; esac
 
 cleanup: _cleanup_preflight
-	$(_ANSIBLE_FLAGS) ansible/cleanup.yml -e cleanup_app=$(APP)
+	$(_ANSIBLE_FLAGS) ansible/playbooks/cleanup.yml -e cleanup_app=$(APP)
 
 setup: _vault_check
 	$(SETUP_PLAY)

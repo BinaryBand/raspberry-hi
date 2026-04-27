@@ -4,7 +4,7 @@
     _pg_dump_path: "{{ app_user_home }}/restic-postgres-dump.sql"
 
 - name: Wait for PostgreSQL before backup
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"
+  ansible.builtin.include_tasks: ../tasks/wait_ready.yml
 
 - name: Dump baikal database from PostgreSQL container
   ansible.builtin.shell:

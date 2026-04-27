@@ -1,0 +1,100 @@
+rules:
+  # Durable secret and host_vars policies
+  - id: host-vars-no-inline-secret-keys
+    message: host_vars must not store secret-like keys or app credentials; keep secrets in group_vars/all/vault.yml.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|baikal_encryption_key)\s*:'
+
+  - id: rclone-conf-not-tracked
+    message: >-
+      .rclone.conf contains rclone OAuth tokens and must not be committed.
+      Ensure .rclone.conf is listed in .gitignore. If this file appeared in a
+      scan, the gitignore entry may have been removed or bypassed.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - "/.rclone.conf"
+    pattern-regex: '(?m)^\[.+\]'
+
+  - id: group-vars-no-plain-text-secrets
+    message: Durable secrets must live in vault.yml, not plain group_vars files.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/group_vars/**/*.yml
+      exclude:
+        - /ansible/group_vars/all/vault.yml
+    pattern-regex: '(?im)^\s*(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key)\s*:'
+
+  # Role ordering and service lifecycle policies
+  - id: ansible-meta-no-non-empty-dependencies
+    message: >-
+      Role dependencies in meta/main.yml cause roles to run multiple times under
+      per-app playbook invocation, leading to double privilege escalation and timeouts.
+      Declare ordering via registry.yml dependencies and generate-apps instead.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/**/meta/main.yml
+    pattern-regex: '(?m)^dependencies:\n\s+- '
+
+  - id: host-vars-service-adapter-backend-literal
+    message: "service_adapter_backend overrides in host_vars must be one of: systemd, cron, manual."
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    patterns:
+      - pattern-regex: '(?m)^\s*service_adapter_backend\s*:'
+      - pattern-not-regex: "(?m)^\\s*service_adapter_backend\\s*:\\s*(?:\"systemd\"|\"cron\"|\"manual\"|'systemd'|'cron'|'manual'|systemd|cron|manual)\\s*$"
+
+  - id: host-vars-become-password-must-use-vault-template
+    message: ansible_become_password in host_vars must use the shared become_passwords vault lookup.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/inventory/host_vars/*.yml
+    patterns:
+      - pattern-regex: '(?m)^\s*ansible_become_password\s*:'
+      - pattern-not-regex: "(?m)^\\s*ansible_become_password\\s*:\\s*\"\\{\\{ \\(become_passwords \\| default\\(\\{\\}\\)\\)\\.get\\(inventory_hostname, ''\\) \\}\\}\"\\s*$"
+
+  # Reproducibility and template correctness
+  - id: ansible-image-no-latest-tag
+    message: >-
+      Container images must be pinned to a specific version tag, not ':latest'.
+      Unpinned images silently change between deployments and break reproducibility.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/apps/*/defaults/main.yml
+        - /ansible/apps/*/templates/*.container.j2
+    pattern-regex: ':latest\b'
+
+  - id: ansible-facts-top-level-injection
+    message: >-
+      Use ansible_facts['key'] bracket notation instead of top-level injected fact variables.
+      Top-level injection (INJECT_FACTS_AS_VARS) is deprecated and will be removed in Ansible 2.24.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/**/*.j2
+    pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'

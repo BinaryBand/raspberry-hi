@@ -1,0 +1,233 @@
+rules:
+  # Constitutional rule: Python may assist with operations, but provisioning
+  # orchestration and durable declared state remain Ansible-owned.
+
+  # Process execution seams
+  - id: python-no-direct-subprocess-import
+    message: Use linux_hi.process.exec.run_resolved instead of importing subprocess directly.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/process/exec.py
+    patterns:
+      - pattern-either:
+          - pattern: import subprocess
+          - pattern: from subprocess import $X
+
+  - id: python-no-direct-subprocess-call
+    message: Use linux_hi.process.exec.run_resolved instead of calling subprocess directly.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/process/exec.py
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.run(...)
+          - pattern: subprocess.Popen(...)
+          - pattern: subprocess.call(...)
+          - pattern: subprocess.check_call(...)
+          - pattern: subprocess.check_output(...)
+
+  - id: python-must-not-run-ansible-playbook
+    message: Python may assist with setup and validation, but playbook orchestration belongs to Makefile and Ansible entrypoints.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-playbook", ...], ...)
+          - pattern: $F(("ansible-playbook", ...), ...)
+
+  - id: python-must-not-run-ansible-runner
+    message: Python may assist with setup and validation, but ansible-runner orchestration is not part of this repo's current architecture.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-runner", ...], ...)
+          - pattern: $F(("ansible-runner", ...), ...)
+
+  - id: python-must-not-run-raw-ansible-outside-check
+    message: Raw ansible CLI usage is reserved for the check entrypoint reachability checks.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/cli/check.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible", ...], ...)
+          - pattern: $F(("ansible", ...), ...)
+          - pattern: resolve_executable("ansible")
+
+  # Inventory and vault authority seams
+  - id: python-ansible-vault-only-in-vault-service
+    message: ansible-vault access is reserved for linux_hi.vault.service.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/vault/service.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-vault", ...], ...)
+          - pattern: $F(("ansible-vault", ...), ...)
+          - pattern: resolve_executable("ansible-vault")
+
+  - id: python-no-ansible-inventory-cli
+    message: Do not shell out to ansible-inventory. Use ANSIBLE_DATA or inventory_service instead.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: $F(["ansible-inventory", ...], ...)
+          - pattern: $F(("ansible-inventory", ...), ...)
+          - pattern: resolve_executable("ansible-inventory")
+
+  - id: python-ruamel-yaml-only-in-ansible-access
+    message: Direct ruamel.yaml usage is reserved for models/ansible/access.py. Writes to host_vars must go through ANSIBLE_DATA.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+        - /models/**/*.py
+      exclude:
+        - /models/ansible/access.py
+    pattern-either:
+      - pattern: from ruamel.yaml import $X
+      - pattern: import ruamel.yaml
+
+  # Registry-driven preflight model
+  - id: python-no-preflights-module-import
+    message: App preflight metadata is registry-driven. Do not import preflight specs from a Python preflights package.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+    patterns:
+      - pattern-either:
+          - pattern: importlib.import_module("preflights.$APP")
+          - pattern: importlib.import_module(f"preflights.{$APP}")
+
+  - id: python-no-inline-preflight-specs
+    message: App preflight metadata belongs in ansible/registry.yml, not inline Python constants.
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /tests/**/*.py
+    pattern-either:
+      - pattern: VAR_HINTS = {...}
+      - pattern: VAULT_SECRETS = [...]
+
+  # pathlib enforcement
+  - id: python-no-os-path
+    message: >-
+      Use pathlib.Path instead of os.path and os-level path helpers.
+      os.path.join(a, b) → Path(a) / b; os.path.exists → .exists();
+      os.path.isdir → .is_dir(); os.path.isfile → .is_file();
+      os.path.abspath / os.path.realpath → .resolve();
+      os.path.expanduser → .expanduser();
+      os.path.dirname → .parent; os.path.basename → .name;
+      os.listdir → .iterdir(); os.makedirs → .mkdir(parents=True, exist_ok=True);
+      os.getcwd → Path.cwd(); os.walk → .rglob().
+    severity: ERROR
+    languages:
+      - python
+    paths:
+      include:
+        - /linux_hi/**/*.py
+        - /models/**/*.py
+        - /tests/**/*.py
+      exclude:
+        - /linux_hi/process/exec.py
+    pattern-either:
+      - pattern: os.path.join(...)
+      - pattern: os.path.exists(...)
+      - pattern: os.path.isdir(...)
+      - pattern: os.path.isfile(...)
+      - pattern: os.path.abspath(...)
+      - pattern: os.path.realpath(...)
+      - pattern: os.path.relpath(...)
+      - pattern: os.path.expanduser(...)
+      - pattern: os.path.dirname(...)
+      - pattern: os.path.basename(...)
+      - pattern: os.path.splitext(...)
+      - pattern: os.path.sep
+      - pattern: os.listdir(...)
+      - pattern: os.makedirs(...)
+      - pattern: os.getcwd()
+      - pattern: os.walk(...)
+      - pattern: os.scandir(...)
+
+  # Makefile style checks
+  - id: make-no-direct-poetry-run
+    message: Prefer using the `POETRY` Makefile variable instead of invoking `poetry run` directly.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*poetry run\b'
+
+  - id: make-no-hardcoded-py-dirs
+    message: Use the `$(PY_DIRS)` Makefile variable instead of hardcoded directory lists for Python tools.
+    severity: WARNING
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*(?:\$\(\s*POETRY\s*\)\s*|poetry run\s+)?ruff (?:check|format)\b.*linux_hi/'
+
+  - id: make-no-direct-poetry-run-if-no-poetry-var
+    message: Avoid `poetry run` in the Makefile; define `POETRY := poetry run` and use `$(POETRY)`.
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /Makefile
+    pattern-regex: '(?m)^\s*poetry run\b'
+    pattern-not-regex: '(?m)^\s*POETRY\s*[:?+]?='

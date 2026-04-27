@@ -96,7 +96,7 @@ def test_ansible_site_syntax_probe(selected_host: str) -> None:
         [
             "ansible-playbook",
             "--syntax-check",
-            str(ANSIBLE_DATA.ansible_dir / "setup.yml"),
+            str(ANSIBLE_DATA.ansible_dir / "playbooks" / "setup.yml"),
             "-i",
             str(ANSIBLE_DATA.inventory_file),
             "--vault-password-file",

@@ -14,7 +14,7 @@
 
     - name: Load app registry metadata
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/registry.yml"
+        file: "{{ playbook_dir }}/../registry.yml"
         name: app_registry
       tags: [always]
 
@@ -79,4 +79,4 @@
   tasks:
     - name: Restore selected app
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/apps/{{ restore_app }}/restore/main.yml"
+        file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore/main.yml"

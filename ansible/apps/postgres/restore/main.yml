@@ -62,7 +62,7 @@
   when: not ansible_check_mode
 
 - name: Wait for PostgreSQL before restore
-  ansible.builtin.include_tasks: "{{ playbook_dir }}/apps/postgres/tasks/wait_ready.yml"
+  ansible.builtin.include_tasks: ../tasks/wait_ready.yml
   when: not ansible_check_mode
 
 - name: Load PostgreSQL database dump
