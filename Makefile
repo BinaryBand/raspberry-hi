@@ -120,7 +120,7 @@ format: ruff-format
 _ci:
 	$(POETRY) ruff check $(PY_DIRS)
 	$(POETRY) ty check
-	$(POETRY) semgrep scan --config .semgrep.yml --error
+	$(POETRY) semgrep scan --config rules/ --error
 	$(POETRY) mbake format --check Makefile
 	$(POETRY) python -m linux_hi.cli.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
@@ -129,7 +129,7 @@ ty:
 	$(POETRY) ty check
 
 semgrep:
-	$(POETRY) semgrep scan --config .semgrep.yml --error
+	$(POETRY) semgrep scan --config rules/ --error
 
 cpd:
 	npx jscpd --format python --min-tokens 50 --threshold 0 --ignore '**/.venv/**,**/typings/**' .

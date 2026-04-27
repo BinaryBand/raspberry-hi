@@ -3,11 +3,11 @@ source: docs/ARCHITECTURE.md
 
 policies:
   - id: authority-mechanical-rules
-    statement: ".semgrep.yml defines repository rules that must hold mechanically."
+    statement: "rules/ contains Semgrep rules that must hold mechanically."
     source_line: 7
     status: enforced
     controls:
-      - semgrep:.semgrep.yml
+      - semgrep:rules/
       - make:lint
 
   - id: python-must-not-become-source-of-truth

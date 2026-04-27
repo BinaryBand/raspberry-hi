@@ -212,17 +212,19 @@ def check_registry_conflicts(
 
 
 def _discover_semgrep_ids(base_dirs: list[Path]) -> tuple[set[str], bool]:
-    """Return (rule_ids, found) by scanning base_dirs for the first .semgrep.yml."""
+    """Return (rule_ids, found) by scanning base_dirs for the first rules/ directory."""
     for d in base_dirs:
-        candidate = d / ".semgrep.yml"
-        if candidate.is_file():
-            ids = {
-                m.group(1).strip()
-                for m in re.finditer(
-                    r"(?m)^\s*-\s*id\s*:\s*([^\s#]+)",
-                    candidate.read_text(encoding="utf-8"),
+        rules_dir = d / "rules"
+        if rules_dir.is_dir():
+            ids: set[str] = set()
+            for rule_file in sorted(rules_dir.glob("*.yml")):
+                ids.update(
+                    m.group(1).strip()
+                    for m in re.finditer(
+                        r"(?m)^\s*-\s*id\s*:\s*([^\s#]+)",
+                        rule_file.read_text(encoding="utf-8"),
+                    )
                 )
-            }
             return ids, True
     return set(), False
 
@@ -239,9 +241,11 @@ def _discover_makefile_text(base_dirs: list[Path]) -> tuple[str, bool]:
 def _check_semgrep_control(
     control: str, val: str, semgrep_ids: set[str], semgrep_found: bool, failures: Failures
 ) -> None:
-    if val == ".semgrep.yml":
+    if val == "rules/":
         if not semgrep_found:
-            failures.append(f"Policy control {control} references .semgrep.yml but none was found")
+            failures.append(
+                f"Policy control {control} references rules/ but no rules/ directory was found"
+            )
         return
     if val not in semgrep_ids:
         failures.append(f"Policy control {control} references unknown semgrep rule '{val}'")
@@ -274,8 +278,8 @@ def _check_make_control(
 def check_policy_contract_integrity(policy_registry_path: Path, failures: Failures) -> None:
     """Validate that policy controls reference real enforcement artifacts.
 
-    Controls of the form `semgrep:<rule-id>` must map to a rule in a discovered
-    `.semgrep.yml`. Controls of the form `repo-policy:<kebab-name>` must map to a
+    Controls of the form `semgrep:<rule-id>` must map to a rule in the rules/
+    directory. Controls of the form `repo-policy:<kebab-name>` must map to a
     `check_<kebab_name>` function in `linux_hi.policy_utils`. Controls of the form
     `make:<target>` must exist in a discovered `Makefile`.
     """

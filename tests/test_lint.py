@@ -83,7 +83,7 @@ class TestSemgrep:
     def test_semgrep(self):
         """Fail if Semgrep reports any architecture or process violations."""
         result = run_resolved(
-            ["poetry", "run", "semgrep", "scan", "--config", ".semgrep.yml", "--error"],
+            ["poetry", "run", "semgrep", "scan", "--config", "rules/", "--error"],
             capture_output=True,
             text=True,
         )
@@ -141,8 +141,11 @@ class TestVaultSchemaIntegrity:
     """Semgrep vault rules must stay in sync with VaultSecrets and the app registry."""
 
     def _semgrep_rules(self) -> dict[str, object]:
-        semgrep = yaml.safe_load((ROOT / ".semgrep.yml").read_text(encoding="utf-8"))
-        return {r["id"]: r for r in semgrep["rules"]}
+        rules: dict[str, object] = {}
+        for path in sorted((ROOT / "rules").glob("*.yml")):
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            rules.update({r["id"]: r for r in data["rules"]})
+        return rules
 
     def test_become_password_rule_references_vault_schema_field(self) -> None:
         """Semgrep become-password rule must reference the exact VaultSecrets field name."""
