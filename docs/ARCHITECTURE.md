@@ -227,7 +227,7 @@ ansible/
   apps/            declarative app roles (minio, postgres, baikal, restic)
   roles/           shared declarative roles (podman, rclone, service_adapter, auto-updates)
   inventory/
-    hosts.ini
+    hosts.yml
     host_vars/     per-host connection details and host-specific declared settings
   group_vars/all/
     vars.yml       shared non-secret variables

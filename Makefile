@@ -11,16 +11,16 @@ APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.
 RESTORE_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.restore_apps()))")
 CLEANUP_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.cleanup_apps()))")
 
-# Default host alias — set to the first host in ansible/inventory/hosts.ini.
+# Default host alias — set to the first host in ansible/inventory/hosts.yml.
 # Override per-run: HOST=myserver make site
 HOST ?= rpi
 
 # Single inventory call — emits "host user port key" on one line so Make can
 # split it into four variables with $(word N,...).  No ANSIBLE_CONFIG needed:
-# we only read hosts.ini + host_vars/, not group_vars or vault.
+# we only read hosts.yml + host_vars/, not group_vars or vault.
 # python3 returns '' on any error rather than crashing Make evaluation.
 # Spaces are not valid in IPs, usernames, ports, or key paths, so word-split is safe.
-_INV := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.ini --host $(HOST) 2>/dev/null \
+_INV := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.yml --host $(HOST) 2>/dev/null \
 	| python3 -c "import sys,json; d=json.loads(sys.stdin.read() or '{}'); \
 	print(d.get('ansible_host',''), d.get('ansible_user',''), d.get('ansible_port', 22), d.get('ansible_ssh_private_key_file',''))" \
 	2>/dev/null)
@@ -32,7 +32,7 @@ REMOTE_KEY := $(word 4,$(_INV))
 # Shared Ansible flags — avoids repeating paths across targets.
 ANSIBLE_CFG := $(CURDIR)/ansible/ansible.cfg
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
-INV := ansible/inventory/hosts.ini
+INV := ansible/inventory/hosts.yml
 _ANSIBLE_FLAGS := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/setup.yml
 
@@ -167,7 +167,7 @@ _vault_check:
 	@$(POETRY) python -m linux_hi.cli.check --vault-only
 
 _inv_check:
-	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.ini and host_vars/$(HOST).yml"; exit 1; }
+	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.yml and host_vars/$(HOST).yml"; exit 1; }
 
 mount: _vault_check
 	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.mount

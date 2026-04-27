@@ -22,7 +22,7 @@ class AnsibleDataStore:
         self.root = root or Path(__file__).resolve().parents[2]
         self.ansible_dir = self.root / "ansible"
         self.inventory_dir = self.ansible_dir / "inventory"
-        self.inventory_file = self.inventory_dir / "hosts.ini"
+        self.inventory_file = self.inventory_dir / "hosts.yml"
         self.host_vars_dir = self.inventory_dir / "host_vars"
         self.registry_file = self.ansible_dir / "registry.yml"
         self._app_registry_cache: dict[str, AppRegistryEntry] | None = None

@@ -19,8 +19,11 @@ def test_discover_hosts_from_temp_inventory(tmp_path: Path) -> None:
     """Custom inventory paths should still be parsed via Ansible's inventory engine."""
     inventory_dir = tmp_path / "inventory"
     inventory_dir.mkdir()
-    inventory_file = inventory_dir / "hosts.ini"
-    inventory_file.write_text("[devices]\nalpha\nbeta\n", encoding="utf-8")
+    inventory_file = inventory_dir / "hosts.yml"
+    inventory_file.write_text(
+        "all:\n  children:\n    devices:\n      hosts:\n        alpha:\n        beta:\n",
+        encoding="utf-8",
+    )
 
     assert discover_hosts(inventory_file) == ["alpha", "beta"]
 

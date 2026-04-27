@@ -114,7 +114,7 @@ def _check_host_reachable() -> bool:
     return check(
         "Host reachable",
         pi_ok,
-        "Check SSH key and host address in ansible/inventory/hosts.ini"
+        "Check SSH key and host address in ansible/inventory/hosts.yml"
         " — if the host key is unknown, run: make add-hostkey",
     )
 

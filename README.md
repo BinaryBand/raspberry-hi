@@ -25,11 +25,14 @@ All commands below should be run from the project root (`./`).
 
 ### 1. Configure your host
 
-Add your host to `ansible/inventory/hosts.ini`:
+Add your host to `ansible/inventory/hosts.yml`:
 
-```ini
-[devices]
-rpi
+```yaml
+all:
+  children:
+    devices:
+      hosts:
+        rpi:
 ```
 
 Then create `ansible/inventory/host_vars/rpi.yml` with its connection details:
@@ -132,13 +135,16 @@ cd ansible && ansible-playbook site.yml --tags "podman,storage"
 
 ### Multiple hosts
 
-Add each host to `ansible/inventory/hosts.ini` and create a matching `host_vars/` file:
+Add each host to `ansible/inventory/hosts.yml` and create a matching `host_vars/` file:
 
-```ini
-# hosts.ini
-[devices]
-rpi
-rpi2
+```yaml
+# hosts.yml
+all:
+  children:
+    devices:
+      hosts:
+        rpi:
+        rpi2:
 ```
 
 ```yaml
