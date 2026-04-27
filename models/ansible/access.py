@@ -137,6 +137,44 @@ class AnsibleDataStore:
                 return path
         raise KeyError(f"No role found for '{app}' under ansible/apps/ or ansible/roles/")
 
+    def add_inventory_host(self, name: str, group: str = "devices") -> None:
+        """Add a host entry to the YAML inventory under the specified group."""
+        ryaml = YAML()
+        ryaml.preserve_quotes = True
+        data = ryaml.load(self.inventory_file.read_text(encoding="utf-8"))
+        try:
+            hosts = data["all"]["children"][group]["hosts"]
+        except KeyError:
+            raise KeyError(
+                f"Inventory group '{group}' not found in {self.inventory_file}"
+            ) from None
+        if name in hosts:
+            raise ValueError(f"Host '{name}' already exists in inventory group '{group}'")
+        hosts[name] = None
+        with self.inventory_file.open("w", encoding="utf-8") as fh:
+            ryaml.dump(data, fh)
+        self.clear_cache()
+
+    def remove_inventory_host(self, name: str) -> None:
+        """Remove a host entry from all groups in the YAML inventory."""
+        ryaml = YAML()
+        ryaml.preserve_quotes = True
+        data = ryaml.load(self.inventory_file.read_text(encoding="utf-8"))
+        removed = False
+        for group_data in (data.get("all") or {}).get("children", {}).values():
+            if group_data and name in (group_data.get("hosts") or {}):
+                del group_data["hosts"][name]
+                removed = True
+        if not removed:
+            raise KeyError(f"Host '{name}' not found in {self.inventory_file}")
+        with self.inventory_file.open("w", encoding="utf-8") as fh:
+            ryaml.dump(data, fh)
+        self.clear_cache()
+
+    def remove_host_vars(self, name: str) -> None:
+        """Delete the host_vars file for a host if it exists."""
+        self.host_vars_path(name).unlink(missing_ok=True)
+
     def _read_yaml_mapping(self, source: Path) -> dict[str, Any]:
         """Load a YAML mapping from disk and type it at the boundary."""
         return yaml_mapping(yaml.safe_load(source.read_text(encoding="utf-8")), source=source)

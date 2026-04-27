@@ -102,6 +102,24 @@ def encrypt_vault(
             abort(f"Could not encrypt vault:\n{result.stderr.strip()}")
 
 
+def write_become_password(hostname: str, password: str) -> None:
+    """Add or update the become password for a host in the vault."""
+    data = decrypt_vault_raw()
+    become: dict[str, Any] = dict(data.get("become_passwords") or {})
+    become[hostname] = password
+    data["become_passwords"] = become
+    encrypt_vault(data)
+
+
+def remove_become_password(hostname: str) -> None:
+    """Remove the become password for a host from the vault."""
+    data = decrypt_vault_raw()
+    become: dict[str, Any] = dict(data.get("become_passwords") or {})
+    become.pop(hostname, None)
+    data["become_passwords"] = become
+    encrypt_vault(data)
+
+
 __all__ = [
     "VAULT_FILE",
     "VAULT_PASSWORD_FILE",
@@ -109,5 +127,7 @@ __all__ = [
     "decrypt_vault",
     "decrypt_vault_raw",
     "encrypt_vault",
+    "remove_become_password",
     "setup_vault_password",
+    "write_become_password",
 ]

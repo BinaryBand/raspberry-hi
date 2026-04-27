@@ -41,7 +41,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake cleanup cpd repo-policy
 .PHONY: format format-check generate-apps help lint logs mount ping ty rclone restore restore-check ruff
 .PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep setup ssh status test test-e2e vault-edit vulture
-.PHONY: hosts-list
+.PHONY: hosts-add hosts-list hosts-remove
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
 
 help:
@@ -75,6 +75,8 @@ help:
 	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"
 	@echo "  restore-check Dry-run restore validation for one app (APP=$(RESTORE_APPS))"
 	@echo "  mount         Interactive: pick and mount external storage"
+	@echo "  hosts-add     Add a host to inventory, host_vars, and vault (NAME ADDR USER PORT KEY)"
+	@echo "  hosts-remove  Remove a host from inventory, host_vars, and vault (NAME=<alias>)"
 	@echo "  hosts-list    List configured inventory hosts and their connection details"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
@@ -158,6 +160,12 @@ add-hostkey: _inv_check
 
 ssh: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT)
+
+hosts-add:
+	NAME=$(NAME) ADDR=$(ADDR) USER=$(USER) PORT=$(PORT) KEY=$(KEY) $(POETRY) python -m linux_hi.cli.hosts add
+
+hosts-remove:
+	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.hosts remove
 
 hosts-list:
 	$(POETRY) python -m linux_hi.cli.hosts list
