@@ -1,0 +1,9 @@
+[lizard]
+ccn = 15
+length = 60
+warnings_only = true
+paths = ["linux_hi", "models"]
+
+[vulture]
+min_confidence = 80
+paths = ["linux_hi", "models", "tests"]

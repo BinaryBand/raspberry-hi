@@ -37,10 +37,11 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake cleanup cpd repo-policy
-.PHONY: format format-check generate-apps help lint logs mount ping ty rclone restore restore-check ruff
-.PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep setup ssh status test test-e2e vault-edit vulture
-.PHONY: hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
+.PHONY: add-hostkey backup backup-check baikal bootstrap check cleanup generate-apps help lint logs mount ping
+.PHONY: format rclone restore restore-check ruff ruff-check ruff-fix ruff-format ruff-help setup ssh status
+.PHONY: test test-e2e vault-edit hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
+.PHONY: lint-ansible lint-check lint-checkmake lint-cpd lint-format lint-lizard lint-repo-policy
+.PHONY: lint-semgrep lint-ty lint-vulture
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
 
 help:
@@ -48,20 +49,20 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
-	@echo "  lint          Run the full static quality gate (Ruff, format check, Pyright, Semgrep, cpd, ansible-lint)"
-	@echo "  ruff          Run Ruff lint checks over linux_hi/, models/, and tests/"
-	@echo "  ruff-check    Run Ruff lint without auto-fix"
-	@echo "  ruff-fix      Auto-fix Ruff lint violations"
-	@echo "  ruff-format   Reformat Python files with Ruff"
-	@echo "  ruff-help     Show Ruff command-line help"
-	@echo "  format-check  Run Ruff formatting checks over linux_hi/, models/, and tests/"
-	@echo "  ty            Run ty type checks over the repository"
-	@echo "  semgrep       Run Semgrep architectural and process audits"
-	@echo "  cpd           Fail on any copy-paste duplication (jscpd, threshold 0%)"
-	@echo "  vulture       Check for unused Python code (min confidence 80%)"
-	@echo "  checkmake     Lint Makefile style and quality with mbake"
-	@echo "  repo-policy   Run repository structural and architecture policy checks"
-	@echo "  ansible-lint  Run ansible-lint over ansible/"
+	@echo "  lint               Run the full static quality gate"
+	@echo "  lint-check         Ruff lint checks"
+	@echo "  lint-format        Ruff format check"
+	@echo "  lint-ty            ty type checks"
+	@echo "  lint-semgrep       Semgrep architectural and process audits"
+	@echo "  lint-cpd           Copy-paste duplication check (jscpd, threshold 0%)"
+	@echo "  lint-vulture       Unused Python code check"
+	@echo "  lint-lizard        Cyclomatic complexity and function length check"
+	@echo "  lint-checkmake     Makefile style check (mbake)"
+	@echo "  lint-repo-policy   Repository structural and architecture policy checks"
+	@echo "  lint-ansible       ansible-lint over ansible/"
+	@echo "  ruff               Alias for lint-check"
+	@echo "  ruff-fix           Auto-fix Ruff lint violations"
+	@echo "  ruff-format        Reformat Python files with Ruff"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
 	@echo "  setup         Provision base dependencies on a host (HOST=rpi|rpi2|debian)"
@@ -94,10 +95,12 @@ help:
 check:
 	$(POETRY) python -m linux_hi.cli.check
 
-lint: ruff format-check ty semgrep cpd vulture ansible-lint checkmake repo-policy
+lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-checkmake lint-repo-policy
 
 # Ruff targets: help / check / format / fix
-ruff: ruff-check
+lint-check: ruff-check
+
+ruff: lint-check
 
 ruff-help:
 	$(POETRY) ruff --help
@@ -111,7 +114,7 @@ ruff-format:
 ruff-fix:
 	$(POETRY) ruff check --fix $(PY_DIRS)
 
-format-check:
+lint-format:
 	$(POETRY) ruff format --check $(PY_DIRS)
 
 format: ruff-format
@@ -124,25 +127,28 @@ _ci:
 	$(POETRY) python -m linux_hi.cli.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
-ty:
+lint-ty:
 	$(POETRY) ty check
 
-semgrep:
+lint-semgrep:
 	$(POETRY) semgrep scan --config rules/ --error
 
-cpd:
-	npx jscpd --format python --min-tokens 50 --threshold 0 --ignore '**/.venv/**,**/typings/**' .
+lint-cpd:
+	npx jscpd --config .jscpd.json .
 
-vulture:
-	$(POETRY) vulture --min-confidence 80 $(PY_DIRS)
+lint-vulture:
+	$(POETRY) python -m linux_hi.cli.vulture
 
-ansible-lint:
+lint-lizard:
+	$(POETRY) python -m linux_hi.cli.lizard
+
+lint-ansible:
 	$(POETRY) ansible-lint ansible
 
-checkmake:
+lint-checkmake:
 	$(POETRY) mbake format --check Makefile
 
-repo-policy:
+lint-repo-policy:
 	$(POETRY) python -m linux_hi.cli.repo_policy_check
 
 test:

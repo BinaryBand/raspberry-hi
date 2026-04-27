@@ -303,4 +303,4 @@ The preflight step will prompt for any missing `host_vars` and vault secrets bef
 - [ ] `ansible/apps/<app>/tasks/cleanup.yml` — if `cleanup: true`
 - [ ] `make generate-apps` run and `playbook.yml` committed
 - [ ] `tests/test_ansible_apps.py` updated and `make test` passes
-- [ ] `make repo-policy` passes
+- [ ] `make lint-repo-policy` passes

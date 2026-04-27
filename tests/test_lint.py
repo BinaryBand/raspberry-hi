@@ -81,16 +81,10 @@ class TestSemgrep:
 class TestVulture:
     """Ensure the codebase passes the current Vulture dead-code gate."""
 
-    PATHS = ["linux_hi/", "models/", "tests/"]
-
     def test_vulture(self):
-        """Fail if Vulture reports unused code at or above 80% confidence."""
-        result = run_resolved(
-            ["poetry", "run", "vulture", "--min-confidence", "80", *self.PATHS],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
+        """Fail if Vulture reports unused code above the configured confidence threshold."""
+        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.vulture"])
+        assert result.returncode == 0
 
 
 class TestMakefileLint:
@@ -175,23 +169,7 @@ class TestVaultSchemaIntegrity:
 class TestLizard:
     """Enforce function complexity and length caps via Lizard."""
 
-    PROD_PATHS = ["linux_hi/", "models/"]
-
     def test_function_complexity(self):
-        """Production functions must not exceed CCN 15 or 60 lines."""
-        result = run_resolved(
-            [
-                "poetry",
-                "run",
-                "lizard",
-                "--CCN",
-                "15",
-                "--length",
-                "60",
-                "--warnings_only",
-                *self.PROD_PATHS,
-            ],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
+        """Production functions must not exceed the configured CCN and length limits."""
+        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.lizard"])
+        assert result.returncode == 0

@@ -223,4 +223,4 @@ config/**/.*
 docs/**/.*
 
 # Project-local rclone config (contains OAuth tokens — must never be committed)
-.rclone.conf
+config/rclone.conf

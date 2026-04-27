@@ -12,7 +12,7 @@ from linux_hi.orchestration.rclone import RcloneSetupController
 from linux_hi.process.exec import run_resolved
 from linux_hi.vault.service import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 
-RCLONE_CONF = Path(".rclone.conf")
+RCLONE_CONF = Path("config") / "rclone.conf"
 
 
 class _VaultAdapter:
@@ -36,6 +36,8 @@ class _QuestionaryConfirm:
 def main() -> None:
     """Open rclone config for project remotes, then persist the config to the vault."""
     print(f"Opening rclone config (project file: {RCLONE_CONF})\n")
+    RCLONE_CONF.parent.mkdir(exist_ok=True)
+    RCLONE_CONF.touch()
     try:
         run_resolved(["rclone", "config", "--config", str(RCLONE_CONF)])
     except FileNotFoundError:

@@ -24,7 +24,7 @@ policies:
     source_line: 150
     status: enforced
     controls:
-      - make:checkmake
+      - make:lint-checkmake
       - semgrep:make-no-direct-poetry-run
       - semgrep:make-no-hardcoded-py-dirs
       - repo-policy:makefile-phony-and-style
@@ -35,7 +35,7 @@ policies:
     status: enforced
     controls:
       - repo-policy:makefile-host-selector
-      - make:repo-policy
+      - make:lint-repo-policy
 
   - id: setup-must-assert-become-passwords
     statement: "ansible/playbooks/setup.yml includes an always-on assertion that the current host has a become_passwords entry."
@@ -43,7 +43,7 @@ policies:
     status: enforced
     controls:
       - repo-policy:site-become-password-assertion
-      - make:repo-policy
+      - make:lint-repo-policy
 
   - id: app-playbooks-must-exist-for-all-registered-apps
     statement: "Every app in ansible/registry.yml must have a generated per-app playbook at ansible/apps/<app>/playbook.yml."
@@ -58,7 +58,7 @@ policies:
     status: enforced
     controls:
       - repo-policy:makefile-guard-checks
-      - make:repo-policy
+      - make:lint-repo-policy
 
   - id: durable-state-writes-use-dedicated-seams
     statement: "Keep durable state changes behind the dedicated inventory and vault helpers."
@@ -82,7 +82,7 @@ policies:
     status: enforced
     controls:
       - repo-policy:app-data-paths
-      - make:repo-policy
+      - make:lint-repo-policy
 
   - id: rclone-conf-must-not-be-committed
     statement: ".rclone.conf contains rclone OAuth tokens and must never be tracked by git."
