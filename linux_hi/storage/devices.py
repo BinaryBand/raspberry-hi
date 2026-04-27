@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, cast
 
 from linux_hi.adapters.connection_types import RemoteConnection
 from linux_hi.storage.discovery import get_block_devices, get_real_mounts
@@ -44,9 +44,9 @@ def get_device_uuid(conn: RemoteConnection, device_path: str) -> str | None:
     else:
         raw_blockdevices = []
 
-    data: List[BlockDevice] = [BlockDevice.model_validate(d) for d in raw_blockdevices]
+    data: list[BlockDevice] = [BlockDevice.model_validate(d) for d in raw_blockdevices]
 
-    def find_uuid(devs: List[BlockDevice]) -> str | None:
+    def find_uuid(devs: list[BlockDevice]) -> str | None:
         for d in devs:
             if d.path == device_path:
                 return d.uuid

@@ -5,6 +5,7 @@ from __future__ import annotations
 import getpass
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -102,36 +103,51 @@ def encrypt_vault(
             abort(f"Could not encrypt vault:\n{result.stderr.strip()}")
 
 
+def _update_vault(mutator: Callable[[RawVaultData], None]) -> None:
+    """Decrypt the vault, apply *mutator* in-place, and re-encrypt."""
+    data = decrypt_vault_raw()
+    mutator(data)
+    encrypt_vault(data)
+
+
 def write_vault_key(key: str, value: str) -> None:
     """Add or update an arbitrary top-level key in the vault."""
-    data = decrypt_vault_raw()
-    data[key] = value
-    encrypt_vault(data)
+
+    def _mutate(d: RawVaultData) -> None:
+        d[key] = value
+
+    _update_vault(_mutate)
 
 
 def remove_vault_key(key: str) -> None:
     """Remove a top-level key from the vault, silently ignoring missing keys."""
-    data = decrypt_vault_raw()
-    data.pop(key, None)
-    encrypt_vault(data)
+
+    def _mutate(d: RawVaultData) -> None:
+        d.pop(key, None)
+
+    _update_vault(_mutate)
 
 
 def write_become_password(hostname: str, password: str) -> None:
     """Add or update the become password for a host in the vault."""
-    data = decrypt_vault_raw()
-    become: dict[str, Any] = dict(data.get("become_passwords") or {})
-    become[hostname] = password
-    data["become_passwords"] = become
-    encrypt_vault(data)
+
+    def _mutate(d: RawVaultData) -> None:
+        become: dict[str, Any] = dict(d.get("become_passwords") or {})
+        become[hostname] = password
+        d["become_passwords"] = become
+
+    _update_vault(_mutate)
 
 
 def remove_become_password(hostname: str) -> None:
     """Remove the become password for a host from the vault."""
-    data = decrypt_vault_raw()
-    become: dict[str, Any] = dict(data.get("become_passwords") or {})
-    become.pop(hostname, None)
-    data["become_passwords"] = become
-    encrypt_vault(data)
+
+    def _mutate(d: RawVaultData) -> None:
+        become: dict[str, Any] = dict(d.get("become_passwords") or {})
+        become.pop(hostname, None)
+        d["become_passwords"] = become
+
+    _update_vault(_mutate)
 
 
 __all__ = [

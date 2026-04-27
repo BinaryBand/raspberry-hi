@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
@@ -7,8 +7,8 @@ class MountInfo(BaseModel):
     """A single entry from findmnt output."""
 
     target: str
-    source: Optional[str] = None
-    fstype: Optional[str] = None
-    size: Optional[str] = None
+    source: str | None = None
+    fstype: str | None = None
+    size: str | None = None
 
     model_config = ConfigDict(extra="allow")

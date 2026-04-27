@@ -12,7 +12,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Iterable, List, cast
+from typing import Any, Iterable, cast
 
 
 def resolve_executable(name: str) -> str:
@@ -40,7 +40,7 @@ def run_resolved(cmd: Iterable[str], /, **kwargs: Any) -> subprocess.CompletedPr
     All other positional and keyword arguments are forwarded to
     :func:`subprocess.run`.
     """
-    cmd_list: List[str] = list(cmd)
+    cmd_list: list[str] = list(cmd)
     if not cmd_list:
         raise ValueError("empty command")
 

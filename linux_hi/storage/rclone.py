@@ -7,10 +7,9 @@ remote-name -> { key: value }.
 from __future__ import annotations
 
 import configparser
-from typing import Dict
 
 
-def parse_rclone_ini(ini_text: str) -> Dict[str, Dict[str, str]]:
+def parse_rclone_ini(ini_text: str) -> dict[str, dict[str, str]]:
     """Parse a raw rclone INI string into a mapping of remotes.
 
     Empty or whitespace-only input returns an empty mapping. Invalid INI
@@ -28,14 +27,14 @@ def parse_rclone_ini(ini_text: str) -> Dict[str, Dict[str, str]]:
     except Exception as exc:  # pragma: no cover - defensive
         raise ValueError("Invalid rclone INI") from exc
 
-    result: Dict[str, Dict[str, str]] = {}
+    result: dict[str, dict[str, str]] = {}
     for section in cfg.sections():
         items = {k: v for k, v in cfg.items(section)}
         result[section] = {str(k): str(v) for k, v in items.items()}
     return result
 
 
-def list_remotes(rclone_config: Dict[str, Dict[str, str]]) -> list[str]:
+def list_remotes(rclone_config: dict[str, dict[str, str]]) -> list[str]:
     """Return remote names from a structured `rclone_config` mapping.
 
     The function expects a mapping as produced by :func:`parse_rclone_ini`

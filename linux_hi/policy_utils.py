@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import importlib
 import re
 import sys
+import types
 from pathlib import Path
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 import yaml
 from pydantic import ValidationError
@@ -21,7 +23,7 @@ def _load_policy_registry(policy_registry_path: Path, failures: Failures) -> Pol
     if not policy_registry_path.is_file():
         failures.append(f"Missing policy registry file: {policy_registry_path}")
         return None
-    loaded = yaml.safe_load(policy_registry_path.read_text(encoding="utf-8"))
+    loaded = _load_yaml(policy_registry_path)
     try:
         return PolicyRegistry.model_validate(loaded or {})
     except ValidationError:
@@ -31,22 +33,33 @@ def _load_policy_registry(policy_registry_path: Path, failures: Failures) -> Pol
         return None
 
 
+def _load_yaml(path: Path) -> object:
+    """Load a YAML file and return the raw parsed object."""
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _as_dict(obj: object) -> dict[str, Any] | None:
+    return cast(dict[str, Any], obj) if isinstance(obj, dict) else None
+
+
+def _as_list(obj: object) -> list[object] | None:
+    return cast(list[object], obj) if isinstance(obj, list) else None
+
+
 def _load_registry(registry_path: Path) -> dict[str, AppRegistryEntry]:
     """Load and validate the app registry, returning a mapping of app name to entry.
 
     Raises ValidationError if the file content does not conform to AppRegistry.
     """
-    return AppRegistry.model_validate(
-        yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
-    ).apps
+    return AppRegistry.model_validate(_load_yaml(registry_path) or {}).apps
 
 
-def get_app_roles(apps_dir: Path) -> List[str]:
+def get_app_roles(apps_dir: Path) -> list[str]:
     """Return a list of application roles in the specified directory."""
     return [p.name for p in apps_dir.iterdir() if p.is_dir()]
 
 
-def check_registry_entries(app_roles: List[str], registry_path: Path, failures: Failures) -> None:
+def check_registry_entries(app_roles: list[str], registry_path: Path, failures: Failures) -> None:
     """Verify that all application roles are listed in the registry file."""
     if not registry_path.exists():
         failures.append(f"Missing registry file: {registry_path}")
@@ -58,7 +71,7 @@ def check_registry_entries(app_roles: List[str], registry_path: Path, failures: 
 
 
 def check_app_dirs(
-    app_roles: List[str],
+    app_roles: list[str],
     apps_dir: Path,
     failures: Failures,
     registry_path: Path | None = None,
@@ -94,7 +107,7 @@ def check_app_dirs(
 
 
 def check_app_tests(
-    app_roles: List[str], tests_dir: Path, e2e_dir: Path, failures: Failures
+    app_roles: list[str], tests_dir: Path, e2e_dir: Path, failures: Failures
 ) -> None:
     """Ensure that each application role is covered by tests or e2e files."""
     test_file = tests_dir / "test_ansible_apps.py"
@@ -156,7 +169,7 @@ def check_makefile_host_selector(makefile_path: Path, failures: Failures) -> Non
 
 
 def check_registry_conflicts(
-    app_roles: List[str], apps_dir: Path, registry_path: Path, failures: Failures
+    app_roles: list[str], apps_dir: Path, registry_path: Path, failures: Failures
 ) -> None:
     """Fail on conflicting default values between registry.yml and role defaults.
 
@@ -180,9 +193,9 @@ def check_registry_conflicts(
         if not defaults_path.is_file():
             continue
 
-        defaults_loaded = yaml.safe_load(defaults_path.read_text(encoding="utf-8"))
-        defaults: Dict[str, Any] = (
-            cast(Dict[str, Any], defaults_loaded) if isinstance(defaults_loaded, dict) else {}
+        defaults_loaded = _load_yaml(defaults_path)
+        defaults: dict[str, Any] = (
+            cast(dict[str, Any], defaults_loaded) if isinstance(defaults_loaded, dict) else {}
         )
 
         for key in set(entry.preflight_vars.keys()) & set(defaults.keys()):
@@ -198,7 +211,7 @@ def check_registry_conflicts(
                     )
 
 
-def _discover_semgrep_ids(base_dirs: List[Path]) -> tuple[set[str], bool]:
+def _discover_semgrep_ids(base_dirs: list[Path]) -> tuple[set[str], bool]:
     """Return (rule_ids, found) by scanning base_dirs for the first .semgrep.yml."""
     for d in base_dirs:
         candidate = d / ".semgrep.yml"
@@ -214,7 +227,7 @@ def _discover_semgrep_ids(base_dirs: List[Path]) -> tuple[set[str], bool]:
     return set(), False
 
 
-def _discover_makefile_text(base_dirs: List[Path]) -> tuple[str, bool]:
+def _discover_makefile_text(base_dirs: list[Path]) -> tuple[str, bool]:
     """Return (text, found) by scanning base_dirs for the first Makefile."""
     for d in base_dirs:
         candidate = d / "Makefile"
@@ -274,11 +287,10 @@ def check_policy_contract_integrity(policy_registry_path: Path, failures: Failur
     semgrep_ids, semgrep_found = _discover_semgrep_ids(base_dirs)
     makefile_text, makefile_found = _discover_makefile_text(base_dirs)
 
+    mod: types.ModuleType | None
     try:
-        import importlib
-
         mod = importlib.import_module("linux_hi.policy_utils")
-    except Exception:
+    except ImportError:
         mod = None
 
     for policy in reg.policies:
@@ -300,37 +312,31 @@ def check_site_become_password_assertion(site_playbook_path: Path, failures: Fai
         failures.append(f"Missing site playbook: {site_playbook_path}")
         return
 
-    loaded = yaml.safe_load(site_playbook_path.read_text(encoding="utf-8"))
-    if not isinstance(loaded, list):
+    plays = _as_list(_load_yaml(site_playbook_path))
+    if plays is None:
         failures.append(f"{site_playbook_path} must define a play list")
         return
 
-    plays = cast(List[object], loaded)
     for play_obj in plays:
-        if not isinstance(play_obj, dict):
+        play = _as_dict(play_obj)
+        if play is None:
             continue
-        play = cast(Dict[str, Any], play_obj)
-        pre_tasks_obj = play.get("pre_tasks", [])
-        if not isinstance(pre_tasks_obj, list):
+        pre_tasks = _as_list(play.get("pre_tasks", []))
+        if pre_tasks is None:
             continue
-        pre_tasks = cast(List[object], pre_tasks_obj)
         for task_obj in pre_tasks:
-            if not isinstance(task_obj, dict):
+            task = _as_dict(task_obj)
+            if task is None:
                 continue
-            task = cast(Dict[str, Any], task_obj)
-            assert_task_obj = task.get("ansible.builtin.assert", task.get("assert"))
-            if not isinstance(assert_task_obj, dict):
+            if _as_dict(task.get("ansible.builtin.assert", task.get("assert"))) is None:
                 continue
-            task_text = yaml.safe_dump(task, sort_keys=False)
-            if "become_passwords" not in task_text:
+            if "become_passwords" not in yaml.safe_dump(task, sort_keys=False):
                 continue
             tags_obj = task.get("tags", [])
             if isinstance(tags_obj, str):
                 tags = [tags_obj]
-            elif isinstance(tags_obj, list):
-                tags = [str(tag) for tag in cast(List[object], tags_obj)]
             else:
-                tags = []
+                tags = [str(t) for t in (_as_list(tags_obj) or [])]
             if "always" not in tags:
                 failures.append(
                     f"{site_playbook_path} assert task verifying "
@@ -344,7 +350,7 @@ def check_site_become_password_assertion(site_playbook_path: Path, failures: Fai
     )
 
 
-def check_app_playbooks(app_roles: List[str], apps_dir: Path, failures: Failures) -> None:
+def check_app_playbooks(app_roles: list[str], apps_dir: Path, failures: Failures) -> None:
     """Ensure every registered app has a generated per-app playbook."""
     for app in app_roles:
         playbook = apps_dir / app / "playbook.yml"
@@ -355,7 +361,7 @@ def check_app_playbooks(app_roles: List[str], apps_dir: Path, failures: Failures
             )
 
 
-def check_app_data_paths(app_roles: List[str], registry_path: Path, failures: Failures) -> None:
+def check_app_data_paths(app_roles: list[str], registry_path: Path, failures: Failures) -> None:
     """Ensure persistent apps declare explicit data paths in registry preflight vars."""
     if not registry_path.is_file():
         failures.append(f"Missing registry file: {registry_path}")
@@ -444,7 +450,7 @@ def _parse_phony_targets(text: str) -> list[str]:
 
 
 def _check_phony_target(
-    target: str, help_lines: List[str], app_roles: List[str], failures: Failures
+    target: str, help_lines: list[str], app_roles: list[str], failures: Failures
 ) -> None:
     """Validate a single public .PHONY target for style and help visibility."""
     if target.startswith("_") or "$(" in target:
@@ -459,7 +465,7 @@ def _check_phony_target(
 
 
 def check_makefile_phony_and_style(
-    makefile_path: Path, app_roles: List[str], failures: Failures
+    makefile_path: Path, app_roles: list[str], failures: Failures
 ) -> None:
     """Validate public .PHONY targets, help visibility, and kebab-case style."""
     if not makefile_path.is_file():
@@ -481,35 +487,33 @@ class PolicyRunner:
     """Coordinates all repository policy checks against a fixed project root."""
 
     def __init__(self, root: Path) -> None:
-        """Derive all check paths from the repository root."""
+        """Store the repository root; all check paths are derived in run()."""
         self._root = root
-        self._apps_dir = root / "ansible" / "apps"
-        self._registry = root / "ansible" / "registry.yml"
-        self._tests_dir = root / "tests"
-        self._e2e_dir = root / "tests" / "e2e"
-        self._policy_contract = root / "docs" / "POLICY_CONTRACT.yml"
-        self._makefile = root / "Makefile"
-        self._ansible_dir = root / "ansible"
-        self._setup_playbook = root / "ansible" / "setup.yml"
 
     def run(self) -> None:
         """Run all checks and exit non-zero if any fail."""
+        root = self._root
+        ansible_dir = root / "ansible"
+        apps_dir = ansible_dir / "apps"
+        registry = ansible_dir / "registry.yml"
+        policy_contract = root / "docs" / "POLICY_CONTRACT.yml"
+        makefile = root / "Makefile"
         failures: Failures = []
-        app_roles = get_app_roles(self._apps_dir)
-        check_registry_entries(app_roles, self._registry, failures)
-        check_app_dirs(app_roles, self._apps_dir, failures, self._registry)
-        check_registry_conflicts(app_roles, self._apps_dir, self._registry, failures)
-        check_app_tests(app_roles, self._tests_dir, self._e2e_dir, failures)
-        check_playbook_vars(self._ansible_dir, failures)
-        check_site_become_password_assertion(self._setup_playbook, failures)
-        check_app_playbooks(app_roles, self._apps_dir, failures)
-        check_app_data_paths(app_roles, self._registry, failures)
-        check_policy_registry_controls(self._policy_contract, failures)
-        check_policy_contract_integrity(self._policy_contract, failures)
-        check_makefile_host_selector(self._makefile, failures)
-        check_makefile_guard_checks(self._makefile, failures)
-        check_makefile_phony_and_style(self._makefile, app_roles, failures)
-        check_no_direct_host_group_writes(self._root, failures)
+        app_roles = get_app_roles(apps_dir)
+        check_registry_entries(app_roles, registry, failures)
+        check_app_dirs(app_roles, apps_dir, failures, registry)
+        check_registry_conflicts(app_roles, apps_dir, registry, failures)
+        check_app_tests(app_roles, root / "tests", root / "tests" / "e2e", failures)
+        check_playbook_vars(ansible_dir, failures)
+        check_site_become_password_assertion(ansible_dir / "setup.yml", failures)
+        check_app_playbooks(app_roles, apps_dir, failures)
+        check_app_data_paths(app_roles, registry, failures)
+        check_policy_registry_controls(policy_contract, failures)
+        check_policy_contract_integrity(policy_contract, failures)
+        check_makefile_host_selector(makefile, failures)
+        check_makefile_guard_checks(makefile, failures)
+        check_makefile_phony_and_style(makefile, app_roles, failures)
+        check_no_direct_host_group_writes(root, failures)
         if failures:
             print("\nREPO POLICY CHECK FAILED:")
             for fail in failures:

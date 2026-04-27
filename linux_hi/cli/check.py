@@ -69,24 +69,27 @@ def _check_python_version() -> bool:
     )
 
 
-def _check_ansible_available() -> bool:
+def _check_executable(name: str, label: str, hint: str) -> bool:
     try:
-        resolve_executable("ansible")
+        resolve_executable(name)
         found = True
     except FileNotFoundError:
         found = False
-    return check("ansible available in PATH", found, "poetry install  (or: pipx install ansible)")
+    return check(label, found, hint)
+
+
+def _check_ansible_available() -> bool:
+    return _check_executable(
+        "ansible",
+        "ansible available in PATH",
+        "poetry install  (or: pipx install ansible)",
+    )
 
 
 def _check_node_available() -> bool:
-    try:
-        resolve_executable("node")
-        found = True
-    except FileNotFoundError:
-        found = False
-    return check(
+    return _check_executable(
+        "node",
         "node available in PATH (for make cpd)",
-        found,
         "install Node.js 18+ via nvm, your distro's package manager, or nodejs.org",
     )
 
