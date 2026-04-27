@@ -20,7 +20,7 @@ This repository separates declared state from operational tooling.
 - Ansible-owned state stays authoritative. Python may read or update it through narrow seams, but it must not become a second source of truth. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L13-L20))
 - The boundary is intentional. Ansible does not call Python to decide state, and Python does not orchestrate playbook execution.
 
-This rule is enforced in Semgrep by forbidding Python-side playbook orchestration, raw `ansible-vault` access outside the vault helper, and direct inventory/vault writes outside their dedicated seams. (Semgrep rules: [.semgrep.yml](.semgrep.yml) — see `python-must-not-run-ansible-playbook`, `python-ansible-vault-only-in-vault-service`, `python-ruamel-yaml-only-in-ansible-access`, `python-no-ansible-inventory-cli`.) Repo-level checks also validate playbook-level variables via [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L120-L132).
+This rule is enforced in Semgrep by forbidding Python-side playbook orchestration, raw `ansible-vault` access outside the vault helper, and direct inventory/vault writes outside their dedicated seams. (Semgrep rules: [rules/](rules/) — see `python-must-not-run-ansible-playbook`, `python-ansible-vault-only-in-vault-service`, `python-ruamel-yaml-only-in-ansible-access`, `python-no-ansible-inventory-cli`.) Repo-level checks also validate playbook-level variables via [linux_hi/policy/ansible_checks.py](linux_hi/policy/ansible_checks.py).
 
 ---
 
@@ -71,7 +71,7 @@ Generic package names are transitional, not preferred.
 
 - Prefer responsibility names such as `orchestration`, `adapters`, `ansible`, `storage`, `vault`, and `process`.
 - Do not introduce new generic buckets such as `internal` or `utils` when a responsibility name would describe the module's job more clearly.
-(Enforcement: Semgrep: [.semgrep.yml](.semgrep.yml) — `python-no-compatibility-namespace-imports`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L135-L144).)
+(Enforcement: Semgrep: [rules/](rules/) — `python-no-compatibility-namespace-imports`; Repo check: [linux_hi/policy/](linux_hi/policy/).)
 
 ### Orchestration
 
@@ -111,7 +111,7 @@ Missing prerequisites should be rejected at the edge of the workflow.
 
 ### Make Style Contract
 
-All Makefile changes must satisfy this contract: (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L22-L29); Semgrep: [.semgrep.yml](.semgrep.yml) — `make-no-direct-poetry-run`, `make-no-hardcoded-py-dirs`; Repo check: [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L214-L226))
+All Makefile changes must satisfy this contract: (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L22-L29); Semgrep: [rules/](rules/) — `make-no-direct-poetry-run`, `make-no-hardcoded-py-dirs`; Repo check: [linux_hi/policy/makefile_checks.py](linux_hi/policy/makefile_checks.py))
 
 - Public operator targets are `.PHONY` and appear in `make help` with a one-line description.
 - Public target names use lowercase kebab style (`format-check`, `backup-check`) and read as verbs or verb-noun actions.
@@ -216,7 +216,7 @@ SSH-dependent logic uses `tests/support/FakeConnection` and canned payloads from
 
 The repository treats Semgrep, ansible-lint, Ruff, Pyright, Vulture, and duplication checks as part of the maintainability model, not just style tooling.
 
-See Semgrep rules in [.semgrep.yml](.semgrep.yml) and repo-level policy validations in [linux_hi/policy_utils.py](linux_hi/policy_utils.py#L177-L212).
+See Semgrep rules in [rules/](rules/) and repo-level policy validations in [linux_hi/policy/](linux_hi/policy/).
 
 ---
 

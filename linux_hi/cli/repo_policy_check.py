@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from linux_hi.policy_utils import PolicyRunner
+from linux_hi.policy import PolicyRunner
 from models import ANSIBLE_DATA
 
 

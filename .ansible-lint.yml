@@ -1,9 +1,0 @@
-offline: true
-skip_list:
-  - var-naming
-
-# Central policy for ansible-lint behavior.
-# Lint scope is selected by the caller (make ansible-lint -> ansible/).
-exclude_paths:
-  - .venv/
-  - typings/

@@ -21,19 +21,7 @@ class TestCpd:
     def test_cpd(self):
         """Fail if jscpd reports any copy-paste duplication."""
         result = run_resolved(
-            [
-                "npx",
-                "jscpd",
-                "--format",
-                "python",
-                "--min-tokens",
-                "50",
-                "--threshold",
-                "0",
-                "--ignore",
-                "**/.venv/**,**/typings/**",
-                ".",
-            ],
+            ["npx", "jscpd", "--config", ".jscpd.json", "."],
             capture_output=True,
             text=True,
         )

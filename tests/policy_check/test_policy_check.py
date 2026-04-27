@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 
-import linux_hi.policy_utils as rpc
+import linux_hi.policy as rpc
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -257,7 +257,7 @@ def test_repo_policy_registry_has_controls_for_all_enforced_policies() -> None:
 
 
 def test_live_policy_contract_integrity() -> None:
-    """POLICY_CONTRACT.yml controls must reference Semgrep rules, policy_utils, and Make targets."""
+    """Contract controls must map to real Semgrep rules, policy functions, and Make targets."""
     failures: list[str] = []
     rpc.check_policy_contract_integrity(ROOT / "docs" / "POLICY_CONTRACT.yml", failures)
 
