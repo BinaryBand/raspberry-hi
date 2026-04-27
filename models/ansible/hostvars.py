@@ -14,6 +14,5 @@ class HostVars(BaseModel):
     @classmethod
     def from_inventory(cls, hostname: str, data: Mapping[str, object] | None) -> "HostVars":
         """Build host vars from inventory data, falling back to the alias as host."""
-        if not data:
-            return cls(ansible_host=hostname)
-        return cls.model_validate(dict(data))
+        merged = {"ansible_host": hostname, **(dict(data) if data else {})}
+        return cls.model_validate(merged)
