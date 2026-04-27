@@ -15,6 +15,16 @@ CLEANUP_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; pr
 # Override per-run: HOST=myserver make site
 HOST ?= rpi
 
+# Optional operator inputs used by config and maintenance targets.
+NAME ?=
+ADDRESS ?=
+ADDR ?=
+SECRET ?=
+KEY ?=
+PORT ?=
+APP ?=
+SVC ?=
+
 # Single inventory call — emits "host user port key" on one line so Make can
 # split it into four variables with $(word N,...).
 # We only read hosts.yml + host_vars/, not group_vars or vault.
@@ -40,6 +50,8 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: add-hostkey backup backup-check baikal bootstrap check cleanup generate-apps help lint logs mount ping
 .PHONY: format rclone restore restore-check ruff ruff-check ruff-fix ruff-format ruff-help setup ssh status
 .PHONY: test test-e2e vault-edit hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
+.PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
+.PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
 .PHONY: lint-ansible lint-check lint-checkmake lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
@@ -75,6 +87,18 @@ help:
 	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"
 	@echo "  restore-check Dry-run restore validation for one app (APP=$(RESTORE_APPS))"
 	@echo "  mount         Interactive: pick and mount external storage"
+	@echo "  config-rclone Open interactive rclone config editor for config/rclone.conf"
+	@echo "  config-rclone-edit Open config/rclone.conf in nano"
+	@echo "  config-hosts  Hosts config entrypoint (defaults to list)"
+	@echo "  config-hosts-add Add a host (supports NAME ADDRESS/ADDR SECRET/KEY USER PORT)"
+	@echo "  config-hosts-remove Remove a host (supports NAME)"
+	@echo "  config-hosts-list List configured hosts"
+	@echo "  config-hosts-edit Open ansible/inventory/hosts.yml in nano"
+	@echo "  config-vault  Vault config entrypoint (defaults to list)"
+	@echo "  config-vault-add Add/update a vault key (supports NAME)"
+	@echo "  config-vault-remove Remove a vault key (supports NAME)"
+	@echo "  config-vault-list List vault keys"
+	@echo "  config-vault-edit Open vault editor in nano (ansible-vault edit)"
 	@echo "  hosts-add     Add a host to inventory, host_vars, and vault (NAME ADDR USER PORT KEY)"
 	@echo "  hosts-remove  Remove a host from inventory, host_vars, and vault (NAME=<alias>)"
 	@echo "  hosts-list    List configured inventory hosts and their connection details"
@@ -169,26 +193,74 @@ add-hostkey: _inv_check
 ssh: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT)
 
+config-rclone:
+	rclone config --config config/rclone.conf
+
+config-rclone-edit:
+	nano config/rclone.conf
+
+config-hosts:
+	$(POETRY) python -m linux_hi.cli.hosts
+
+config-hosts-list:
+	$(POETRY) python -m linux_hi.cli.hosts list
+
+config-hosts-edit:
+	nano ansible/inventory/hosts.yml
+
+config-hosts-add:
+	@args=""; \
+	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
+		if [ -n "$(ADDRESS)" ]; then args="$$args --address $(ADDRESS)"; elif [ -n "$(ADDR)" ]; then args="$$args --address $(ADDR)"; fi; \
+			if [ -n "$(SECRET)" ]; then args="$$args --secret $(SECRET)"; elif [ -n "$(KEY)" ]; then args="$$args --secret $(KEY)"; fi; \
+				if [ -n "$(USER)" ]; then args="$$args --user $(USER)"; fi; \
+					if [ -n "$(PORT)" ]; then args="$$args --port $(PORT)"; fi; \
+						$(POETRY) python -m linux_hi.cli.hosts add $$args
+
+config-hosts-remove:
+	@args=""; \
+	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
+		$(POETRY) python -m linux_hi.cli.hosts remove $$args
+
+config-vault:
+	$(POETRY) python -m linux_hi.cli.vault
+
+config-vault-list:
+	$(POETRY) python -m linux_hi.cli.vault list
+
+config-vault-edit:
+	EDITOR=nano ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
+
+config-vault-add:
+	@args=""; \
+	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
+		$(POETRY) python -m linux_hi.cli.vault add $$args
+
+config-vault-remove:
+	@args=""; \
+	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
+		$(POETRY) python -m linux_hi.cli.vault remove $$args
+
 hosts-add:
-	NAME=$(NAME) ADDR=$(ADDR) USER=$(USER) PORT=$(PORT) KEY=$(KEY) $(POETRY) python -m linux_hi.cli.hosts add
+	$(MAKE) config-hosts-add NAME=$(NAME) ADDRESS=$(ADDRESS) ADDR=$(ADDR) SECRET=$(SECRET) KEY=$(KEY) USER=$(USER) PORT=$(PORT)
 
 hosts-remove:
-	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.hosts remove
+	$(MAKE) config-hosts-remove NAME=$(NAME)
 
 hosts-list:
-	$(POETRY) python -m linux_hi.cli.hosts list
+	$(MAKE) config-hosts-list
 
 vault-edit:
 	EDITOR="$${EDITOR:-nano}" ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
 
 vault-add:
-	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.vault add
+	$(MAKE) config-vault-add NAME=$(NAME)
 
 vault-remove:
-	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.vault remove
+	$(MAKE) config-vault-remove NAME=$(NAME)
 
 vault-list:
-	$(POETRY) python -m linux_hi.cli.vault list
+	$(MAKE) config-vault-list
 
 bootstrap:
 	$(POETRY) python -m linux_hi.cli.bootstrap
