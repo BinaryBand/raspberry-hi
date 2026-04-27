@@ -48,7 +48,7 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: add-hostkey backup backup-check baikal bootstrap check cleanup generate-apps help lint logs mount ping
-.PHONY: format rclone restore restore-check ruff ruff-check ruff-fix ruff-format ruff-help setup ssh status
+.PHONY: format rclone restore restore-check ruff ruff-fix ruff-format setup ssh status
 .PHONY: test test-e2e vault-edit hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
@@ -121,16 +121,11 @@ check:
 
 lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-checkmake lint-repo-policy
 
-# Ruff targets: help / check / format / fix
-lint-check: ruff-check
+# Ruff targets: check / format / fix
+lint-check:
+	$(POETRY) ruff check $(PY_DIRS)
 
 ruff: lint-check
-
-ruff-help:
-	$(POETRY) ruff --help
-
-ruff-check:
-	$(POETRY) ruff check $(PY_DIRS)
 
 ruff-format:
 	$(POETRY) ruff format $(PY_DIRS)
@@ -148,7 +143,7 @@ _ci:
 	$(POETRY) ty check
 	$(POETRY) semgrep scan --config rules/ --error
 	$(POETRY) mbake format --check Makefile
-	$(POETRY) python -m linux_hi.cli.repo_policy_check
+	$(POETRY) python -m linux_hi.cli.linters.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
 lint-ty:
@@ -161,10 +156,10 @@ lint-cpd:
 	npx jscpd --config .jscpd.json .
 
 lint-vulture:
-	$(POETRY) python -m linux_hi.cli.vulture
+	$(POETRY) python -m linux_hi.cli.linters.vulture
 
 lint-lizard:
-	$(POETRY) python -m linux_hi.cli.lizard
+	$(POETRY) python -m linux_hi.cli.linters.lizard
 
 lint-ansible:
 	$(POETRY) ansible-lint ansible
@@ -173,7 +168,7 @@ lint-checkmake:
 	$(POETRY) mbake format --check Makefile
 
 lint-repo-policy:
-	$(POETRY) python -m linux_hi.cli.repo_policy_check
+	$(POETRY) python -m linux_hi.cli.linters.repo_policy_check
 
 test:
 	$(POETRY) pytest tests/ -v

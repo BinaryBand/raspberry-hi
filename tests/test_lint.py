@@ -83,7 +83,7 @@ class TestVulture:
 
     def test_vulture(self):
         """Fail if Vulture reports unused code above the configured confidence threshold."""
-        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.vulture"])
+        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.linters.vulture"])
         assert result.returncode == 0
 
 
@@ -171,5 +171,5 @@ class TestLizard:
 
     def test_function_complexity(self):
         """Production functions must not exceed the configured CCN and length limits."""
-        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.lizard"])
+        result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.linters.lizard"])
         assert result.returncode == 0
