@@ -1,12 +1,12 @@
 ---
-- name: Remove run script for {{ svc_name }}
+- name: Remove run script for {{ service_adapter_name }}
   ansible.builtin.file:
-    path: "{{ svc_run_script }}"
+    path: "{{ service_adapter_run_script }}"
     state: absent
   become: true
 
-- name: Remind operator to verify manual teardown for {{ svc_name }}
+- name: Remind operator to verify manual teardown for {{ service_adapter_name }}
   ansible.builtin.debug:
     msg: >-
-      Run script for '{{ svc_name }}' removed.
+      Run script for '{{ service_adapter_name }}' removed.
       If you wired it into an init system manually, remove that entry now.

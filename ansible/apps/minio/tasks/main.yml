@@ -43,9 +43,9 @@
     name: service_adapter
     tasks_from: prepare
   vars:
-    svc_name: "{{ minio_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"
+    service_adapter_name: "{{ minio_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-minio.sh"
 
 - name: Install MinIO Podman quadlet
   ansible.builtin.template:
@@ -62,9 +62,9 @@
   ansible.builtin.import_role:
     name: service_adapter
   vars:
-    svc_name: "{{ minio_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-minio.sh"
+    service_adapter_name: "{{ minio_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-minio.sh"
 
 # 4. Post-deployment: ensure mc is present then configure bucket and policy.
 - name: Setup MinIO buckets and public policy

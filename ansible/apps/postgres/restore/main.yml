@@ -8,8 +8,8 @@
     name: service_adapter
     tasks_from: stop
   vars:
-    svc_name: "{{ postgres_service_name }}"
-    svc_user: "{{ ansible_user }}"
+    service_adapter_name: "{{ postgres_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
   when: not ansible_check_mode
 
 - name: Restore PostgreSQL dump from restic
@@ -57,8 +57,8 @@
     name: service_adapter
     tasks_from: start
   vars:
-    svc_name: "{{ postgres_service_name }}"
-    svc_user: "{{ ansible_user }}"
+    service_adapter_name: "{{ postgres_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
   when: not ansible_check_mode
 
 - name: Wait for PostgreSQL before restore

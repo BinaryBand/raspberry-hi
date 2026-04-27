@@ -4,25 +4,25 @@
 
 - name: Ensure service bin directory exists
   ansible.builtin.file:
-    path: "{{ svc_run_script | dirname }}"
+    path: "{{ service_adapter_run_script | dirname }}"
     state: directory
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true
 
-- name: Deploy run script for {{ svc_name }}
+- name: Deploy run script for {{ service_adapter_name }}
   ansible.builtin.template:
     src: run-container.sh.j2
-    dest: "{{ svc_run_script }}"
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    dest: "{{ service_adapter_run_script }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true
 
-- name: Remind operator to start service manually {{ svc_name }}
+- name: Remind operator to start service manually {{ service_adapter_name }}
   ansible.builtin.debug:
     msg: >-
-      Service '{{ svc_name }}' deployed but not started.
-      Run: {{ svc_run_script }}
+      Service '{{ service_adapter_name }}' deployed but not started.
+      Run: {{ service_adapter_run_script }}
       To persist across reboots, wire this script into your init system manually.

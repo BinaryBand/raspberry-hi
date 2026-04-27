@@ -1,27 +1,27 @@
 ---
 # Called directly via: include_role: name=service_adapter tasks_from=restart
 
-- name: Get UID of {{ svc_user }}
-  ansible.builtin.command: "id -u {{ svc_user }}"
-  register: _svc_restart_uid
+- name: Get UID of {{ service_adapter_user }}
+  ansible.builtin.command: "id -u {{ service_adapter_user }}"
+  register: _service_adapter_restart_uid
   changed_when: false
   when: service_adapter_backend == 'systemd'
 
-- name: Restart via systemd {{ svc_name }}
+- name: Restart via systemd {{ service_adapter_name }}
   ansible.builtin.systemd:
-    name: "{{ svc_name }}"
+    name: "{{ service_adapter_name }}"
     scope: user
     state: restarted
     daemon_reload: true
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _svc_restart_uid.stdout | trim }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ _service_adapter_restart_uid.stdout | trim }}"
   become: true
-  become_user: "{{ svc_user }}"
+  become_user: "{{ service_adapter_user }}"
   when: service_adapter_backend == 'systemd'
 
-- name: Restart via script {{ svc_name }}
-  ansible.builtin.command: "{{ svc_run_script }}"
+- name: Restart via script {{ service_adapter_name }}
+  ansible.builtin.command: "{{ service_adapter_run_script }}"
   become: true
-  become_user: "{{ svc_user }}"
+  become_user: "{{ service_adapter_user }}"
   changed_when: true
   when: service_adapter_backend != 'systemd'

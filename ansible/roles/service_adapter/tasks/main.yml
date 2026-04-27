@@ -1,7 +1,7 @@
 ---
 # Port: service lifecycle management.
-# Apps call this role with svc_name, svc_user, svc_run_script, and optionally
-# svc_requires_mount. The adapter handles init-system-specific details.
+# Apps call this role with service_adapter_name, service_adapter_user, service_adapter_run_script, and optionally
+# service_adapter_requires_mount. The adapter handles init-system-specific details.
 
 - name: Assert supported service backend
   ansible.builtin.assert:

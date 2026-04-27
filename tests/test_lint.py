@@ -112,7 +112,7 @@ class TestAnsibleLint:
     def test_ansible_config_does_not_require_local_vault_password(self):
         """Global Ansible config must not depend on a developer-only vault file."""
         config = configparser.ConfigParser()
-        config.read(ROOT / "ansible" / "ansible.cfg")
+        config.read(ROOT / "ansible.cfg")
 
         assert "vault_password_file" not in config["defaults"]
 

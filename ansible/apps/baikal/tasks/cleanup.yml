@@ -5,9 +5,9 @@
     name: service_adapter
     tasks_from: teardown
   vars:
-    svc_name: "{{ baikal_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
+    service_adapter_name: "{{ baikal_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
 
 # 2. Remove the container if it is still running.
 - name: Remove Baikal container

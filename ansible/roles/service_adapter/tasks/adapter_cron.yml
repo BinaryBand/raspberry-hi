@@ -5,26 +5,26 @@
 
 - name: Ensure service bin directory exists
   ansible.builtin.file:
-    path: "{{ svc_run_script | dirname }}"
+    path: "{{ service_adapter_run_script | dirname }}"
     state: directory
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true
 
-- name: Deploy run script for {{ svc_name }}
+- name: Deploy run script for {{ service_adapter_name }}
   ansible.builtin.template:
     src: run-container.sh.j2
-    dest: "{{ svc_run_script }}"
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    dest: "{{ service_adapter_run_script }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true
 
-- name: Schedule service via @reboot cron {{ svc_name }}
+- name: Schedule service via @reboot cron {{ service_adapter_name }}
   ansible.builtin.cron:
-    name: "{{ svc_name }}-start"
+    name: "{{ service_adapter_name }}-start"
     special_time: reboot
-    job: "{{ svc_run_script }}"
-    cron_file: "{{ svc_name }}"
-    user: "{{ svc_user }}"
+    job: "{{ service_adapter_run_script }}"
+    cron_file: "{{ service_adapter_name }}"
+    user: "{{ service_adapter_user }}"

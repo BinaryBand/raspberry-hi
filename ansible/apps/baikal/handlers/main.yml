@@ -3,6 +3,6 @@
   listen: restart baikal
   ansible.builtin.include_tasks: ../../../roles/service_adapter/tasks/restart.yml
   vars:
-    svc_name: "{{ baikal_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
+    service_adapter_name: "{{ baikal_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-baikal.sh"

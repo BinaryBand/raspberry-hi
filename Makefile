@@ -16,8 +16,8 @@ CLEANUP_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; pr
 HOST ?= rpi
 
 # Single inventory call — emits "host user port key" on one line so Make can
-# split it into four variables with $(word N,...).  No ANSIBLE_CONFIG needed:
-# we only read hosts.yml + host_vars/, not group_vars or vault.
+# split it into four variables with $(word N,...).
+# We only read hosts.yml + host_vars/, not group_vars or vault.
 # python3 returns '' on any error rather than crashing Make evaluation.
 # Spaces are not valid in IPs, usernames, ports, or key paths, so word-split is safe.
 _INV := $(shell ansible-inventory -i $(ANSIBLE_DIR)/inventory/hosts.yml --host $(HOST) 2>/dev/null \
@@ -30,10 +30,9 @@ REMOTE_PORT := $(or $(word 3,$(_INV)),22)
 REMOTE_KEY := $(word 4,$(_INV))
 
 # Shared Ansible flags — avoids repeating paths across targets.
-ANSIBLE_CFG := $(CURDIR)/ansible/ansible.cfg
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
 INV := ansible/inventory/hosts.yml
-_ANSIBLE_FLAGS := ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
+_ANSIBLE_FLAGS := ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
 SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
@@ -138,7 +137,7 @@ vulture:
 	$(POETRY) vulture --min-confidence 80 $(PY_DIRS)
 
 ansible-lint:
-	ANSIBLE_CONFIG=$(ANSIBLE_CFG) $(POETRY) ansible-lint ansible
+	$(POETRY) ansible-lint ansible
 
 checkmake:
 	$(POETRY) mbake format --check Makefile
@@ -174,7 +173,7 @@ hosts-list:
 	$(POETRY) python -m linux_hi.cli.hosts list
 
 vault-edit:
-	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
+	EDITOR="$${EDITOR:-nano}" ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
 
 vault-add:
 	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.vault add

@@ -4,8 +4,8 @@
     name: service_adapter
     tasks_from: stop
   vars:
-    svc_name: "{{ baikal_service_name }}"
-    svc_user: "{{ ansible_user }}"
+    service_adapter_name: "{{ baikal_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
 
 - name: Restore Baikal config and data from restic
   ansible.builtin.include_role:
@@ -20,5 +20,5 @@
     name: service_adapter
     tasks_from: start
   vars:
-    svc_name: "{{ baikal_service_name }}"
-    svc_user: "{{ ansible_user }}"
+    service_adapter_name: "{{ baikal_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"

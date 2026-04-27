@@ -1,14 +1,14 @@
 ---
-- name: Remove @reboot cron entry for {{ svc_name }}
+- name: Remove @reboot cron entry for {{ service_adapter_name }}
   ansible.builtin.cron:
-    name: "{{ svc_name }}-start"
-    cron_file: "{{ svc_name }}"
-    user: "{{ svc_user }}"
+    name: "{{ service_adapter_name }}-start"
+    cron_file: "{{ service_adapter_name }}"
+    user: "{{ service_adapter_user }}"
     state: absent
   become: true
 
-- name: Remove run script for {{ svc_name }}
+- name: Remove run script for {{ service_adapter_name }}
   ansible.builtin.file:
-    path: "{{ svc_run_script }}"
+    path: "{{ service_adapter_run_script }}"
     state: absent
   become: true

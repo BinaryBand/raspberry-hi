@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: "{{ app_user_home }}/.config/containers/systemd"
     state: directory
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true

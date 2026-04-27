@@ -2,43 +2,43 @@
 # systemd adapter: resolves user UID, ensures linger, starts and enables the
 # service unit via the user's systemd socket.
 
-- name: Get UID of {{ svc_user }}
-  ansible.builtin.command: "id -u {{ svc_user }}"
-  register: _svc_user_uid_out
+- name: Get UID of {{ service_adapter_user }}
+  ansible.builtin.command: "id -u {{ service_adapter_user }}"
+  register: _service_adapter_user_uid_out
   changed_when: false
 
-- name: Set _svc_user_uid fact
+- name: Set _service_adapter_user_uid fact
   ansible.builtin.set_fact:
-    _svc_user_uid: "{{ _svc_user_uid_out.stdout }}"
+    _service_adapter_user_uid: "{{ _service_adapter_user_uid_out.stdout }}"
 
 - name: Ensure Podman quadlet directory exists
   ansible.builtin.file:
     path: "{{ app_user_home }}/.config/containers/systemd"
     state: directory
-    owner: "{{ svc_user }}"
-    group: "{{ svc_user }}"
+    owner: "{{ service_adapter_user }}"
+    group: "{{ service_adapter_user }}"
     mode: "0755"
   become: true
 
-- name: Check linger status for {{ svc_user }}
-  ansible.builtin.command: "loginctl show-user {{ svc_user }} -p Linger --value"
-  register: _svc_linger_status
+- name: Check linger status for {{ service_adapter_user }}
+  ansible.builtin.command: "loginctl show-user {{ service_adapter_user }} -p Linger --value"
+  register: _service_adapter_linger_status
   become: true
   changed_when: false
   failed_when: false
 
-- name: Enable linger for {{ svc_user }}
-  ansible.builtin.command: "loginctl enable-linger {{ svc_user }}"
+- name: Enable linger for {{ service_adapter_user }}
+  ansible.builtin.command: "loginctl enable-linger {{ service_adapter_user }}"
   become: true
   changed_when: true
-  when: _svc_linger_status.stdout | default('') != 'yes'
+  when: _service_adapter_linger_status.stdout | default('') != 'yes'
 
-- name: Enable and start service {{ svc_name }}
+- name: Enable and start service {{ service_adapter_name }}
   ansible.builtin.systemd:
-    name: "{{ svc_name }}"
+    name: "{{ service_adapter_name }}"
     scope: user
     state: started
     enabled: true
     daemon_reload: true
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ _svc_user_uid }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ _service_adapter_user_uid }}"
