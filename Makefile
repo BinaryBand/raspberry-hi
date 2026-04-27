@@ -41,7 +41,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: add-hostkey ansible-lint backup backup-check baikal bootstrap check checkmake cleanup cpd repo-policy
 .PHONY: format format-check generate-apps help lint logs mount ping ty rclone restore restore-check ruff
 .PHONY: ruff-check ruff-fix ruff-format ruff-help semgrep setup ssh status test test-e2e vault-edit vulture
-.PHONY: hosts-add hosts-list hosts-remove
+.PHONY: hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
 .PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
 
 help:
@@ -79,6 +79,9 @@ help:
 	@echo "  hosts-remove  Remove a host from inventory, host_vars, and vault (NAME=<alias>)"
 	@echo "  hosts-list    List configured inventory hosts and their connection details"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
+	@echo "  vault-add     Add or update a top-level vault key (NAME=<key>)"
+	@echo "  vault-remove  Remove a top-level vault key (NAME=<key>)"
+	@echo "  vault-list    List top-level vault keys (no values shown)"
 	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
@@ -172,6 +175,15 @@ hosts-list:
 
 vault-edit:
 	EDITOR="$${EDITOR:-nano}" ANSIBLE_CONFIG=$(ANSIBLE_CFG) ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
+
+vault-add:
+	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.vault add
+
+vault-remove:
+	NAME=$(NAME) $(POETRY) python -m linux_hi.cli.vault remove
+
+vault-list:
+	$(POETRY) python -m linux_hi.cli.vault list
 
 bootstrap:
 	$(POETRY) python -m linux_hi.cli.bootstrap

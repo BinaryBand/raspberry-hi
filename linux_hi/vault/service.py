@@ -102,6 +102,20 @@ def encrypt_vault(
             abort(f"Could not encrypt vault:\n{result.stderr.strip()}")
 
 
+def write_vault_key(key: str, value: str) -> None:
+    """Add or update an arbitrary top-level key in the vault."""
+    data = decrypt_vault_raw()
+    data[key] = value
+    encrypt_vault(data)
+
+
+def remove_vault_key(key: str) -> None:
+    """Remove a top-level key from the vault, silently ignoring missing keys."""
+    data = decrypt_vault_raw()
+    data.pop(key, None)
+    encrypt_vault(data)
+
+
 def write_become_password(hostname: str, password: str) -> None:
     """Add or update the become password for a host in the vault."""
     data = decrypt_vault_raw()
@@ -128,6 +142,8 @@ __all__ = [
     "decrypt_vault_raw",
     "encrypt_vault",
     "remove_become_password",
+    "remove_vault_key",
     "setup_vault_password",
     "write_become_password",
+    "write_vault_key",
 ]
