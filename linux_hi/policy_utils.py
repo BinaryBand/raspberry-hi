@@ -198,6 +198,66 @@ def check_registry_conflicts(
                     )
 
 
+def _discover_semgrep_ids(base_dirs: List[Path]) -> tuple[set[str], bool]:
+    """Return (rule_ids, found) by scanning base_dirs for the first .semgrep.yml."""
+    for d in base_dirs:
+        candidate = d / ".semgrep.yml"
+        if candidate.is_file():
+            ids = {
+                m.group(1).strip()
+                for m in re.finditer(
+                    r"(?m)^\s*-\s*id\s*:\s*([^\s#]+)",
+                    candidate.read_text(encoding="utf-8"),
+                )
+            }
+            return ids, True
+    return set(), False
+
+
+def _discover_makefile_text(base_dirs: List[Path]) -> tuple[str, bool]:
+    """Return (text, found) by scanning base_dirs for the first Makefile."""
+    for d in base_dirs:
+        candidate = d / "Makefile"
+        if candidate.is_file():
+            return candidate.read_text(encoding="utf-8"), True
+    return "", False
+
+
+def _check_semgrep_control(
+    control: str, val: str, semgrep_ids: set[str], semgrep_found: bool, failures: Failures
+) -> None:
+    if val == ".semgrep.yml":
+        if not semgrep_found:
+            failures.append(f"Policy control {control} references .semgrep.yml but none was found")
+        return
+    if val not in semgrep_ids:
+        failures.append(f"Policy control {control} references unknown semgrep rule '{val}'")
+
+
+def _check_repo_policy_control(control: str, val: str, mod: object, failures: Failures) -> None:
+    fn = "check_" + val.replace("-", "_")
+    exported = getattr(mod, "__all__", ()) if mod is not None else ()
+    if fn not in exported:
+        failures.append(
+            f"Policy control {control} references missing function '{fn}' "
+            "in linux_hi.policy_utils.__all__"
+        )
+
+
+def _check_make_control(
+    control: str, val: str, makefile_text: str, makefile_found: bool, failures: Failures
+) -> None:
+    if not makefile_found:
+        failures.append(
+            f"Policy control {control} references make target '{val}' but no Makefile was found"
+        )
+        return
+    pattern1 = re.search(rf"(^|\n){re.escape(val)}\s*:", makefile_text)
+    pattern2 = re.search(rf"\.PHONY:.*\b{re.escape(val)}\b", makefile_text)
+    if pattern1 is None and pattern2 is None:
+        failures.append(f"Policy control {control} references missing Make target '{val}'")
+
+
 def check_policy_contract_integrity(policy_registry_path: Path, failures: Failures) -> None:
     """Validate that policy controls reference real enforcement artifacts.
 
@@ -210,31 +270,10 @@ def check_policy_contract_integrity(policy_registry_path: Path, failures: Failur
     if reg is None:
         return
 
-    # Discover companion files: look in the policy registry dir and its parent
     base_dirs = [policy_registry_path.parent, policy_registry_path.parent.parent]
+    semgrep_ids, semgrep_found = _discover_semgrep_ids(base_dirs)
+    makefile_text, makefile_found = _discover_makefile_text(base_dirs)
 
-    semgrep_ids: set[str] = set()
-    semgrep_found = False
-    for d in base_dirs:
-        candidate = d / ".semgrep.yml"
-        if candidate.is_file():
-            semgrep_found = True
-            semgrep_text = candidate.read_text(encoding="utf-8")
-            # Fallback: extract rule ids with a regex to avoid complex typed YAML shapes
-            for m in re.finditer(r"(?m)^\s*-\s*id\s*:\s*([^\s#]+)", semgrep_text):
-                semgrep_ids.add(m.group(1).strip())
-            break
-
-    makefile_text = ""
-    makefile_found = False
-    for d in base_dirs:
-        candidate = d / "Makefile"
-        if candidate.is_file():
-            makefile_found = True
-            makefile_text = candidate.read_text(encoding="utf-8")
-            break
-
-    # Import this module to check for repo-policy function targets
     try:
         import importlib
 
@@ -244,41 +283,13 @@ def check_policy_contract_integrity(policy_registry_path: Path, failures: Failur
 
     for policy in reg.policies:
         for control in policy.controls:
+            _, val = control.split(":", 1)
             if control.startswith("semgrep:"):
-                _, val = control.split(":", 1)
-                if val == ".semgrep.yml":
-                    if not semgrep_found:
-                        failures.append(
-                            f"Policy control {control} references .semgrep.yml but none was found"
-                        )
-                    continue
-                if val not in semgrep_ids:
-                    failures.append(
-                        f"Policy control {control} references unknown semgrep rule '{val}'"
-                    )
+                _check_semgrep_control(control, val, semgrep_ids, semgrep_found, failures)
             elif control.startswith("repo-policy:"):
-                _, val = control.split(":", 1)
-                fn = "check_" + val.replace("-", "_")
-                exported = getattr(mod, "__all__", ()) if mod is not None else ()
-                if fn not in exported:
-                    failures.append(
-                        f"Policy control {control} references missing function '{fn}' "
-                        "in linux_hi.policy_utils.__all__"
-                    )
+                _check_repo_policy_control(control, val, mod, failures)
             elif control.startswith("make:"):
-                _, val = control.split(":", 1)
-                if not makefile_found:
-                    failures.append(
-                        f"Policy control {control} references make target '{val}' "
-                        "but no Makefile was found"
-                    )
-                    continue
-                pattern1 = re.search(rf"(^|\n){re.escape(val)}\s*:", makefile_text)
-                pattern2 = re.search(rf"\.PHONY:.*\b{re.escape(val)}\b", makefile_text)
-                if pattern1 is None and pattern2 is None:
-                    failures.append(
-                        f"Policy control {control} references missing Make target '{val}'"
-                    )
+                _check_make_control(control, val, makefile_text, makefile_found, failures)
             else:
                 failures.append(f"Policy control {control} uses unknown control scheme")
 
@@ -421,6 +432,32 @@ def check_no_direct_host_group_writes(root: Path, failures: Failures) -> None:
                 )
 
 
+def _parse_phony_targets(text: str) -> list[str]:
+    """Extract all target names from .PHONY declarations in Makefile text."""
+    targets: list[str] = []
+    for ln in text.splitlines():
+        stripped = ln.lstrip()
+        if stripped.startswith(".PHONY:"):
+            rest = stripped[len(".PHONY:") :].strip()
+            targets.extend(token for token in rest.split() if token)
+    return targets
+
+
+def _check_phony_target(
+    target: str, help_lines: List[str], app_roles: List[str], failures: Failures
+) -> None:
+    """Validate a single public .PHONY target for style and help visibility."""
+    if target.startswith("_") or "$(" in target:
+        return
+    if not re.fullmatch(r"[a-z0-9-]+", target):
+        failures.append(f"Public target '{target}' should use lowercase kebab-case")
+    # App-role targets are covered if the help output contains a generic <app> entry.
+    if target in app_roles and any(re.search(r"<app", ln) for ln in help_lines):
+        return
+    if not any(re.search(rf"\b{re.escape(target)}\b", ln) for ln in help_lines):
+        failures.append(f"Public target '{target}' must appear in make help output")
+
+
 def check_makefile_phony_and_style(
     makefile_path: Path, app_roles: List[str], failures: Failures
 ) -> None:
@@ -430,31 +467,14 @@ def check_makefile_phony_and_style(
         return
 
     text = makefile_path.read_text(encoding="utf-8")
-    phony_targets: list[str] = []
-    for ln in text.splitlines():
-        stripped = ln.lstrip()
-        if stripped.startswith(".PHONY:"):
-            rest = stripped[len(".PHONY:") :].strip()
-            phony_targets.extend(token for token in rest.split() if token)
-
+    phony_targets = _parse_phony_targets(text)
     if not phony_targets:
         failures.append("Makefile missing .PHONY declarations for public targets")
         return
 
     help_lines = [ln for ln in text.splitlines() if "@echo" in ln]
     for target in phony_targets:
-        if target.startswith("_") or "$(" in target:
-            continue
-        if not re.fullmatch(r"[a-z0-9-]+", target):
-            failures.append(f"Public target '{target}' should use lowercase kebab-case")
-
-        # If the target is annotated as an app role and the help contains
-        # an app meta entry, consider it covered.
-        if target in app_roles and any(re.search(r"<app", ln) for ln in help_lines):
-            continue
-
-        if not any(re.search(rf"\b{re.escape(target)}\b", ln) for ln in help_lines):
-            failures.append(f"Public target '{target}' must appear in make help output")
+        _check_phony_target(target, help_lines, app_roles, failures)
 
 
 class PolicyRunner:

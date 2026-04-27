@@ -58,64 +58,52 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Sequence[str] | None = None) -> None:
-    """Run prerequisite checks and exit non-zero when any check fails."""
-    args = parse_args(argv)
-
-    if args.vault_only:
-        all_ok = check_vault_secrets()
-        if not all_ok:
-            sys.exit(1)
-        return
-
-    print("Checking prerequisites...\n")
-    all_ok = True
-
+def _check_python_version() -> bool:
     py_ok = sys.version_info >= MIN_PYTHON
     min_str = f"{MIN_PYTHON[0]}.{MIN_PYTHON[1]}"
     run_str = f"{sys.version_info.major}.{sys.version_info.minor}"
-    all_ok &= check(
+    return check(
         f"Python >= {min_str} (running {run_str})",
         py_ok,
         f"pyenv install {min_str} && pyenv global {min_str}",
     )
 
+
+def _check_ansible_available() -> bool:
     try:
         resolve_executable("ansible")
-        ansible_found = True
+        found = True
     except FileNotFoundError:
-        ansible_found = False
-    all_ok &= check(
-        "ansible available in PATH",
-        ansible_found,
-        "poetry install  (or: pipx install ansible)",
-    )
+        found = False
+    return check("ansible available in PATH", found, "poetry install  (or: pipx install ansible)")
 
+
+def _check_node_available() -> bool:
     try:
         resolve_executable("node")
-        node_found = True
+        found = True
     except FileNotFoundError:
-        node_found = False
-    all_ok &= check(
+        found = False
+    return check(
         "node available in PATH (for make cpd)",
-        node_found,
+        found,
         "install Node.js 18+ via nvm, your distro's package manager, or nodejs.org",
     )
 
+
+def _check_vault_password_file() -> bool:
     vault_ok = VAULT_PASSWORD_FILE.exists() and VAULT_PASSWORD_FILE.stat().st_mode & 0o777 == 0o600
-    all_ok &= check(
+    return check(
         "Vault password file exists (ansible/.vault-password, mode 600)",
         vault_ok,
         "echo 'your-password' > ansible/.vault-password && chmod 600 ansible/.vault-password",
     )
 
-    if vault_ok:
-        all_ok &= check_vault_secrets()
 
-    inventory_path = ANSIBLE_DATA.inventory_file
+def _check_host_reachable() -> bool:
     try:
         ping = run_resolved(
-            ["ansible", "devices", "-m", "ping", "-i", str(inventory_path)],
+            ["ansible", "devices", "-m", "ping", "-i", str(ANSIBLE_DATA.inventory_file)],
             capture_output=True,
             text=True,
             timeout=30,
@@ -123,12 +111,32 @@ def main(argv: Sequence[str] | None = None) -> None:
         pi_ok = ping.returncode == 0
     except Exception:
         pi_ok = False
-    all_ok &= check(
+    return check(
         "Host reachable",
         pi_ok,
         "Check SSH key and host address in ansible/inventory/hosts.ini"
         " — if the host key is unknown, run: make add-hostkey",
     )
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Run prerequisite checks and exit non-zero when any check fails."""
+    args = parse_args(argv)
+
+    if args.vault_only:
+        if not check_vault_secrets():
+            sys.exit(1)
+        return
+
+    print("Checking prerequisites...\n")
+    all_ok = _check_python_version()
+    all_ok &= _check_ansible_available()
+    all_ok &= _check_node_available()
+    vault_ok = _check_vault_password_file()
+    all_ok &= vault_ok
+    if vault_ok:
+        all_ok &= check_vault_secrets()
+    all_ok &= _check_host_reachable()
 
     print()
     if all_ok:

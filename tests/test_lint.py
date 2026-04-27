@@ -179,3 +179,28 @@ class TestVaultSchemaIntegrity:
             f"Add them explicitly or rename to end with a covered suffix "
             f"(password|secret|token|api_key|private_key)."
         )
+
+
+class TestLizard:
+    """Enforce function complexity and length caps via Lizard."""
+
+    PROD_PATHS = ["linux_hi/", "models/"]
+
+    def test_function_complexity(self):
+        """Production functions must not exceed CCN 15 or 60 lines."""
+        result = run_resolved(
+            [
+                "poetry",
+                "run",
+                "lizard",
+                "--CCN",
+                "15",
+                "--length",
+                "60",
+                "--warnings_only",
+                *self.PROD_PATHS,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
