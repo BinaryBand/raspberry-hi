@@ -11,6 +11,7 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
+from linux_hi.cli._dispatch import dispatch
 from linux_hi.vault.service import remove_become_password, write_become_password
 from models import ANSIBLE_DATA
 
@@ -107,12 +108,7 @@ _SUBCOMMANDS: dict[str, Callable[[], None]] = {
 
 def main(argv: list[str] | None = None) -> None:
     """Dispatch host management subcommands."""
-    args = argv if argv is not None else sys.argv[1:]
-    subcmd = args[0] if args else "list"
-    fn = _SUBCOMMANDS.get(subcmd)
-    if fn is None:
-        sys.exit(f"Unknown subcommand '{subcmd}'. Available: {', '.join(_SUBCOMMANDS)}")
-    fn()
+    dispatch(_SUBCOMMANDS, argv)
 
 
 if __name__ == "__main__":
