@@ -37,19 +37,19 @@
   tasks:
     - name: Back up MinIO
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/../apps/minio/backup/main.yml"
+        file: "{{ playbook_dir }}/../apps/minio/backup.yml"
       when: minio_data_path is defined
       tags: [minio]
 
     - name: Back up PostgreSQL
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/../apps/postgres/backup/main.yml"
+        file: "{{ playbook_dir }}/../apps/postgres/backup.yml"
       when: postgres_data_path is defined
       tags: [postgres]
 
     - name: Back up Baikal
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/../apps/baikal/backup/main.yml"
+        file: "{{ playbook_dir }}/../apps/baikal/backup.yml"
       when: baikal_data_path is defined
       tags: [baikal]
 

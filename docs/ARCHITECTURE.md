@@ -144,7 +144,7 @@ That dependency is declared in the registry and enforced at two levels:
 
 Both files are generated from `registry.yml` and must not be edited by hand. Run `make generate-apps` to regenerate after registry changes.
 
-`meta/main.yml` dependencies must stay empty for these roles. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml); Semgrep: [.semgrep.yml](.semgrep.yml) — `ansible-meta-no-non-empty-dependencies`.) Non-empty role dependencies cause duplicate execution under per-app playbook invocation and are forbidden by Semgrep.
+App roles do not use `meta/main.yml` — inter-app ordering belongs in `registry.yml`, not Ansible's role dependency mechanism (which would cause duplicate execution under per-app playbook invocation).
 
 This pattern is for repo-owned service relationships, not hidden external prerequisites.
 

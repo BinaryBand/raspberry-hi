@@ -37,21 +37,21 @@ def test_app_entry_data() -> None:
 def test_containerized_apps_declare_backup_and_restore() -> None:
     """Each containerized app must implement backup and restore handlers."""
     for app in ANSIBLE_DATA.containerized_apps():
-        assert (ANSIBLE_DIR / "apps" / app / "backup" / "main.yml").exists()
-        assert (ANSIBLE_DIR / "apps" / app / "restore" / "main.yml").exists()
+        assert (ANSIBLE_DIR / "apps" / app / "backup.yml").exists()
+        assert (ANSIBLE_DIR / "apps" / app / "restore.yml").exists()
 
 
 def test_containerized_app_backups_delegate_to_restic() -> None:
     """Each app backup task should hand off snapshotting to the restic role."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/backup/main.yml")
+        content = _read_text(f"ansible/apps/{app}/backup.yml")
         assert "name: restic" in content
 
 
 def test_containerized_app_backups_validate_snapshot_paths() -> None:
     """Each app backup task should verify snapshot source paths before restic runs."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/backup/main.yml")
+        content = _read_text(f"ansible/apps/{app}/backup.yml")
         assert "ansible.builtin.stat" in content
         assert "ansible.builtin.fail" in content
 
@@ -73,12 +73,12 @@ def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
 
 def test_postgres_backup_and_restore_share_readiness_check() -> None:
     """PostgreSQL lifecycle flows should reuse the shared readiness gate."""
-    backup_content = _read_text("ansible/apps/postgres/backup/main.yml")
-    restore_content = _read_text("ansible/apps/postgres/restore/main.yml")
+    backup_content = _read_text("ansible/apps/postgres/backup.yml")
+    restore_content = _read_text("ansible/apps/postgres/restore.yml")
     wait_ready_content = _read_text("ansible/apps/postgres/tasks/wait_ready.yml")
 
-    assert "include_tasks: ../tasks/wait_ready.yml" in backup_content
-    assert "include_tasks: ../tasks/wait_ready.yml" in restore_content
+    assert "include_tasks: tasks/wait_ready.yml" in backup_content
+    assert "include_tasks: tasks/wait_ready.yml" in restore_content
     assert "Wait for PostgreSQL to accept connections" in wait_ready_content
     assert "Fail if PostgreSQL never became ready" in wait_ready_content
 
@@ -90,16 +90,12 @@ def test_restore_and_cleanup_playbooks_use_registry_for_supported_apps() -> None
 
     assert 'file: "{{ playbook_dir }}/../registry.yml"' in cleanup_content
     assert "cleanup_app in cleanup_supported_apps" in cleanup_content
-    assert (
-        'file: "{{ playbook_dir }}/../apps/{{ cleanup_app }}/tasks/cleanup.yml"' in cleanup_content
-    )
+    assert 'file: "{{ playbook_dir }}/../apps/{{ cleanup_app }}/cleanup.yml"' in cleanup_content
     assert "['minio', 'postgres', 'baikal']" not in cleanup_content
 
     assert 'file: "{{ playbook_dir }}/../registry.yml"' in restore_content
     assert "restore_app in restore_supported_apps" in restore_content
-    assert (
-        'file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore/main.yml"' in restore_content
-    )
+    assert 'file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore.yml"' in restore_content
     assert "['minio', 'postgres', 'baikal']" not in restore_content
 
 

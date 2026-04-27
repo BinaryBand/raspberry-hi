@@ -36,19 +36,6 @@ rules:
     pattern-regex: '(?im)^\s*(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key)\s*:'
 
   # Role ordering and service lifecycle policies
-  - id: ansible-meta-no-non-empty-dependencies
-    message: >-
-      Role dependencies in meta/main.yml cause roles to run multiple times under
-      per-app playbook invocation, leading to double privilege escalation and timeouts.
-      Declare ordering via registry.yml dependencies and generate-apps instead.
-    severity: ERROR
-    languages:
-      - generic
-    paths:
-      include:
-        - /ansible/**/meta/main.yml
-    pattern-regex: '(?m)^dependencies:\n\s+- '
-
   - id: host-vars-service-adapter-backend-literal
     message: "service_adapter_backend overrides in host_vars must be one of: systemd, cron, manual."
     severity: ERROR

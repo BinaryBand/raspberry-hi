@@ -30,30 +30,27 @@ def check_app_dirs(
     failures: Failures,
     registry_path: Path | None = None,
 ) -> None:
-    """Check that each application role has required subdirectories."""
+    """Check that each application role has required files and subdirectories."""
     registry = None
     if registry_path and registry_path.exists():
         registry = _load_registry(registry_path)
 
     for app in app_roles:
         app_path = apps_dir / app
-        required_dirs = ["tasks"]
+        if not (app_path / "tasks").is_dir():
+            failures.append(f"App '{app}' missing 'tasks/' directory")
 
         if registry is not None:
             entry = registry.get(app)
-            if entry is not None:
-                if entry.backup:
-                    required_dirs.append("backup")
-                if entry.restore:
-                    required_dirs.append("restore")
-            else:
-                required_dirs.extend(["backup", "restore"])
+            needs_backup = entry.backup if entry is not None else True
+            needs_restore = entry.restore if entry is not None else True
         else:
-            required_dirs.extend(["backup", "restore"])
+            needs_backup = needs_restore = True
 
-        for subdir in required_dirs:
-            if not (app_path / subdir).is_dir():
-                failures.append(f"App '{app}' missing '{subdir}/' directory")
+        if needs_backup and not (app_path / "backup.yml").is_file():
+            failures.append(f"App '{app}' missing 'backup.yml'")
+        if needs_restore and not (app_path / "restore.yml").is_file():
+            failures.append(f"App '{app}' missing 'restore.yml'")
 
 
 def check_app_tests(

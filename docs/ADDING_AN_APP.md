@@ -45,7 +45,7 @@ apps:
 
 | Field | Type | Effect |
 |---|---|---|
-| `service_type` | `containerized` \| `tool` | `containerized` apps are required to have `backup/` and `restore/` subdirs (enforced by repo-policy). |
+| `service_type` | `containerized` \| `tool` | `containerized` apps are required to have `backup.yml` and `restore.yml` (enforced by repo-policy). |
 | `backup` / `restore` / `cleanup` | bool | Gates inclusion in `make backup`, `make restore`, and `make cleanup`. Also drives repo-policy dir checks. |
 | `dependencies` | list | Apps that must be preflighted and provisioned before this one. Preflight chaining and `import_playbook` ordering are both derived from this list. |
 | `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: rclone_remote` to get an interactive remote selector. |
@@ -69,11 +69,10 @@ Preflight will recurse into `postgres` first. `make generate-apps` will prepend 
 ```
 ansible/apps/jellyfin/
   defaults/main.yml          # role defaults; null out required vars here
-  meta/main.yml              # always empty dependencies: []
   tasks/main.yml             # provisioning tasks
-  tasks/cleanup.yml          # teardown tasks (required if cleanup: true)
-  backup/main.yml            # restic snapshot tasks (required if backup: true)
-  restore/main.yml           # restic restore tasks (required if restore: true)
+  cleanup.yml                # teardown tasks (required if cleanup: true)
+  backup.yml                 # restic snapshot tasks (required if backup: true)
+  restore.yml                # restic restore tasks (required if restore: true)
   handlers/main.yml          # optional: restart handler
   templates/                 # optional: .container.j2, .env.j2, etc.
 ```
@@ -88,15 +87,6 @@ jellyfin_image: docker.io/jellyfin/jellyfin:10.10.7
 jellyfin_data_path: ~          # required; set via make preflight or make jellyfin
 jellyfin_port: 8096
 jellyfin_service_name: jellyfin
-```
-
-### `meta/main.yml`
-
-Always empty. Non-empty `dependencies:` cause duplicate execution under per-app playbook invocation and are rejected by Semgrep (`ansible-meta-no-non-empty-dependencies`). Cross-app ordering belongs in `registry.yml`.
-
-```yaml
----
-dependencies: []
 ```
 
 ### `tasks/main.yml`
@@ -143,7 +133,7 @@ Follow the four-step pattern used by existing apps:
     svc_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
 ```
 
-### `backup/main.yml` (if `backup: true`)
+### `backup.yml` (if `backup: true`)
 
 Validate that the data path exists on the host, then delegate to the restic role:
 
@@ -175,7 +165,7 @@ Validate that the data path exists on the host, then delegate to the restic role
     restic_snapshot_tag: jellyfin
 ```
 
-### `restore/main.yml` (if `restore: true`)
+### `restore.yml` (if `restore: true`)
 
 Stop the service, restore the snapshot, restart:
 
@@ -206,7 +196,7 @@ Stop the service, restore the snapshot, restart:
     svc_user: "{{ ansible_user }}"
 ```
 
-### `tasks/cleanup.yml` (if `cleanup: true`)
+### `cleanup.yml` (if `cleanup: true`)
 
 Deregister the service, remove the container, remove config and data:
 
@@ -296,11 +286,10 @@ The preflight step will prompt for any missing `host_vars` and vault secrets bef
 
 - [ ] Entry added to `ansible/registry.yml`
 - [ ] `ansible/apps/<app>/defaults/main.yml` — null out required vars, pin image tag
-- [ ] `ansible/apps/<app>/meta/main.yml` — `dependencies: []`
 - [ ] `ansible/apps/<app>/tasks/main.yml` — assert → directories → container → service_adapter
-- [ ] `ansible/apps/<app>/backup/main.yml` — if `backup: true`
-- [ ] `ansible/apps/<app>/restore/main.yml` — if `restore: true`
-- [ ] `ansible/apps/<app>/tasks/cleanup.yml` — if `cleanup: true`
+- [ ] `ansible/apps/<app>/backup.yml` — if `backup: true`
+- [ ] `ansible/apps/<app>/restore.yml` — if `restore: true`
+- [ ] `ansible/apps/<app>/cleanup.yml` — if `cleanup: true`
 - [ ] `make generate-apps` run and `playbook.yml` committed
 - [ ] `tests/test_ansible_apps.py` updated and `make test` passes
 - [ ] `make lint-repo-policy` passes

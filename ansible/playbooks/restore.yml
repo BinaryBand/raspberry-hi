@@ -89,4 +89,4 @@
   tasks:
     - name: Restore selected app
       ansible.builtin.include_tasks:
-        file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore/main.yml"
+        file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore.yml"

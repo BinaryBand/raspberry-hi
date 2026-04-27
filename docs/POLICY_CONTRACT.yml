@@ -69,13 +69,6 @@ policies:
       - semgrep:python-ansible-vault-only-in-vault-service
       - semgrep:python-ruamel-yaml-only-in-ansible-access
 
-  - id: role-meta-dependencies-must-stay-empty
-    statement: "meta/main.yml dependencies must stay empty for app roles."
-    source_line: 182
-    status: enforced
-    controls:
-      - semgrep:ansible-meta-no-non-empty-dependencies
-
   - id: app-data-paths-must-be-explicitly-declared
     statement: "Application data paths must be explicitly declared."
     source_line: 212
