@@ -9,7 +9,7 @@ from pathlib import Path
 import questionary
 
 from linux_hi.ansible.role_vars import role_required_vars
-from linux_hi.vault.service import VAULT_FILE, decrypt_vault, decrypt_vault_raw, encrypt_vault
+from linux_hi.vault.service import decrypt_vault, decrypt_vault_raw, encrypt_vault
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, str]
@@ -98,7 +98,9 @@ def write_preflight_updates(
         print(f"  [OK  ]  Wrote {len(host_updates)} var(s) for '{hostname}'")
 
     if secret_updates:
-        encrypt_vault(secret_updates, output=VAULT_FILE)
+        data = decrypt_vault_raw()
+        data.update(secret_updates)
+        encrypt_vault(data)
         print(f"  [OK  ]  Wrote {len(secret_updates)} vault secret(s)")
 
 

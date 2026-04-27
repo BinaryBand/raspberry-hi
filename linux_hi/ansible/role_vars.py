@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from linux_hi.ansible.yaml import yaml_mapping
+from models.ansible.yaml import yaml_mapping
 
 
 def role_required_vars(role_path: Path) -> list[str]:

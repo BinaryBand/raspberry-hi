@@ -6,16 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from linux_hi.ansible.inventory import discover_hosts
 from models import ANSIBLE_DATA
+from models.ansible.access import AnsibleDataStore
 
 
-def test_discover_hosts_uses_inventory_aliases() -> None:
-    """The helper should return the tracked host aliases from inventory."""
-    assert discover_hosts() == ["debian", "rpi", "rpi2"]
+def test_inventory_hosts_returns_configured_aliases() -> None:
+    """inventory_hosts() should return the tracked host aliases from inventory."""
+    assert ANSIBLE_DATA.inventory_hosts() == ["debian", "rpi", "rpi2"]
 
 
-def test_discover_hosts_from_temp_inventory(tmp_path: Path) -> None:
+def test_inventory_hosts_from_temp_inventory(tmp_path: Path) -> None:
     """Custom inventory paths should still be parsed via Ansible's inventory engine."""
     inventory_dir = tmp_path / "inventory"
     inventory_dir.mkdir()
@@ -24,8 +24,8 @@ def test_discover_hosts_from_temp_inventory(tmp_path: Path) -> None:
         "all:\n  children:\n    devices:\n      hosts:\n        alpha:\n        beta:\n",
         encoding="utf-8",
     )
-
-    assert discover_hosts(inventory_file) == ["alpha", "beta"]
+    store = AnsibleDataStore.from_inventory_file(inventory_file)
+    assert store.inventory_hosts() == ["alpha", "beta"]
 
 
 def test_require_inventory_host_rejects_unknown_host() -> None:

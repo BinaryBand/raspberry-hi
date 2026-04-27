@@ -6,7 +6,6 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from linux_hi.ansible.inventory import discover_hosts
 from linux_hi.process.exec import resolve_executable, run_resolved
 from linux_hi.vault.service import VAULT_PASSWORD_FILE, decrypt_vault
 from models import ANSIBLE_DATA
@@ -33,7 +32,7 @@ def check_vault_secrets() -> bool:
         )
 
     secrets = decrypt_vault()
-    hosts = discover_hosts()
+    hosts = ANSIBLE_DATA.inventory_hosts()
     become_pwds = secrets.become_passwords or {}
     missing_hosts = [host for host in hosts if not become_pwds.get(host)]
 

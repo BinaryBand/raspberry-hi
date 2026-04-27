@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import getpass
 
-from linux_hi.ansible.inventory import discover_hosts
 from linux_hi.vault.service import (
     VAULT_FILE,
     decrypt_vault_raw,
     encrypt_vault,
     setup_vault_password,
 )
-from models import VaultSecrets
+from models import ANSIBLE_DATA, VaultSecrets
 
 
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:
@@ -45,7 +44,7 @@ def main() -> None:
         existing = VaultSecrets()
         raw = {}
 
-    hosts = discover_hosts()
+    hosts = ANSIBLE_DATA.inventory_hosts()
     current_become = dict(existing.become_passwords or {})
     new_become = prompt_missing_become_passwords(current_become, hosts)
 

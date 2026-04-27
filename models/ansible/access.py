@@ -9,10 +9,9 @@ from ansible.parsing.dataloader import DataLoader
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-from linux_hi.ansible.yaml import yaml_mapping
-
 from .hostvars import HostVars
 from .registry import AppRegistry, AppRegistryEntry
+from .yaml import yaml_mapping
 
 
 class AnsibleDataStore:
