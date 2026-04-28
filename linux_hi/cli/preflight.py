@@ -34,18 +34,19 @@ def load_preflight_spec(
     """Return the prompt schema for *app* by combining registry metadata and role defaults."""
     entry: AppRegistryEntry = ANSIBLE_DATA.get_app_entry(app)
     required_vars = role_required_vars(role_path)
-    var_hints = entry.preflight_vars or {}
-    vars_spec = {var: var_hints.get(var, PreflightVarSpec(hint="")) for var in required_vars}
-    secrets_spec = entry.vault_secrets or []
+    vars_spec = {
+        var: entry.preflight_vars.get(var, PreflightVarSpec(hint="")) for var in required_vars
+    }
+    secrets_spec = entry.vault_secrets
     return vars_spec, secrets_spec
 
 
 def _prompt_host_var(var_name: str, spec: PreflightVarSpec) -> str:
     label = f"  {var_name}" + (f" ({spec.hint})" if spec.hint else "") + ":"
-    if getattr(spec, "type", None) == "rclone_remote":
+    if spec.type == "rclone_remote":
         value = _pick_rclone_remote(label)
     else:
-        value = questionary.text(label, default=getattr(spec, "default", None) or "").ask()
+        value = questionary.text(label, default=spec.default or "").ask()
     if not value:
         sys.exit(f"  [FAIL]  {var_name} is required. Aborting.")
     return value

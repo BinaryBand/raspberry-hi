@@ -24,7 +24,7 @@ class AnsibleDataStore:
         self.inventory_file = self.inventory_dir / "hosts.yml"
         self.host_vars_dir = self.inventory_dir / "host_vars"
         self.registry_file = self.ansible_dir / "registry.yml"
-        self._app_registry_cache: dict[str, AppRegistryEntry] | None = None
+        self._registry_cache: AppRegistry | None = None
         self._inventory_hosts_cache: list[str] | None = None
 
     @classmethod
@@ -39,19 +39,19 @@ class AnsibleDataStore:
 
     def clear_cache(self) -> None:
         """Drop any cached registry data."""
-        self._app_registry_cache = None
+        self._registry_cache = None
         self._inventory_hosts_cache = None
 
     def load_full_registry(self) -> AppRegistry:
         """Return the full validated registry including global_vars."""
-        data = self._read_yaml_mapping(self.registry_file)
-        return AppRegistry.model_validate(data)
+        if self._registry_cache is None:
+            data = self._read_yaml_mapping(self.registry_file)
+            self._registry_cache = AppRegistry.model_validate(data)
+        return self._registry_cache
 
     def load_app_registry(self) -> dict[str, AppRegistryEntry]:
         """Return the validated app registry keyed by app name."""
-        if self._app_registry_cache is None:
-            self._app_registry_cache = self.load_full_registry().apps
-        return self._app_registry_cache
+        return self.load_full_registry().apps
 
     def all_apps(self) -> list[str]:
         """Return all registered app names in declared order."""

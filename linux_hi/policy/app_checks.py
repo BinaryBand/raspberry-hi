@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
 
 from ._loader import Failures, _load_registry, _load_yaml
 
@@ -40,12 +39,9 @@ def check_app_dirs(
         if not (app_path / "tasks").is_dir():
             failures.append(f"App '{app}' missing 'tasks/' directory")
 
-        if registry is not None:
-            entry = registry.get(app)
-            needs_backup = entry.backup if entry is not None else True
-            needs_restore = entry.restore if entry is not None else True
-        else:
-            needs_backup = needs_restore = True
+        entry = registry.get(app) if registry else None
+        needs_backup = entry.backup if entry else True
+        needs_restore = entry.restore if entry else True
 
         if needs_backup and not (app_path / "backup.yml").is_file():
             failures.append(f"App '{app}' missing 'backup.yml'")
@@ -92,21 +88,19 @@ def check_registry_conflicts(
             continue
 
         defaults_loaded = _load_yaml(defaults_path)
-        defaults: dict[str, Any] = (
-            cast(dict[str, Any], defaults_loaded) if isinstance(defaults_loaded, dict) else {}
-        )
+        if not isinstance(defaults_loaded, dict):
+            continue
 
-        for key in set(entry.preflight_vars.keys()) & set(defaults.keys()):
-            role_default = defaults.get(key)
+        for raw_key, role_default in defaults_loaded.items():
+            key = str(raw_key)
             var_spec = entry.preflight_vars.get(key)
-            registry_default = var_spec.default if var_spec is not None else None
-
-            if role_default is not None and registry_default is not None:
-                if str(role_default) != str(registry_default):
-                    failures.append(
-                        f"Registry/role defaults conflict for app '{app}', var '{key}': "
-                        f"registry default {registry_default!r} != role default {role_default!r}"
-                    )
+            if var_spec is None or var_spec.default is None or role_default is None:
+                continue
+            if str(role_default) != var_spec.default:
+                failures.append(
+                    f"Registry/role defaults conflict for app '{app}', var '{key}': "
+                    f"registry default {var_spec.default!r} != role default {role_default!r}"
+                )
 
 
 def check_app_playbooks(app_roles: list[str], apps_dir: Path, failures: Failures) -> None:

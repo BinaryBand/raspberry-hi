@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 
 from models import ANSIBLE_DATA
-from models.ansible.registry import AppRegistryEntry
+from models.ansible.registry import AppRegistry, AppRegistryEntry
 
 _PRE_TASKS = """\
   pre_tasks:
@@ -39,6 +39,18 @@ def _var_prefix(app: str) -> str:
     return app.replace("-", "_")
 
 
+def _service_var_lines(prefix: str, entry: AppRegistryEntry) -> list[str]:
+    """Return YAML lines for the service identity vars derivable from the registry."""
+    lines = []
+    if entry.service_name is not None:
+        lines.append(f"{prefix}_service_name: {entry.service_name}")
+    if entry.image is not None:
+        lines.append(f"{prefix}_image: {entry.image}")
+    if entry.port is not None:
+        lines.append(f"{prefix}_port: {entry.port}")
+    return lines
+
+
 def _render_playbook(app: str, dependencies: list[str]) -> str:
     parts: list[str] = ["---"]
     for dep in dependencies:
@@ -59,89 +71,67 @@ def _render_playbook(app: str, dependencies: list[str]) -> str:
 def _render_generated_defaults(app: str, entry: AppRegistryEntry) -> str:
     prefix = _var_prefix(app)
     lines: list[str] = [_GENERATED_HEADER]
-    if entry.service_name is not None:
-        lines.append(f"{prefix}_service_name: {entry.service_name}")
-    if entry.image is not None:
-        lines.append(f"{prefix}_image: {entry.image}")
-    if entry.port is not None:
-        lines.append(f"{prefix}_port: {entry.port}")
+    lines.extend(_service_var_lines(prefix, entry))
     if entry.runtime_uid is not None:
         lines.append(f"{prefix}_runtime_uid: {entry.runtime_uid}")
     if entry.runtime_gid is not None:
         lines.append(f"{prefix}_runtime_gid: {entry.runtime_gid}")
     for key, value in entry.shared_vars.items():
-        if key not in {
-            f"{prefix}_service_name",
-            f"{prefix}_image",
-            f"{prefix}_port",
-        }:
+        if key not in {f"{prefix}_service_name", f"{prefix}_image", f"{prefix}_port"}:
             lines.append(f"{key}: {value}")
     lines.append("")
     return "\n".join(lines)
 
 
-def _render_group_vars(registry: dict[str, AppRegistryEntry]) -> str:
-    full_registry = ANSIBLE_DATA.load_full_registry()
+def _render_group_vars(full_registry: AppRegistry) -> str:
     lines: list[str] = [_GENERATED_HEADER]
-
     if full_registry.global_vars:
         for key, value in full_registry.global_vars.items():
             lines.append(f'{key}: "{value}"')
         lines.append("")
-
-    for app, entry in registry.items():
+    for app, entry in full_registry.apps.items():
         prefix = _var_prefix(app)
-        app_lines: list[str] = []
-        if entry.service_name is not None:
-            app_lines.append(f"{prefix}_service_name: {entry.service_name}")
-        if entry.image is not None:
-            app_lines.append(f"{prefix}_image: {entry.image}")
-        if entry.port is not None:
-            app_lines.append(f"{prefix}_port: {entry.port}")
-        for key, value in entry.shared_vars.items():
-            app_lines.append(f"{key}: {value}")
+        app_lines = [
+            *_service_var_lines(prefix, entry),
+            *(f"{k}: {v}" for k, v in entry.shared_vars.items()),
+        ]
         if app_lines:
             lines.append(f"# {app}")
             lines.extend(app_lines)
             lines.append("")
-
     return "\n".join(lines)
 
 
 def main() -> None:
-    registry = ANSIBLE_DATA.load_app_registry()
+    full_registry = ANSIBLE_DATA.load_full_registry()
     apps_dir = ANSIBLE_DATA.ansible_dir / "apps"
     generated: list[str] = []
 
-    for app, entry in registry.items():
+    for app, entry in full_registry.apps.items():
         app_dir = apps_dir / app
         if not app_dir.is_dir():
             sys.exit(f"  [FAIL]  No app directory for '{app}': {app_dir}")
 
-        playbook_path = app_dir / "playbook.yml"
-        playbook_path.write_text(_render_playbook(app, entry.dependencies), encoding="utf-8")
+        (app_dir / "playbook.yml").write_text(
+            _render_playbook(app, entry.dependencies), encoding="utf-8"
+        )
 
-        has_generated_defaults = any(
-            v is not None
-            for v in (
-                entry.service_name,
-                entry.image,
-                entry.port,
-                entry.runtime_uid,
-                entry.runtime_gid,
-            )
-        ) or bool(entry.shared_vars)
-
+        has_generated_defaults = (
+            entry.service_name
+            or entry.image
+            or entry.port
+            or entry.runtime_uid
+            or entry.shared_vars
+        )
         if has_generated_defaults:
-            generated_defaults_path = app_dir / "defaults" / "generated.yml"
-            generated_defaults_path.write_text(
+            (app_dir / "defaults" / "generated.yml").write_text(
                 _render_generated_defaults(app, entry), encoding="utf-8"
             )
 
         generated.append(app)
 
     group_vars_path = ANSIBLE_DATA.ansible_dir / "group_vars" / "all" / "vars.yml"
-    group_vars_path.write_text(_render_group_vars(registry), encoding="utf-8")
+    group_vars_path.write_text(_render_group_vars(full_registry), encoding="utf-8")
 
     print(f"  [OK  ]  Generated playbooks and defaults for: {', '.join(generated)}")
     print(f"  [OK  ]  Regenerated {group_vars_path.relative_to(ANSIBLE_DATA.ansible_dir.parent)}")

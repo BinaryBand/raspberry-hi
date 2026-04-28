@@ -2,19 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-
-def _empty_preflight_vars() -> dict[str, "PreflightVarSpec"]:
-    return {}
-
-
-def _empty_dependencies() -> list[str]:
-    return []
-
-
-def _empty_vault_secrets() -> list["VaultSecretSpec"]:
-    return []
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PreflightVarSpec(BaseModel):
@@ -23,14 +11,6 @@ class PreflightVarSpec(BaseModel):
     type: str | None = None
 
     model_config = ConfigDict(extra="forbid")
-
-    @model_validator(mode="before")
-    @classmethod
-    def _normalize_legacy_string(cls, value: object) -> object:
-        _ = cls
-        if isinstance(value, str):
-            return {"hint": value}
-        return value
 
 
 class VaultSecretSpec(BaseModel):
@@ -53,9 +33,9 @@ class AppRegistryEntry(BaseModel):
     backup: bool = False
     restore: bool = False
     cleanup: bool = False
-    dependencies: list[str] = Field(default_factory=_empty_dependencies)
-    preflight_vars: dict[str, PreflightVarSpec] = Field(default_factory=_empty_preflight_vars)
-    vault_secrets: list[VaultSecretSpec] = Field(default_factory=_empty_vault_secrets)
+    dependencies: list[str] = Field(default_factory=list)
+    preflight_vars: dict[str, PreflightVarSpec] = Field(default_factory=dict)
+    vault_secrets: list[VaultSecretSpec] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
