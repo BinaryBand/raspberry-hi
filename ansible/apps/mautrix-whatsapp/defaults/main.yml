@@ -1,0 +1,29 @@
+---
+# Pin to a specific release tag for reproducibility.
+# Browse tags at: https://dock.mau.dev/mautrix/whatsapp
+mautrix_whatsapp_image: dock.mau.dev/mautrix/whatsapp:v0.2604.0
+
+# Directory for all bridge config and state (mounted as /data in the container).
+mautrix_whatsapp_data_path: ~  # required; set in host_vars/<hostname>.yml
+
+mautrix_whatsapp_service_name: mautrix-whatsapp
+
+# Port the bridge appservice listens on (the homeserver connects here to deliver events).
+mautrix_whatsapp_port: 29318
+
+# UID/GID the bridge process runs as inside the official Docker image.
+mautrix_whatsapp_runtime_uid: 1337
+mautrix_whatsapp_runtime_gid: 1337
+
+# Matrix homeserver connection.
+mautrix_whatsapp_homeserver_address: ~  # required; e.g. https://example.com
+mautrix_whatsapp_homeserver_domain: ~   # required; e.g. example.com
+
+# Address where the Matrix homeserver can reach the bridge appservice.
+mautrix_whatsapp_appservice_address: "http://localhost:{{ mautrix_whatsapp_port }}"
+
+# PostgreSQL database (uses the shared postgres instance and user).
+mautrix_whatsapp_db_name: mautrix_whatsapp
+mautrix_whatsapp_db_host: "{{ postgres_host_access_name }}"
+mautrix_whatsapp_db_user: "{{ postgres_user }}"
+mautrix_whatsapp_db_password: "{{ postgres_password }}"

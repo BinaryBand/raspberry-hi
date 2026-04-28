@@ -37,6 +37,7 @@ class VaultSecretSpec(BaseModel):
     key: str
     label: str
     hidden: bool = False
+    generate: bool = False  # auto-generate a random hex value when the user leaves it blank
 
     model_config = ConfigDict(extra="forbid")
 

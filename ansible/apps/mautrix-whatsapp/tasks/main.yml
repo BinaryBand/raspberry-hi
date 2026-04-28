@@ -1,0 +1,188 @@
+---
+# 0. Guard: fail fast if required variables are not explicitly configured.
+- name: Assert mautrix_whatsapp_data_path is set
+  ansible.builtin.assert:
+    that: mautrix_whatsapp_data_path is not none
+    fail_msg: >-
+      mautrix_whatsapp_data_path is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        mautrix_whatsapp_data_path: /srv/mautrix-whatsapp
+
+- name: Assert mautrix_whatsapp_homeserver_address is set
+  ansible.builtin.assert:
+    that: mautrix_whatsapp_homeserver_address is not none
+    fail_msg: >-
+      mautrix_whatsapp_homeserver_address is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        mautrix_whatsapp_homeserver_address: https://example.com
+
+- name: Assert mautrix_whatsapp_homeserver_domain is set
+  ansible.builtin.assert:
+    that: mautrix_whatsapp_homeserver_domain is not none
+    fail_msg: >-
+      mautrix_whatsapp_homeserver_domain is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        mautrix_whatsapp_homeserver_domain: example.com
+
+# 1. App-specific: data directory, config, and database.
+- name: Ensure mautrix-whatsapp data directory exists
+  ansible.builtin.file:
+    path: "{{ mautrix_whatsapp_data_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
+  become: true
+
+- name: Install mautrix-whatsapp config
+  ansible.builtin.template:
+    src: mautrix-whatsapp-config.yaml.j2
+    dest: "{{ mautrix_whatsapp_data_path }}/config.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  notify: restart mautrix-whatsapp
+  no_log: true
+
+- name: Check mautrix-whatsapp data directory owner in podman user namespace
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - stat
+      - -c
+      - "%u:%g"
+      - "{{ mautrix_whatsapp_data_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _mautrix_whatsapp_dir_owner
+  changed_when: false
+
+- name: Fix mautrix-whatsapp data directory ownership for rootless podman
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - chown
+      - -R
+      - "{{ mautrix_whatsapp_runtime_uid }}:{{ mautrix_whatsapp_runtime_gid }}"
+      - "{{ mautrix_whatsapp_data_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: >-
+    _mautrix_whatsapp_dir_owner.stdout | trim !=
+    (mautrix_whatsapp_runtime_uid | string ~ ':' ~ mautrix_whatsapp_runtime_gid | string)
+  changed_when: true
+  notify: restart mautrix-whatsapp
+
+# 2. Pre-pull the image to avoid systemd timing out on slow connections.
+- name: Pull mautrix-whatsapp container image
+  ansible.builtin.command:
+    argv:
+      - podman
+      - pull
+      - "{{ mautrix_whatsapp_image }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _mautrix_whatsapp_pull
+  changed_when: "'Copying' in _mautrix_whatsapp_pull.stdout"
+
+- name: Check whether mautrix-whatsapp PostgreSQL database exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - PGPASSWORD
+      - "{{ postgres_image }}"
+      - psql
+      - -tAc
+      - "SELECT 1 FROM pg_database WHERE datname='{{ mautrix_whatsapp_db_name }}'"
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ mautrix_whatsapp_db_user }}"
+      - -d
+      - postgres
+  environment:
+    PGPASSWORD: "{{ mautrix_whatsapp_db_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _mautrix_whatsapp_database_check
+  changed_when: false
+  no_log: true
+
+- name: Create mautrix-whatsapp PostgreSQL database
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - PGPASSWORD
+      - "{{ postgres_image }}"
+      - createdb
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ mautrix_whatsapp_db_user }}"
+      - "{{ mautrix_whatsapp_db_name }}"
+  environment:
+    PGPASSWORD: "{{ mautrix_whatsapp_db_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _mautrix_whatsapp_database_check.stdout | trim != '1'
+  changed_when: true
+  no_log: true
+
+# Template registration.yaml from the vault-stored tokens. This file must be
+# registered with the Matrix homeserver (copy it from mautrix_whatsapp_data_path).
+- name: Install mautrix-whatsapp appservice registration file
+  ansible.builtin.template:
+    src: mautrix-whatsapp-registration.yaml.j2
+    dest: "{{ mautrix_whatsapp_data_path }}/registration.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  notify: restart mautrix-whatsapp
+  no_log: true
+
+# 3. Deploy container unit.
+- name: Prepare service adapter paths for mautrix-whatsapp
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-mautrix-whatsapp.sh"
+
+- name: Install mautrix-whatsapp Podman quadlet
+  ansible.builtin.template:
+    src: mautrix-whatsapp.container.j2
+    dest: "{{ app_user_home }}/.config/containers/systemd/mautrix-whatsapp.container"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart mautrix-whatsapp
+
+# 4. Wire up service management — adapter handles init-system details.
+- name: Register mautrix-whatsapp with service_adapter
+  ansible.builtin.import_role:
+    name: service_adapter
+  vars:
+    service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-mautrix-whatsapp.sh"

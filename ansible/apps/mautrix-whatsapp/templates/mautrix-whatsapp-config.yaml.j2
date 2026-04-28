@@ -1,0 +1,73 @@
+# mautrix-whatsapp config.yaml — managed by Ansible
+# Source: ansible/apps/mautrix-whatsapp/templates/mautrix-whatsapp-config.yaml.j2
+
+# Matrix homeserver details.
+homeserver:
+    address: {{ mautrix_whatsapp_homeserver_address }}
+    domain: {{ mautrix_whatsapp_homeserver_domain }}
+    software: standard
+    status_endpoint: ~
+    message_send_checkpoint_endpoint: ~
+    async_media: false
+    websocket: false
+    ping_interval_seconds: 0
+
+# Appservice host configuration and Matrix bot identity.
+appservice:
+    address: {{ mautrix_whatsapp_appservice_address }}
+    hostname: 127.0.0.1
+    port: {{ mautrix_whatsapp_port }}
+    id: whatsapp
+    bot:
+        username: whatsappbot
+        displayname: WhatsApp bridge bot
+        avatar: mxc://maunium.net/NeXNQarUbrlYBiPCpprYsRqr
+    ephemeral_events: true
+    async_transactions: false
+    # Tokens must match the registration.yaml registered with the homeserver.
+    as_token: {{ mautrix_whatsapp_as_token }}
+    hs_token: {{ mautrix_whatsapp_hs_token }}
+
+# Database (dedicated PostgreSQL database; shared instance is fine).
+database:
+    type: postgres
+    uri: "postgres://{{ mautrix_whatsapp_db_user }}:{{ mautrix_whatsapp_db_password }}@{{ mautrix_whatsapp_db_host }}/{{ mautrix_whatsapp_db_name }}?sslmode=disable"
+    max_open_conns: 5
+    max_idle_conns: 2
+    max_conn_idle_time: null
+    max_conn_lifetime: null
+
+# Matrix connector behaviour.
+matrix:
+    message_status_events: false
+    delivery_receipts: false
+    call_start_notices: true
+    federate_rooms: true
+    server_name: {{ mautrix_whatsapp_homeserver_domain }}
+
+# Bridge command and permission settings.
+bridge:
+    command_prefix: "!wa"
+    management_room_text:
+        welcome: "Hello, I'm a WhatsApp bridge bot."
+        welcome_connected: "Use `help` for a list of commands."
+        welcome_unconnected: "Use `login` to connect your WhatsApp account."
+    permissions:
+        "*": relay
+        "{{ mautrix_whatsapp_homeserver_domain }}": user
+        "@admin:{{ mautrix_whatsapp_homeserver_domain }}": admin
+    relay:
+        enabled: false
+    encryption:
+        allow: false
+        default: false
+        require: false
+        appservice: false
+
+# Logging — write to stdout only.
+logging:
+    min_level: warn
+    writers:
+        - type: stdout
+          format: pretty-colored
+          min_level: warn

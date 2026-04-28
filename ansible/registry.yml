@@ -58,6 +58,37 @@ apps:
         label: Baikal encryption key (stable random string)
         hidden: true
 
+  mautrix-whatsapp:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: mautrix_whatsapp_service_name
+    dependencies:
+      - postgres
+    preflight_vars:
+      mautrix_whatsapp_data_path:
+        hint: directory for mautrix-whatsapp config and data
+        default: /home/linux-hi/mautrix-whatsapp
+      mautrix_whatsapp_homeserver_address:
+        hint: "full URL of the Matrix homeserver (e.g. https://example.com)"
+        default: ~
+      mautrix_whatsapp_homeserver_domain:
+        hint: "Matrix server domain (e.g. example.com)"
+        default: ~
+      mautrix_whatsapp_appservice_address:
+        hint: "address where the homeserver can reach the bridge (e.g. http://localhost:29318)"
+        default: "http://localhost:29318"
+    vault_secrets:
+      - key: mautrix_whatsapp_as_token
+        label: "mautrix-whatsapp appservice token (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+      - key: mautrix_whatsapp_hs_token
+        label: "mautrix-whatsapp homeserver token (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+
   restic:
     service_type: tool
     backup: false

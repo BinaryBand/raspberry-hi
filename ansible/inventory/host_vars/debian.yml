@@ -3,3 +3,7 @@ ansible_user: owen
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 restic_rclone_remote: pcloud
 restic_repo_path: Backups/debian-hi
+postgres_data_path: /home/linux-hi/postgres
+mautrix_whatsapp_data_path: /home/linux-hi/mautrix-whatsapp
+mautrix_whatsapp_homeserver_address: https://chat.doreeto.com
+mautrix_whatsapp_homeserver_domain: chat.doreeto.com

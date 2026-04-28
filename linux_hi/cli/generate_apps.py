@@ -6,8 +6,18 @@ import sys
 
 from models import ANSIBLE_DATA
 
-_BECOME_ASSERT = """\
+_PRE_TASKS = """\
   pre_tasks:
+    - name: Load shared non-secret variables
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/vars.yml"
+      tags: [always]
+
+    - name: Load shared vault variables
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/vault.yml"
+      tags: [always]
+
     - name: Verify become password is configured for this host
       ansible.builtin.assert:
         that: (become_passwords | default({})).get(inventory_hostname, '') | length > 0
@@ -28,7 +38,7 @@ def _render_playbook(app: str, dependencies: list[str]) -> str:
     parts.append("  hosts: devices")
     parts.append("  gather_facts: true")
     parts.append("")
-    parts.append(_BECOME_ASSERT)
+    parts.append(_PRE_TASKS)
     parts.append("  roles:")
     parts.append(f"    - role: {app}")
     parts.append("")

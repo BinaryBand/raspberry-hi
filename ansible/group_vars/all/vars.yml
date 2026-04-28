@@ -4,3 +4,11 @@ app_user_home: "{{ ansible_facts['user_dir'] }}"
 
 # Let Ansible detect the Python interpreter rather than pinning a version.
 ansible_python_interpreter: auto_silent
+
+# Shared PostgreSQL access parameters — available to all apps that connect to the
+# shared postgres instance. Must match the values in ansible/apps/postgres/defaults/main.yml.
+postgres_user: baikal
+postgres_host_access_name: host.containers.internal
+postgres_port: 5432
+postgres_image: docker.io/postgres:17.5-alpine
+postgres_service_name: postgres

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -57,6 +58,10 @@ def _prompt_secret(spec: VaultSecretSpec) -> str:
     else:
         value = questionary.text(label).ask()
     if not value:
+        if spec.generate:
+            value = secrets.token_hex(32)
+            print(f"  [AUTO]  Generated {spec.key}")
+            return value
         sys.exit(f"  [FAIL]  {spec.key} is required. Aborting.")
     return value
 

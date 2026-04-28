@@ -1,0 +1,17 @@
+[Unit]
+Description=mautrix-whatsapp Matrix-WhatsApp bridge
+After=network.target
+
+[Container]
+Image={{ mautrix_whatsapp_image }}
+ContainerName={{ mautrix_whatsapp_service_name }}
+Volume={{ mautrix_whatsapp_data_path }}:/data:U
+PublishPort={{ mautrix_whatsapp_port }}:{{ mautrix_whatsapp_port }}
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
