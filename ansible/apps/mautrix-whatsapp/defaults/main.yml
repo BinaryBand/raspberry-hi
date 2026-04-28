@@ -15,12 +15,13 @@ mautrix_whatsapp_port: 29318
 mautrix_whatsapp_runtime_uid: 1337
 mautrix_whatsapp_runtime_gid: 1337
 
-# Matrix homeserver connection.
-mautrix_whatsapp_homeserver_address: ~  # required; e.g. https://example.com
-mautrix_whatsapp_homeserver_domain: ~   # required; e.g. example.com
+# Matrix homeserver connection — Synapse runs on the same host, reachable via pasta's
+# host gateway. mautrix_whatsapp_homeserver_domain must match synapse_server_name.
+mautrix_whatsapp_homeserver_address: "http://{{ postgres_host_access_name }}:{{ synapse_port }}"
+mautrix_whatsapp_homeserver_domain: ~  # required; e.g. chat.doreeto.com
 
-# Address where the Matrix homeserver can reach the bridge appservice.
-mautrix_whatsapp_appservice_address: "http://localhost:{{ mautrix_whatsapp_port }}"
+# Address where Synapse can reach the bridge appservice (also via the host gateway).
+mautrix_whatsapp_appservice_address: "http://{{ postgres_host_access_name }}:{{ mautrix_whatsapp_port }}"
 
 # PostgreSQL database (uses the shared postgres instance and user).
 mautrix_whatsapp_db_name: mautrix_whatsapp

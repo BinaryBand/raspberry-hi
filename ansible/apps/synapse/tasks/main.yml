@@ -1,0 +1,200 @@
+---
+# 0. Guard: fail fast if required variables are not explicitly configured.
+- name: Assert synapse_data_path is set
+  ansible.builtin.assert:
+    that: synapse_data_path is not none
+    fail_msg: >-
+      synapse_data_path is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        synapse_data_path: /srv/synapse
+
+- name: Assert synapse_server_name is set
+  ansible.builtin.assert:
+    that: synapse_server_name is not none
+    fail_msg: >-
+      synapse_server_name is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        synapse_server_name: chat.example.com
+
+# 1. App-specific: data directory, signing key, config, and database.
+- name: Ensure Synapse data directory exists
+  ansible.builtin.file:
+    path: "{{ synapse_data_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
+  become: true
+
+# 2. Pre-pull the image to avoid systemd timing out on slow connections.
+- name: Pull Synapse container image
+  ansible.builtin.command:
+    argv:
+      - podman
+      - pull
+      - "{{ synapse_image }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _synapse_pull
+  changed_when: "'Copying' in _synapse_pull.stdout"
+
+- name: Check whether Synapse signing key exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - stat
+      - "{{ synapse_data_path }}/{{ synapse_server_name }}.signing.key"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _synapse_signing_key_check
+  changed_when: false
+  failed_when: false
+
+# Generate the signing key by running Synapse's built-in generate command.
+# This also writes a default homeserver.yaml which we immediately overwrite.
+- name: Generate Synapse signing key
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - -v
+      - "{{ synapse_data_path }}:/data:U"
+      - -e
+      - "SYNAPSE_SERVER_NAME={{ synapse_server_name }}"
+      - -e
+      - SYNAPSE_REPORT_STATS=no
+      - "{{ synapse_image }}"
+      - generate
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _synapse_signing_key_check.rc != 0
+  changed_when: true
+
+- name: Install Synapse homeserver.yaml
+  ansible.builtin.template:
+    src: homeserver.yaml.j2
+    dest: "{{ synapse_data_path }}/homeserver.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  notify: restart synapse
+  no_log: true
+
+- name: Install Synapse log config
+  ansible.builtin.template:
+    src: synapse.log.config.j2
+    dest: "{{ synapse_data_path }}/{{ synapse_server_name }}.log.config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart synapse
+
+# Chown after writing config so all files (including freshly templated ones) are
+# accessible to the container's runtime UID. Must run unconditionally — a
+# conditional check on the directory owner would miss files written this run.
+- name: Fix Synapse data directory ownership for rootless podman
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - chown
+      - -R
+      - "{{ synapse_runtime_uid }}:{{ synapse_runtime_gid }}"
+      - "{{ synapse_data_path }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  notify: restart synapse
+
+- name: Check whether Synapse PostgreSQL database exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - PGPASSWORD
+      - "{{ postgres_image }}"
+      - psql
+      - -tAc
+      - "SELECT 1 FROM pg_database WHERE datname='{{ synapse_db_name }}'"
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ synapse_db_user }}"
+      - -d
+      - postgres
+  environment:
+    PGPASSWORD: "{{ synapse_db_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _synapse_database_check
+  changed_when: false
+  no_log: true
+
+- name: Create Synapse PostgreSQL database
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - PGPASSWORD
+      - "{{ postgres_image }}"
+      - createdb
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ synapse_db_user }}"
+      - --encoding=UTF8
+      - --locale=C
+      - --template=template0
+      - "{{ synapse_db_name }}"
+  environment:
+    PGPASSWORD: "{{ synapse_db_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _synapse_database_check.stdout | trim != '1'
+  changed_when: true
+  no_log: true
+
+# 3. Deploy container unit.
+- name: Prepare service adapter paths for Synapse
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    service_adapter_name: "{{ synapse_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"
+
+- name: Install Synapse Podman quadlet
+  ansible.builtin.template:
+    src: synapse.container.j2
+    dest: "{{ app_user_home }}/.config/containers/systemd/synapse.container"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart synapse
+
+# 4. Wire up service management — adapter handles init-system details.
+- name: Register Synapse with service_adapter
+  ansible.builtin.import_role:
+    name: service_adapter
+  vars:
+    service_adapter_name: "{{ synapse_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"

@@ -1,0 +1,29 @@
+---
+# Pin to a specific release tag for reproducibility.
+# Browse tags at: https://github.com/element-hq/synapse/releases
+synapse_image: ghcr.io/element-hq/synapse:v1.151.0
+
+# Directory for Synapse config, signing key, and media store (mounted as /data).
+synapse_data_path: ~  # required; set in host_vars/<hostname>.yml
+
+synapse_service_name: synapse
+
+# Port Synapse listens on for client and federation traffic.
+synapse_port: 8008
+
+# Matrix server name — appears in all user and room IDs (@user:server_name).
+# Must match the domain your Matrix clients connect to.
+synapse_server_name: ~  # required; e.g. chat.doreeto.com
+
+# Whether to report anonymous usage statistics to the Matrix.org team.
+synapse_report_stats: "no"
+
+# UID/GID the Synapse process runs as inside the official Docker image.
+synapse_runtime_uid: 991
+synapse_runtime_gid: 991
+
+# PostgreSQL database (uses the shared postgres instance and user).
+synapse_db_name: synapse
+synapse_db_host: "{{ postgres_host_access_name }}"
+synapse_db_user: "{{ postgres_user }}"
+synapse_db_password: "{{ postgres_password }}"

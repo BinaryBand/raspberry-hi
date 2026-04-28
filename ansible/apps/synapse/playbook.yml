@@ -1,8 +1,8 @@
 ---
-- name: Import synapse playbook
-  import_playbook: ../synapse/playbook.yml
+- name: Import postgres playbook
+  import_playbook: ../postgres/playbook.yml
 
-- name: Provision mautrix-whatsapp
+- name: Provision synapse
   hosts: devices
   gather_facts: true
 
@@ -26,4 +26,4 @@
       tags: [always]
 
   roles:
-    - role: mautrix-whatsapp
+    - role: synapse

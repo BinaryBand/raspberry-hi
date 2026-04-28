@@ -1,0 +1,43 @@
+# homeserver.yaml — managed by Ansible
+# Source: ansible/apps/synapse/templates/homeserver.yaml.j2
+
+server_name: {{ synapse_server_name }}
+
+pid_file: /homeserver.pid
+
+listeners:
+  - port: {{ synapse_port }}
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ['0.0.0.0']
+    resources:
+      - names: [client, federation]
+        compress: false
+
+database:
+  name: psycopg2
+  args:
+    user: {{ synapse_db_user }}
+    password: {{ synapse_db_password }}
+    database: {{ synapse_db_name }}
+    host: {{ synapse_db_host }}
+    port: {{ postgres_port }}
+    cp_min: 5
+    cp_max: 10
+
+log_config: /data/{{ synapse_server_name }}.log.config
+
+media_store_path: /data/media_store
+
+signing_key_path: /data/{{ synapse_server_name }}.signing.key
+
+trusted_key_servers:
+  - server_name: matrix.org
+suppress_key_server_warning: true
+
+report_stats: {{ synapse_report_stats }}
+
+registration_shared_secret: {{ synapse_registration_shared_secret }}
+macaroon_secret_key: {{ synapse_macaroon_secret_key }}
+form_secret: {{ synapse_form_secret }}

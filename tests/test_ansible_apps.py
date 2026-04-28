@@ -17,12 +17,25 @@ def _read_text(relative_path: str) -> str:
 
 def test_registry_has_expected_keys() -> None:
     """The registry remains the single source of truth for known apps."""
-    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal", "mautrix-whatsapp", "restic"]
+    assert ANSIBLE_DATA.all_apps() == [
+        "minio",
+        "postgres",
+        "baikal",
+        "synapse",
+        "mautrix-whatsapp",
+        "restic",
+    ]
 
 
 def test_containerized_apps_subset() -> None:
     """Only long-running container apps are classified as containerized."""
-    assert ANSIBLE_DATA.containerized_apps() == ["minio", "postgres", "baikal", "mautrix-whatsapp"]
+    assert ANSIBLE_DATA.containerized_apps() == [
+        "minio",
+        "postgres",
+        "baikal",
+        "synapse",
+        "mautrix-whatsapp",
+    ]
 
 
 def test_app_entry_data() -> None:

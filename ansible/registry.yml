@@ -58,6 +58,35 @@ apps:
         label: Baikal encryption key (stable random string)
         hidden: true
 
+  synapse:
+    service_type: containerized
+    backup: true
+    restore: true
+    cleanup: true
+    service_name_var: synapse_service_name
+    dependencies:
+      - postgres
+    preflight_vars:
+      synapse_data_path:
+        hint: directory for Synapse config, signing key, and media
+        default: /home/linux-hi/synapse
+      synapse_server_name:
+        hint: "Matrix server name / domain (e.g. chat.doreeto.com)"
+        default: ~
+    vault_secrets:
+      - key: synapse_registration_shared_secret
+        label: "Synapse registration shared secret (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+      - key: synapse_macaroon_secret_key
+        label: "Synapse macaroon secret key (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+      - key: synapse_form_secret
+        label: "Synapse form secret (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+
   mautrix-whatsapp:
     service_type: containerized
     backup: true
@@ -65,20 +94,17 @@ apps:
     cleanup: true
     service_name_var: mautrix_whatsapp_service_name
     dependencies:
-      - postgres
+      - synapse
     preflight_vars:
       mautrix_whatsapp_data_path:
         hint: directory for mautrix-whatsapp config and data
         default: /home/linux-hi/mautrix-whatsapp
-      mautrix_whatsapp_homeserver_address:
-        hint: "full URL of the Matrix homeserver (e.g. https://example.com)"
-        default: ~
       mautrix_whatsapp_homeserver_domain:
-        hint: "Matrix server domain (e.g. example.com)"
+        hint: "Matrix server domain (e.g. chat.doreeto.com)"
         default: ~
       mautrix_whatsapp_appservice_address:
-        hint: "address where the homeserver can reach the bridge (e.g. http://localhost:29318)"
-        default: "http://localhost:29318"
+        hint: "address where Synapse can reach the bridge"
+        default: "http://host.containers.internal:29318"
     vault_secrets:
       - key: mautrix_whatsapp_as_token
         label: "mautrix-whatsapp appservice token (leave blank to auto-generate)"

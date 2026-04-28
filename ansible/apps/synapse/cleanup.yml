@@ -1,0 +1,43 @@
+---
+# 1. Stop service and remove boot integration.
+- name: Deregister Synapse service
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: teardown
+  vars:
+    service_adapter_name: "{{ synapse_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"
+
+# 2. Remove the container if it is still running.
+- name: Remove Synapse container
+  ansible.builtin.command:
+    argv: [podman, rm, --force, --ignore, "{{ synapse_service_name }}"]
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
+# 3. Drop the Synapse database.
+- name: Drop Synapse PostgreSQL database
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - dropdb
+      - --if-exists
+      - -U
+      - postgres
+      - "{{ synapse_db_name }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _synapse_dropdb
+  failed_when: false
+  changed_when: _synapse_dropdb.rc == 0
+
+# 4. Remove data directory.
+- name: Remove Synapse data directory
+  ansible.builtin.file:
+    path: "{{ synapse_data_path }}"
+    state: absent
+  become: true

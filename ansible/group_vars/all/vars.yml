@@ -5,6 +5,11 @@ app_user_home: "{{ ansible_facts['user_dir'] }}"
 # Let Ansible detect the Python interpreter rather than pinning a version.
 ansible_python_interpreter: auto_silent
 
+# Shared Synapse access parameters — used by apps that connect to the shared Synapse instance.
+# Must match the values in ansible/apps/synapse/defaults/main.yml.
+synapse_port: 8008
+synapse_service_name: synapse
+
 # Shared PostgreSQL access parameters — available to all apps that connect to the
 # shared postgres instance. Must match the values in ansible/apps/postgres/defaults/main.yml.
 postgres_user: baikal
