@@ -44,10 +44,15 @@ class VaultSecretSpec(BaseModel):
 
 class AppRegistryEntry(BaseModel):
     service_type: Literal["containerized", "tool"]
+    service_name: str | None = None
+    image: str | None = None
+    port: int | None = None
+    runtime_uid: int | None = None
+    runtime_gid: int | None = None
+    shared_vars: dict[str, str] = Field(default_factory=dict)
     backup: bool = False
     restore: bool = False
     cleanup: bool = False
-    service_name_var: str | None = None
     dependencies: list[str] = Field(default_factory=_empty_dependencies)
     preflight_vars: dict[str, PreflightVarSpec] = Field(default_factory=_empty_preflight_vars)
     vault_secrets: list[VaultSecretSpec] = Field(default_factory=_empty_vault_secrets)
@@ -56,6 +61,7 @@ class AppRegistryEntry(BaseModel):
 
 
 class AppRegistry(BaseModel):
+    global_vars: dict[str, str] = Field(default_factory=dict)
     apps: dict[str, AppRegistryEntry]
 
     model_config = ConfigDict(extra="forbid")

@@ -1,19 +1,5 @@
 ---
-# Pin to a specific PostgreSQL release tag for reproducibility.
-# Browse tags at: https://hub.docker.com/_/postgres/tags
-postgres_image: docker.io/postgres:17.5-alpine
 postgres_data_path: ~  # required; set in host_vars/<hostname>.yml
-postgres_port: 5432
 postgres_database: baikal
-postgres_user: baikal
-postgres_service_name: postgres
-postgres_host_access_name: host.containers.internal
 postgres_hba_host_path: "{{ app_user_home }}/.config/postgres/pg_hba.conf"
 postgres_hba_container_path: /etc/postgresql/pg_hba.conf
-
-# UID/GID of the postgres user inside the official postgres alpine image.
-postgres_runtime_uid: 70
-postgres_runtime_gid: 70
-
-# Rootless Podman host-access traffic is exposed inside containers via
-# host.containers.internal (typically a 169.254.x.x address).

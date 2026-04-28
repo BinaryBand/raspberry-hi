@@ -1,11 +1,6 @@
 ---
-# Pin to a specific release tag for reproducibility.
-# Browse tags at: https://hub.docker.com/r/minio/minio/tags
-minio_image: docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
 minio_data_path: ~  # required; set in host_vars/<hostname>.yml
-minio_port: 9000
 minio_console_port: 9001
-minio_service_name: minio
 
 # MinIO client — run via Podman, no binary installation required.
 # Pin to a matching release tag for consistency with minio_image.

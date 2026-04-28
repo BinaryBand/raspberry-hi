@@ -143,9 +143,7 @@ def test_app_registry_smoke_for_live_host() -> None:
         assert entry.service_type == "containerized", (
             f"Registry entry for '{app}' is not containerized"
         )
-        assert entry.service_name_var, (
-            f"Containerized app '{app}' is missing service_name_var in registry"
-        )
+        assert entry.service_name, f"Containerized app '{app}' is missing service_name in registry"
         assert (role_path / "tasks" / "main.yml").exists(), (
             f"Role tasks/main.yml is missing for app '{app}'"
         )

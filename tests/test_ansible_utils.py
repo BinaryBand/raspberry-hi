@@ -79,10 +79,10 @@ def test_load_app_registry_is_cached(
 apps:
   minio:
     service_type: containerized
+    service_name: minio
     backup: true
     restore: true
     cleanup: true
-    service_name_var: minio_service_name
     dependencies: []
     preflight_vars: {}
     vault_secrets: []

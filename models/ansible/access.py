@@ -42,11 +42,15 @@ class AnsibleDataStore:
         self._app_registry_cache = None
         self._inventory_hosts_cache = None
 
+    def load_full_registry(self) -> AppRegistry:
+        """Return the full validated registry including global_vars."""
+        data = self._read_yaml_mapping(self.registry_file)
+        return AppRegistry.model_validate(data)
+
     def load_app_registry(self) -> dict[str, AppRegistryEntry]:
         """Return the validated app registry keyed by app name."""
         if self._app_registry_cache is None:
-            data = self._read_yaml_mapping(self.registry_file)
-            self._app_registry_cache = AppRegistry.model_validate(data).apps
+            self._app_registry_cache = self.load_full_registry().apps
         return self._app_registry_cache
 
     def all_apps(self) -> list[str]:
