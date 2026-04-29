@@ -8,13 +8,12 @@ The worked example is a hypothetical `jellyfin` app: a containerized media serve
 
 ## Overview
 
-Adding an app touches five things:
+Adding an app touches four things:
 
 1. **`ansible/registry.yml`** — the single declaration that drives preflight, `make` targets, and policy checks.
-2. **`ansible/apps/<app>/`** — the Ansible role (tasks, defaults, templates, etc.).
-3. **`make generate-apps`** — regenerates `ansible/apps/<app>/playbook.yml` from the registry.
+2. **`ansible/apps/<app>/`** — the Ansible role (tasks, defaults, templates, etc.) and `playbook.yml`.
+3. **`make generate-apps`** — regenerates `ansible/group_vars/all/vars.yml` from the registry.
 4. **`tests/test_ansible_apps.py`** — update the expected app list and add any contract assertions.
-5. **`make setup`** — run once on a fresh host to provision base dependencies before installing apps.
 
 ---
 
@@ -25,9 +24,10 @@ Every registered field drives real behaviour:
 ```yaml
 apps:
   jellyfin:
-    service_type: containerized     # containerized | tool
-    # backup, restore, and cleanup fields have been removed
-    service_name_var: jellyfin_service_name
+    service_type: containerized
+    service_name: jellyfin
+    image: docker.io/jellyfin/jellyfin:10.10.7
+    port: 8096
     dependencies: []                # list app names here if ordering is required
     preflight_vars:
       jellyfin_data_path:
@@ -39,16 +39,17 @@ apps:
         hidden: true
 ```
 
-**Field reference**
+### Field reference
 
 | Field | Type | Effect |
-|---|---|---|
-| `service_type` | `containerized` \| `tool` | `containerized` apps are required to have a playbook and main tasks. |
-| `dependencies` | list | Apps that must be preflighted and provisioned before this one. Preflight chaining and `import_playbook` ordering are both derived from this list. |
+| --- | --- | --- |
+| `service_type` | `containerized` | Required; all apps are containerized. |
+| `service_name` | string | The systemd service and container name (e.g. `jellyfin`). |
+| `image` | string | The fully-qualified container image with a pinned tag. `:latest` is rejected by Semgrep. |
+| `port` | int | Primary published port. Emitted into `group_vars/all/vars.yml`. |
+| `dependencies` | list | Apps that must be preflighted and provisioned before this one. |
 | `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: rclone_remote` to get an interactive remote selector. |
-| `vault_secrets` | list | Secrets written to the vault before provisioning. `hidden: true` uses password-style input. |
-
-**Persistent apps** (containerized) must declare at least one `*_data_path` preflight var.
+| `vault_secrets` | list | Secrets written to the vault before provisioning. `hidden: true` uses password-style input. `generate: true` auto-generates a random hex value when left blank. |
 
 **App with a dependency** (e.g. Baikal depending on PostgreSQL):
 
@@ -57,31 +58,48 @@ dependencies:
   - postgres
 ```
 
-Preflight will recurse into `postgres` first. `make generate-apps` will prepend `import_playbook: ../postgres/playbook.yml` to the generated playbook.
+Preflight will recurse into `postgres` first. The playbook must open with `import_playbook: ../postgres/playbook.yml` so Ansible converges PostgreSQL before Baikal.
 
 ---
 
 ## Step 2 — Create the Ansible role
 
-```
+```text
 ansible/apps/jellyfin/
+  playbook.yml               # play entry point (write by hand — see pattern below)
   defaults/main.yml          # role defaults; null out required vars here
   tasks/main.yml             # provisioning tasks
-  # backup.yml, restore.yml, and cleanup.yml are no longer required or supported
   handlers/main.yml          # optional: restart handler
-  templates/                 # optional: .container.j2, .env.j2, etc.
+  templates/                 # optional: .env.j2, config templates, etc.
 ```
 
-### `defaults/main.yml`
+### `playbook.yml`
 
-Null out any variable that the operator must supply (preflight will prompt for it). Pin image tags explicitly — `:latest` is rejected by Semgrep.
+Write this by hand following the pattern used by every existing app:
 
 ```yaml
 ---
-jellyfin_image: docker.io/jellyfin/jellyfin:10.10.7
-jellyfin_data_path: ~          # required; set via make preflight or make jellyfin
-jellyfin_port: 8096
-jellyfin_service_name: jellyfin
+- name: Provision jellyfin
+  hosts: devices
+  gather_facts: true
+
+  pre_tasks:
+    - name: Load common pre-tasks
+      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+
+  roles:
+    - role: jellyfin
+```
+
+If the app has dependencies, open with the appropriate `import_playbook` line (see `ansible/apps/baikal/playbook.yml` for the pattern).
+
+### `defaults/main.yml`
+
+Null out any variable that the operator must supply (preflight will prompt for it). Do not put `service_name`, `image`, or `port` here — those come from the registry via `group_vars/all/vars.yml`.
+
+```yaml
+---
+jellyfin_data_path: ~          # required; set via make jellyfin
 ```
 
 ### `tasks/main.yml`
@@ -107,52 +125,60 @@ Follow the four-step pattern used by existing apps:
     mode: "0750"
   become: true
 
-# 2. Deploy container unit.
+# 2. Deploy container unit via shared service_adapter template.
+- name: Prepare service adapter paths for Jellyfin
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
+
 - name: Install Jellyfin Podman quadlet
-  ansible.builtin.template:
-    src: jellyfin.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/jellyfin.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart jellyfin
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "Jellyfin Media Server"
+    container_image: "{{ jellyfin_image }}"
+    container_name: "{{ jellyfin_service_name }}"
+    container_ports:
+      - "{{ jellyfin_port }}:8096"
+    container_volumes:
+      - "{{ jellyfin_data_path }}:/config"
 
 # 3. Wire up service management.
 - name: Register Jellyfin with service_adapter
   ansible.builtin.import_role:
     name: service_adapter
   vars:
-    svc_name: "{{ jellyfin_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
 ```
-
-
 
 ---
 
-## Step 3 — Regenerate the per-app playbook
+## Step 3 — Regenerate `group_vars/all/vars.yml`
 
 ```bash
 make generate-apps
 ```
 
-This reads `registry.yml` and writes `ansible/apps/jellyfin/playbook.yml`. Commit the generated file alongside the role. Do not edit the playbook by hand — it will be overwritten on the next `make generate-apps` run.
-
-If the app has dependencies, the generated playbook will open with the appropriate `import_playbook` lines.
+This reads `registry.yml` and emits `service_name`, `image`, `port`, `runtime_uid/gid`, and `shared_vars` for every app into `ansible/group_vars/all/vars.yml`. Commit nothing from this step — `vars.yml` is gitignored.
 
 ---
 
 ## Step 4 — Update `tests/test_ansible_apps.py`
 
-Two lines need updating:
+Two things need updating:
 
 **1. Expected app list** — add `jellyfin` in registry order:
 
 ```python
 def test_registry_has_expected_keys() -> None:
-    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal","jellyfin"]
+    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal", "jellyfin"]
 ```
 
 **2. Add any app-specific contract assertions** (optional but encouraged):
@@ -161,7 +187,6 @@ def test_registry_has_expected_keys() -> None:
 def test_jellyfin_entry_data() -> None:
     entry = ANSIBLE_DATA.get_app_entry("jellyfin")
     assert entry.service_type == "containerized"
-    # backup field is no longer present
     assert entry.dependencies == []
 ```
 
@@ -189,9 +214,10 @@ The preflight step will prompt for any missing `host_vars` and vault secrets bef
 
 ## Checklist
 
-- [ ] Entry added to `ansible/registry.yml`
-- [ ] `ansible/apps/<app>/defaults/main.yml` — null out required vars, pin image tag
-- [ ] `ansible/apps/<app>/tasks/main.yml` — assert → directories → container → service_adapter
-- [ ] `make generate-apps` run and `playbook.yml` committed
+- [ ] Entry added to `ansible/registry.yml` (service_name, image, port, runtime_uid/gid, preflight_vars, vault_secrets)
+- [ ] `ansible/apps/<app>/playbook.yml` — written by hand following existing app pattern
+- [ ] `ansible/apps/<app>/defaults/main.yml` — null out required vars only (no service_name/image/port — those come from registry)
+- [ ] `ansible/apps/<app>/tasks/main.yml` — assert → dirs → prepare + write_container → service_adapter
+- [ ] `make generate-apps` run to update `group_vars/all/vars.yml`
 - [ ] `tests/test_ansible_apps.py` updated and `make test` passes
 - [ ] `make lint-repo-policy` passes

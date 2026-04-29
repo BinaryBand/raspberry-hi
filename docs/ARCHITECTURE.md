@@ -44,7 +44,7 @@ Durable secrets live in `ansible/group_vars/all/vault.yml`.
 
 The vault model in `models/services/vault.py` uses a typed core plus allowed extras:
 
-- Explicit typed fields include shared operational secrets such as `become_passwords`, `rclone_config`, and `restic_password`
+- Explicit typed fields include shared operational secrets such as `become_passwords` and `rclone_config`
 - App-specific credentials (for example `minio_root_user` and `minio_root_password`) are accepted as additional keys and remain valid durable vault state
 
 Each host inventory file references that mapping dynamically:
@@ -77,7 +77,7 @@ Generic package names are transitional, not preferred.
 
 `linux_hi/orchestration/` is the canonical orchestration layer. It composes ports and helpers without becoming standalone CLI entry points.
 
-- `mount_orchestrator.py` composes an `InfoPort` with a `Prompter`
+- `mount.py` composes an `InfoPort` with a `Prompter`
 - `rclone_controller.py` composes vault I/O with overwrite confirmation
 
 This layer exists to keep interactive control flow testable without mixing it into terminal-facing scripts.
@@ -130,7 +130,6 @@ App metadata is centralized in `ansible/registry.yml`.
 Each app entry declares:
 
 - service type
-- lifecycle participation such as backup, restore, and cleanup
 - preflight host vars
 - required vault secrets
 - explicit repo-owned dependencies
@@ -142,7 +141,7 @@ That dependency is declared in the registry and enforced at two levels:
 - `linux_hi.cli.preflight` walks `registry.yml` dependencies depth-first, so `make baikal` automatically prompts for any missing PostgreSQL vars before Baikal's own preflight runs.
 - `ansible/apps/baikal/playbook.yml` opens with `import_playbook: ../postgres/playbook.yml`, so Ansible converges PostgreSQL before Baikal during provisioning.
 
-Both files are generated from `registry.yml` and must not be edited by hand. Run `make generate-apps` to regenerate after registry changes.
+Per-app playbooks are committed to git. `make generate-apps` only regenerates `group_vars/all/vars.yml` — playbooks are written by hand following the existing pattern.
 
 App roles do not use `meta/main.yml` — inter-app ordering belongs in `registry.yml`, not Ansible's role dependency mechanism (which would cause duplicate execution under per-app playbook invocation).
 
@@ -176,7 +175,7 @@ For OpenRC or runit targets, use `manual` and wire the generated run script into
 
 ## Storage Policy
 
-Application data paths must be explicitly declared (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L46-L51)), but the storage medium is an operator choice.
+Application data paths must be explicitly declared as `preflight_vars` in `registry.yml`, but the storage medium is an operator choice.
 
 - Persistence is required.
 - The medium is an operator choice.
@@ -224,16 +223,17 @@ See Semgrep rules in [rules/](rules/) and repo-level policy validations in [linu
 
 ```text
 ansible/
-  apps/            declarative app roles (minio, postgres, baikal, restic)
+  apps/            declarative app roles (minio, postgres, baikal, synapse, mautrix-whatsapp)
   roles/           shared declarative roles (podman, rclone, service_adapter, auto-updates)
+  playbooks/       top-level playbooks (setup.yml, pre_tasks.yml)
+  tasks/           shared task files (pre_tasks.yml)
   inventory/
     hosts.yml
     host_vars/     per-host connection details and host-specific declared settings
   group_vars/all/
-    vars.yml       shared non-secret variables
+    vars.yml       shared non-secret variables (generated — do not edit)
     vault.yml      encrypted durable secrets
   registry.yml     app metadata consumed by Python tooling and tests
-  setup.yml        base provisioning playbook (auto-updates, podman, rclone)
 
 linux_hi/
   cli/             canonical importable CLI modules

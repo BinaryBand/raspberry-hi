@@ -44,7 +44,7 @@
 ### Policy Coverage Backlog
 
 - [ ] Every `ansible/apps/*` role must have a corresponding entry in `ansible/registry.yml`.
-- [ ] Every `ansible/apps/*` role must have `backup/`, `restore/`, and `tasks/` directories.
+- [ ] Every `ansible/apps/*` role must have a `tasks/` directory and a `playbook.yml`.
 - [ ] Every `ansible/apps/*` role must have coverage in `tests/test_ansible_apps.py` or `tests/e2e/`.
 - [ ] `group_vars` and `host_vars` remain the only allowed Ansible variable sources; playbooks must not define variables directly.
 

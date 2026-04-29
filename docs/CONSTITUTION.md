@@ -24,13 +24,10 @@
 
 ## Data Flow Architecture
 
-All features follow this pipeline:
-  [Request] → [Validate] → [Transform] → [Service] → [Response]
-
+- Ansible owns provisioning and convergence; Python handles interactive pre-provisioning only
 - No business logic in CLI entrypoints or Ansible playbooks
-- No DB or file system calls outside of Service layer
-- Validators return typed results, never raise directly
-- Side effects only occur in Service layer
+- Pydantic models at all data boundaries (registry, host_vars, vault)
+- Side effects (vault writes, inventory writes) only in their dedicated seams (`linux_hi/vault/`, `models/ansible/access.py`)
 
 ## Readability Standard
 
