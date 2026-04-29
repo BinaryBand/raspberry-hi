@@ -9,9 +9,6 @@ apps:
     service_name: minio
     image: docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
     port: 9000
-    backup: true
-    restore: true
-    cleanup: true
     dependencies: []
     preflight_vars:
       minio_data_path:
@@ -36,9 +33,6 @@ apps:
       postgres_host_access_name: host.containers.internal
       postgres_user: baikal
       postgres_database: baikal
-    backup: true
-    restore: true
-    cleanup: true
     dependencies: []
     preflight_vars:
       postgres_data_path:
@@ -58,9 +52,6 @@ apps:
     runtime_gid: 101
     shared_vars:
       baikal_db_name: baikal
-    backup: true
-    restore: true
-    cleanup: true
     dependencies:
       - postgres
     preflight_vars:
@@ -85,9 +76,6 @@ apps:
     port: 8008
     runtime_uid: 991
     runtime_gid: 991
-    backup: true
-    restore: true
-    cleanup: true
     dependencies:
       - postgres
     preflight_vars:
@@ -118,9 +106,6 @@ apps:
     port: 29318
     runtime_uid: 1337
     runtime_gid: 1337
-    backup: true
-    restore: true
-    cleanup: true
     dependencies:
       - synapse
     preflight_vars:
@@ -142,21 +127,3 @@ apps:
         label: "mautrix-whatsapp homeserver token (leave blank to auto-generate)"
         hidden: true
         generate: true
-
-  restic:
-    service_type: tool
-    backup: false
-    restore: false
-    cleanup: false
-    dependencies: []
-    preflight_vars:
-      restic_rclone_remote:
-        hint: rclone remote to use for backup storage
-        type: rclone_remote
-      restic_repo_path:
-        hint: path within the rclone remote where the restic repository lives
-        default: Backups/linux-hi
-    vault_secrets:
-      - key: restic_password
-        label: Restic repository encryption password
-        hidden: true

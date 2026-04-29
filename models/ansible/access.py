@@ -62,16 +62,6 @@ class AnsibleDataStore:
         registry = self.load_app_registry()
         return [name for name, entry in registry.items() if entry.service_type == "containerized"]
 
-    def restore_apps(self) -> list[str]:
-        """Return apps that participate in restore flows."""
-        registry = self.load_app_registry()
-        return [name for name, entry in registry.items() if entry.restore]
-
-    def cleanup_apps(self) -> list[str]:
-        """Return apps that participate in cleanup flows."""
-        registry = self.load_app_registry()
-        return [name for name, entry in registry.items() if entry.cleanup]
-
     def get_app_entry(self, app: str) -> AppRegistryEntry:
         """Return a single validated app registry entry."""
         return self.load_app_registry()[app]

@@ -80,9 +80,6 @@ apps:
   minio:
     service_type: containerized
     service_name: minio
-    backup: true
-    restore: true
-    cleanup: true
     dependencies: []
     preflight_vars: {}
     vault_secrets: []

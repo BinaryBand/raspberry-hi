@@ -8,8 +8,6 @@ PY_DIRS := linux_hi/ models/ tests/
 ANSIBLE_DIR := ansible
 ROLES := service_adapter rclone
 APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
-RESTORE_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.restore_apps()))")
-CLEANUP_APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.cleanup_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.yml.
 # Override per-run: HOST=myserver make site
@@ -47,14 +45,14 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey backup backup-check baikal bootstrap check cleanup generate-apps help lint logs mount ping
-.PHONY: format rclone restore restore-check ruff ruff-fix ruff-format setup ssh status
+.PHONY: add-hostkey baikal bootstrap check generate-apps help lint logs ping
+.PHONY: format rclone ruff ruff-fix ruff-format setup ssh status
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
 .PHONY: lint-ansible lint-check lint-checkmake lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
-.PHONY: _backup_preflight _ci _cleanup_preflight _generate_check _inv_check _restore_preflight _vault_check $(APPS)
+.PHONY: _ci _generate_check _inv_check _vault_check $(APPS)
 
 help:
 	@echo "Usage: make [HOST=<alias>] <target>"
@@ -82,11 +80,6 @@ help:
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Configure project rclone remotes and vault the config"
-	@echo "  backup        Back up all apps to the restic repository"
-	@echo "  backup-check  Dry-run backup validation (no snapshots or prune writes)"
-	@echo "  restore       Restore a named app from the latest restic snapshot (APP=$(RESTORE_APPS))"
-	@echo "  restore-check Dry-run restore validation for one app (APP=$(RESTORE_APPS))"
-	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  config-rclone Open interactive rclone config editor for config/rclone.conf"
 	@echo "  config-rclone-edit Open config/rclone.conf in nano"
 	@echo "  config-hosts  Hosts config entrypoint (defaults to list)"
@@ -104,7 +97,6 @@ help:
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
 	@echo ""
-	@echo "  cleanup       Purge an app and all its data from the host (APP=$(CLEANUP_APPS))"
 	@echo "  status        Show service status on the host (SVC=<service>)"
 	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
@@ -241,30 +233,8 @@ _vault_check:
 _inv_check:
 	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.yml and host_vars/$(HOST).yml"; exit 1; }
 
-mount: _vault_check
-	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.mount
-
 rclone: _vault_check
 	$(POETRY) python -m linux_hi.cli.rclone
-
-_backup_preflight: _vault_check
-	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight restic
-
-backup: _backup_preflight
-	$(_ANSIBLE_FLAGS) ansible/playbooks/backup.yml
-
-backup-check: _backup_preflight
-	$(_ANSIBLE_FLAGS) --check ansible/playbooks/backup.yml
-
-_restore_preflight: _vault_check
-	@test -n "$(APP)" || { echo "Error: APP is required — supported restore apps: $(RESTORE_APPS)"; exit 1; }
-	@case " $(RESTORE_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not restorable. Supported restore apps: $(RESTORE_APPS)"; exit 1 ;; esac
-
-restore: _backup_preflight _restore_preflight
-	$(_ANSIBLE_FLAGS) ansible/playbooks/restore.yml -e restore_app=$(APP)
-
-restore-check: _backup_preflight _restore_preflight
-	$(_ANSIBLE_FLAGS) --check ansible/playbooks/restore.yml -e restore_app=$(APP)
 
 # Generic preflight — works for any app registered in APPS.
 _%_preflight: _vault_check
@@ -288,13 +258,6 @@ status: _inv_check
 logs: _inv_check
 	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make logs SVC=minio"; exit 1; }
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u $(SVC) -n 50 --no-pager"
-
-_cleanup_preflight: _vault_check
-	@test -n "$(APP)" || { echo "Error: APP is required — supported cleanup apps: $(CLEANUP_APPS)"; exit 1; }
-	@case " $(CLEANUP_APPS) " in *" $(APP) "*) ;; *) echo "Error: APP='$(APP)' is not cleanable. Supported cleanup apps: $(CLEANUP_APPS)"; exit 1 ;; esac
-
-cleanup: _cleanup_preflight
-	$(_ANSIBLE_FLAGS) ansible/playbooks/cleanup.yml -e cleanup_app=$(APP)
 
 setup: _vault_check
 	$(SETUP_PLAY)

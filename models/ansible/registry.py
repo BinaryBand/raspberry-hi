@@ -30,9 +30,6 @@ class AppRegistryEntry(BaseModel):
     runtime_uid: int | None = None
     runtime_gid: int | None = None
     shared_vars: dict[str, str] = Field(default_factory=dict)
-    backup: bool = False
-    restore: bool = False
-    cleanup: bool = False
     dependencies: list[str] = Field(default_factory=list)
     preflight_vars: dict[str, PreflightVarSpec] = Field(default_factory=dict)
     vault_secrets: list[VaultSecretSpec] = Field(default_factory=list)

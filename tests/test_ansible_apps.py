@@ -23,7 +23,6 @@ def test_registry_has_expected_keys() -> None:
         "baikal",
         "synapse",
         "mautrix-whatsapp",
-        "restic",
     ]
 
 
@@ -42,39 +41,7 @@ def test_app_entry_data() -> None:
     """Registry entries expose lifecycle and dependency metadata."""
     entry = ANSIBLE_DATA.get_app_entry("baikal")
     assert entry.service_type == "containerized"
-    assert entry.restore is True
-    assert entry.cleanup is True
     assert entry.dependencies == ["postgres"]
-
-
-def test_containerized_apps_declare_backup_and_restore() -> None:
-    """Each containerized app must implement backup and restore handlers."""
-    for app in ANSIBLE_DATA.containerized_apps():
-        assert (ANSIBLE_DIR / "apps" / app / "backup.yml").exists()
-        assert (ANSIBLE_DIR / "apps" / app / "restore.yml").exists()
-
-
-def test_containerized_app_backups_delegate_to_restic() -> None:
-    """Each app backup task should hand off snapshotting to the restic role."""
-    for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/backup.yml")
-        assert "name: restic" in content
-
-
-def test_containerized_app_backups_validate_snapshot_paths() -> None:
-    """Each app backup task should verify snapshot source paths before restic runs."""
-    for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/backup.yml")
-        assert "ansible.builtin.stat" in content
-        assert "ansible.builtin.fail" in content
-
-
-def test_restic_operational_tasks_prepare_their_own_prerequisites() -> None:
-    """Direct restic entry points must bootstrap their own client and repo checks."""
-    for task_name in ["backup", "prune", "restore"]:
-        content = _read_text(f"ansible/apps/restic/tasks/{task_name}.yml")
-        assert "import_tasks: prepare.yml" in content
-        assert "import_tasks: repository.yml" in content
 
 
 def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
@@ -82,34 +49,6 @@ def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
     content = _read_text("ansible/apps/minio/tasks/setup_mc_bucket.yml")
     assert "Wait until MinIO health endpoint responds HTTP 200" in content
     assert "Fail if MinIO health endpoint never became ready" in content
-
-
-def test_postgres_backup_and_restore_share_readiness_check() -> None:
-    """PostgreSQL lifecycle flows should reuse the shared readiness gate."""
-    backup_content = _read_text("ansible/apps/postgres/backup.yml")
-    restore_content = _read_text("ansible/apps/postgres/restore.yml")
-    wait_ready_content = _read_text("ansible/apps/postgres/tasks/wait_ready.yml")
-
-    assert "include_tasks: tasks/wait_ready.yml" in backup_content
-    assert "include_tasks: tasks/wait_ready.yml" in restore_content
-    assert "Wait for PostgreSQL to accept connections" in wait_ready_content
-    assert "Fail if PostgreSQL never became ready" in wait_ready_content
-
-
-def test_restore_and_cleanup_playbooks_use_registry_for_supported_apps() -> None:
-    """Restore and cleanup playbooks should derive supported apps from registry metadata."""
-    cleanup_content = _read_text("ansible/playbooks/cleanup.yml")
-    restore_content = _read_text("ansible/playbooks/restore.yml")
-
-    assert 'file: "{{ playbook_dir }}/../registry.yml"' in cleanup_content
-    assert "cleanup_app in cleanup_supported_apps" in cleanup_content
-    assert 'file: "{{ playbook_dir }}/../apps/{{ cleanup_app }}/cleanup.yml"' in cleanup_content
-    assert "['minio', 'postgres', 'baikal']" not in cleanup_content
-
-    assert 'file: "{{ playbook_dir }}/../registry.yml"' in restore_content
-    assert "restore_app in restore_supported_apps" in restore_content
-    assert 'file: "{{ playbook_dir }}/../apps/{{ restore_app }}/restore.yml"' in restore_content
-    assert "['minio', 'postgres', 'baikal']" not in restore_content
 
 
 def test_app_restart_handlers_delegate_to_service_adapter() -> None:

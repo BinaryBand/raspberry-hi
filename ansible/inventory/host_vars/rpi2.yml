@@ -8,5 +8,3 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 postgres_data_path: /home/raspberry-hi/postgres
 baikal_config_path: /home/raspberry-hi/baikal/config
 baikal_data_path: /home/raspberry-hi/baikal/data
-restic_rclone_remote: pcloud
-restic_repo_path: Backups/linux-rpi2

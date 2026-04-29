@@ -55,7 +55,6 @@ def test_no_variable_detection_in_registry() -> None:
 apps:
     foo:
         service_type: containerized
-        backup: true
 """
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -110,29 +109,6 @@ def test_site_requires_always_tagged_become_password_assertion() -> None:
         rpc.check_site_become_password_assertion(site_path, failures)
 
         assert any("tagged 'always'" in failure for failure in failures)
-
-
-def test_persistent_apps_require_explicit_data_paths() -> None:
-    """Persistent apps must declare data paths through registry preflight vars."""
-    registry_content = """
-apps:
-  foo:
-    service_type: containerized
-    backup: true
-    restore: false
-    preflight_vars:
-      foo_config_path:
-        hint: config path
-"""
-
-    with tempfile.TemporaryDirectory() as tmp:
-        registry_path = Path(tmp) / "registry.yml"
-        registry_path.write_text(registry_content.lstrip(), encoding="utf-8")
-
-        failures: list[str] = []
-        rpc.check_app_data_paths(["foo"], registry_path, failures)
-
-        assert any("*_data_path" in failure for failure in failures)
 
 
 def test_makefile_runtime_inputs_require_guard_checks() -> None:

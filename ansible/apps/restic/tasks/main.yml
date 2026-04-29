@@ -1,8 +1,0 @@
----
-- name: Prepare restic client and credentials
-  ansible.builtin.import_tasks: prepare.yml
-
-- name: Ensure restic repository exists
-  ansible.builtin.import_tasks: repository.yml
-  vars:
-    restic_init_repository: true

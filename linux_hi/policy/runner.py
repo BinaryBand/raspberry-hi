@@ -26,7 +26,7 @@ class PolicyRunner:
         failures: Failures = []
         app_roles = app_checks.get_app_roles(apps_dir)
         app_checks.check_registry_entries(app_roles, registry, failures)
-        app_checks.check_app_dirs(app_roles, apps_dir, failures, registry)
+        app_checks.check_app_dirs(app_roles, apps_dir, failures)
         app_checks.check_registry_conflicts(app_roles, apps_dir, registry, failures)
         app_checks.check_app_tests(app_roles, root / "tests", root / "tests" / "e2e", failures)
         ansible_checks.check_playbook_vars(ansible_dir, failures)
@@ -34,7 +34,6 @@ class PolicyRunner:
             ansible_dir / "playbooks" / "setup.yml", failures
         )
         app_checks.check_app_playbooks(app_roles, apps_dir, failures)
-        app_checks.check_app_data_paths(app_roles, registry, failures)
         contract_checks.check_policy_registry_controls(policy_contract, failures)
         contract_checks.check_policy_contract_integrity(policy_contract, failures)
         makefile_checks.check_makefile_host_selector(makefile, failures)

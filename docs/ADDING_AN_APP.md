@@ -10,7 +10,7 @@ The worked example is a hypothetical `jellyfin` app: a containerized media serve
 
 Adding an app touches five things:
 
-1. **`ansible/registry.yml`** — the single declaration that drives preflight, `make` targets, backup/restore eligibility, and policy checks.
+1. **`ansible/registry.yml`** — the single declaration that drives preflight, `make` targets, and policy checks.
 2. **`ansible/apps/<app>/`** — the Ansible role (tasks, defaults, templates, etc.).
 3. **`make generate-apps`** — regenerates `ansible/apps/<app>/playbook.yml` from the registry.
 4. **`tests/test_ansible_apps.py`** — update the expected app list and add any contract assertions.
@@ -26,9 +26,7 @@ Every registered field drives real behaviour:
 apps:
   jellyfin:
     service_type: containerized     # containerized | tool
-    backup: true                    # include in restic backup playbook
-    restore: true                   # include in restic restore playbook
-    cleanup: true                   # expose via make cleanup APP=jellyfin
+    # backup, restore, and cleanup fields have been removed
     service_name_var: jellyfin_service_name
     dependencies: []                # list app names here if ordering is required
     preflight_vars:
@@ -45,13 +43,12 @@ apps:
 
 | Field | Type | Effect |
 |---|---|---|
-| `service_type` | `containerized` \| `tool` | `containerized` apps are required to have `backup.yml` and `restore.yml` (enforced by repo-policy). |
-| `backup` / `restore` / `cleanup` | bool | Gates inclusion in `make backup`, `make restore`, and `make cleanup`. Also drives repo-policy dir checks. |
+| `service_type` | `containerized` \| `tool` | `containerized` apps are required to have a playbook and main tasks. |
 | `dependencies` | list | Apps that must be preflighted and provisioned before this one. Preflight chaining and `import_playbook` ordering are both derived from this list. |
 | `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: rclone_remote` to get an interactive remote selector. |
 | `vault_secrets` | list | Secrets written to the vault before provisioning. `hidden: true` uses password-style input. |
 
-**Persistent apps** (containerized, backup, or restore) must declare at least one `*_data_path` preflight var. Repo-policy enforces this.
+**Persistent apps** (containerized) must declare at least one `*_data_path` preflight var.
 
 **App with a dependency** (e.g. Baikal depending on PostgreSQL):
 
@@ -70,9 +67,7 @@ Preflight will recurse into `postgres` first. `make generate-apps` will prepend 
 ansible/apps/jellyfin/
   defaults/main.yml          # role defaults; null out required vars here
   tasks/main.yml             # provisioning tasks
-  cleanup.yml                # teardown tasks (required if cleanup: true)
-  backup.yml                 # restic snapshot tasks (required if backup: true)
-  restore.yml                # restic restore tasks (required if restore: true)
+  # backup.yml, restore.yml, and cleanup.yml are no longer required or supported
   handlers/main.yml          # optional: restart handler
   templates/                 # optional: .container.j2, .env.j2, etc.
 ```
@@ -133,97 +128,7 @@ Follow the four-step pattern used by existing apps:
     svc_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
 ```
 
-### `backup.yml` (if `backup: true`)
 
-Validate that the data path exists on the host, then delegate to the restic role:
-
-```yaml
-- name: Check Jellyfin backup paths on host
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - "{{ jellyfin_data_path }}"
-  register: _jellyfin_backup_paths
-  become: true
-  become_user: "{{ ansible_user }}"
-
-- name: Fail if Jellyfin backup paths are missing
-  ansible.builtin.fail:
-    msg: >-
-      Jellyfin backup path does not exist: {{ item.item }}.
-      Run 'make jellyfin' to provision Jellyfin first.
-  when: not item.stat.exists
-  loop: "{{ _jellyfin_backup_paths.results }}"
-
-- name: Snapshot Jellyfin data to restic
-  ansible.builtin.include_role:
-    name: restic
-    tasks_from: backup
-  vars:
-    restic_snapshot_paths:
-      - "{{ jellyfin_data_path }}"
-    restic_snapshot_tag: jellyfin
-```
-
-### `restore.yml` (if `restore: true`)
-
-Stop the service, restore the snapshot, restart:
-
-```yaml
----
-- name: Stop Jellyfin service
-  ansible.builtin.include_role:
-    name: service_adapter
-    tasks_from: stop
-  vars:
-    svc_name: "{{ jellyfin_service_name }}"
-    svc_user: "{{ ansible_user }}"
-
-- name: Restore Jellyfin data from restic
-  ansible.builtin.include_role:
-    name: restic
-    tasks_from: restore
-  vars:
-    restic_snapshot_tag: jellyfin
-    restic_restore_target: /
-
-- name: Start Jellyfin service
-  ansible.builtin.include_role:
-    name: service_adapter
-    tasks_from: start
-  vars:
-    svc_name: "{{ jellyfin_service_name }}"
-    svc_user: "{{ ansible_user }}"
-```
-
-### `cleanup.yml` (if `cleanup: true`)
-
-Deregister the service, remove the container, remove config and data:
-
-```yaml
----
-- name: Deregister Jellyfin service
-  ansible.builtin.include_role:
-    name: service_adapter
-    tasks_from: teardown
-  vars:
-    svc_name: "{{ jellyfin_service_name }}"
-    svc_user: "{{ ansible_user }}"
-    svc_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
-
-- name: Remove Jellyfin container
-  ansible.builtin.command:
-    argv: [podman, rm, --force, --ignore, "{{ jellyfin_service_name }}"]
-  become: true
-  become_user: "{{ ansible_user }}"
-  changed_when: false
-
-- name: Remove Jellyfin data directory
-  ansible.builtin.file:
-    path: "{{ jellyfin_data_path }}"
-    state: absent
-  become: true
-```
 
 ---
 
@@ -247,7 +152,7 @@ Two lines need updating:
 
 ```python
 def test_registry_has_expected_keys() -> None:
-    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal", "restic", "jellyfin"]
+    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal","jellyfin"]
 ```
 
 **2. Add any app-specific contract assertions** (optional but encouraged):
@@ -256,7 +161,7 @@ def test_registry_has_expected_keys() -> None:
 def test_jellyfin_entry_data() -> None:
     entry = ANSIBLE_DATA.get_app_entry("jellyfin")
     assert entry.service_type == "containerized"
-    assert entry.backup is True
+    # backup field is no longer present
     assert entry.dependencies == []
 ```
 
@@ -287,9 +192,6 @@ The preflight step will prompt for any missing `host_vars` and vault secrets bef
 - [ ] Entry added to `ansible/registry.yml`
 - [ ] `ansible/apps/<app>/defaults/main.yml` — null out required vars, pin image tag
 - [ ] `ansible/apps/<app>/tasks/main.yml` — assert → directories → container → service_adapter
-- [ ] `ansible/apps/<app>/backup.yml` — if `backup: true`
-- [ ] `ansible/apps/<app>/restore.yml` — if `restore: true`
-- [ ] `ansible/apps/<app>/cleanup.yml` — if `cleanup: true`
 - [ ] `make generate-apps` run and `playbook.yml` committed
 - [ ] `tests/test_ansible_apps.py` updated and `make test` passes
 - [ ] `make lint-repo-policy` passes

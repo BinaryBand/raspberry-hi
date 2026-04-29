@@ -23,30 +23,12 @@ def check_registry_entries(app_roles: list[str], registry_path: Path, failures: 
             failures.append(f"App '{app}' missing from registry.yml")
 
 
-def check_app_dirs(
-    app_roles: list[str],
-    apps_dir: Path,
-    failures: Failures,
-    registry_path: Path | None = None,
-) -> None:
+def check_app_dirs(app_roles: list[str], apps_dir: Path, failures: Failures) -> None:
     """Check that each application role has required files and subdirectories."""
-    registry = None
-    if registry_path and registry_path.exists():
-        registry = _load_registry(registry_path)
-
     for app in app_roles:
         app_path = apps_dir / app
         if not (app_path / "tasks").is_dir():
             failures.append(f"App '{app}' missing 'tasks/' directory")
-
-        entry = registry.get(app) if registry else None
-        needs_backup = entry.backup if entry else True
-        needs_restore = entry.restore if entry else True
-
-        if needs_backup and not (app_path / "backup.yml").is_file():
-            failures.append(f"App '{app}' missing 'backup.yml'")
-        if needs_restore and not (app_path / "restore.yml").is_file():
-            failures.append(f"App '{app}' missing 'restore.yml'")
 
 
 def check_app_tests(
@@ -109,34 +91,3 @@ def check_app_playbooks(app_roles: list[str], apps_dir: Path, failures: Failures
         playbook = apps_dir / app / "playbook.yml"
         if not playbook.is_file():
             failures.append(f"App '{app}' missing per-app playbook: {playbook}")
-
-
-def check_app_data_paths(app_roles: list[str], registry_path: Path, failures: Failures) -> None:
-    """Ensure persistent apps declare explicit data paths in registry preflight vars."""
-    if not registry_path.is_file():
-        failures.append(f"Missing registry file: {registry_path}")
-        return
-
-    registry = _load_registry(registry_path)
-
-    for app in app_roles:
-        entry = registry.get(app)
-        if entry is None:
-            continue
-
-        requires_declared_path = (
-            entry.service_type == "containerized" or entry.backup or entry.restore
-        )
-        if not requires_declared_path:
-            continue
-
-        if not entry.preflight_vars:
-            failures.append(
-                f"App '{app}' requires persistence but declares no preflight_vars for data paths"
-            )
-            continue
-
-        if not any("data_path" in key for key in entry.preflight_vars):
-            failures.append(
-                f"App '{app}' requires persistence but has no explicit '*_data_path' preflight var"
-            )

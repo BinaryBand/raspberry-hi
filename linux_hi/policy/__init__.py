@@ -8,7 +8,6 @@ from .ansible_checks import (
     check_site_become_password_assertion,
 )
 from .app_checks import (
-    check_app_data_paths,
     check_app_dirs,
     check_app_playbooks,
     check_app_tests,
