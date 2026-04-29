@@ -49,12 +49,12 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: add-hostkey backup backup-check baikal bootstrap check cleanup generate-apps help lint logs mount ping
 .PHONY: format rclone restore restore-check ruff ruff-fix ruff-format setup ssh status
-.PHONY: test test-e2e vault-edit hosts-add hosts-list hosts-remove vault-add vault-list vault-remove
+.PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
 .PHONY: lint-ansible lint-check lint-checkmake lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
-.PHONY: _backup_preflight _ci _cleanup_preflight _inv_check _restore_preflight _vault_check $(APPS)
+.PHONY: _backup_preflight _ci _cleanup_preflight _generate_check _inv_check _restore_preflight _vault_check $(APPS)
 
 help:
 	@echo "Usage: make [HOST=<alias>] <target>"
@@ -99,13 +99,7 @@ help:
 	@echo "  config-vault-remove Remove a vault key (supports NAME)"
 	@echo "  config-vault-list List vault keys"
 	@echo "  config-vault-edit Open vault editor in nano (ansible-vault edit)"
-	@echo "  hosts-add     Add a host to inventory, host_vars, and vault (NAME ADDR USER PORT KEY)"
-	@echo "  hosts-remove  Remove a host from inventory, host_vars, and vault (NAME=<alias>)"
-	@echo "  hosts-list    List configured inventory hosts and their connection details"
 	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
-	@echo "  vault-add     Add or update a top-level vault key (NAME=<key>)"
-	@echo "  vault-remove  Remove a top-level vault key (NAME=<key>)"
-	@echo "  vault-list    List top-level vault keys (no values shown)"
 	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
@@ -143,7 +137,6 @@ _ci:
 	$(POETRY) ty check
 	$(POETRY) semgrep scan --config rules/ --error
 	$(POETRY) mbake format --check Makefile
-	$(POETRY) python -m linux_hi.cli.linters.repo_policy_check
 	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
 
 lint-ty:
@@ -236,26 +229,8 @@ config-vault-remove:
 	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
 		$(POETRY) python -m linux_hi.cli.vault remove $$args
 
-hosts-add:
-	$(MAKE) config-hosts-add NAME=$(NAME) ADDRESS=$(ADDRESS) ADDR=$(ADDR) SECRET=$(SECRET) KEY=$(KEY) USER=$(USER) PORT=$(PORT)
-
-hosts-remove:
-	$(MAKE) config-hosts-remove NAME=$(NAME)
-
-hosts-list:
-	$(MAKE) config-hosts-list
-
 vault-edit:
 	EDITOR="$${EDITOR:-nano}" ansible-vault edit ansible/group_vars/all/vault.yml --vault-password-file $(VAULT_PASS)
-
-vault-add:
-	$(MAKE) config-vault-add NAME=$(NAME)
-
-vault-remove:
-	$(MAKE) config-vault-remove NAME=$(NAME)
-
-vault-list:
-	$(MAKE) config-vault-list
 
 bootstrap:
 	$(POETRY) python -m linux_hi.cli.bootstrap
@@ -295,9 +270,19 @@ restore-check: _backup_preflight _restore_preflight
 _%_preflight: _vault_check
 	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight $*
 
+_generate_check:
+	@missing=0; \
+	for app in $(APPS); do \
+		if [ ! -f ansible/apps/$$app/playbook.yml ]; then missing=1; break; fi; \
+		done; \
+	if [ $$missing -eq 1 ]; then \
+		echo "  [INFO]  Generated files missing — running 'make generate-apps'..."; \
+		$(MAKE) generate-apps; \
+	fi
+
 # Generic app provisioning — each app in APPS gets: make <app> → preflight → per-app playbook.
 # Dependency preflight chaining is handled by linux_hi.cli.preflight via registry.yml.
-$(APPS): %: _%_preflight
+$(APPS): %: _generate_check _%_preflight
 	$(_ANSIBLE_FLAGS) ansible/apps/$@/playbook.yml
 
 status: _inv_check

@@ -173,3 +173,16 @@ class TestLizard:
         """Production functions must not exceed the configured CCN and length limits."""
         result = run_resolved(["poetry", "run", "python", "-m", "linux_hi.cli.linters.lizard"])
         assert result.returncode == 0
+
+
+class TestRepoPolicy:
+    """Ensure the repository passes all structural and architecture policy checks."""
+
+    def test_repo_policy(self):
+        """Fail if any repo policy check detects a structural or convention violation."""
+        result = run_resolved(
+            ["poetry", "run", "python", "-m", "linux_hi.cli.linters.repo_policy_check"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr

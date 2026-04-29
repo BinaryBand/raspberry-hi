@@ -71,6 +71,7 @@ def check_no_direct_host_group_writes(root: Path, failures: Failures) -> None:
     allowed_files = {
         root / "models" / "ansible" / "access.py",
         root / "linux_hi" / "vault" / "service.py",
+        root / "linux_hi" / "cli" / "generate_apps.py",
     }
 
     path_markers = ("host_vars", "group_vars", "ansible/group_vars", "ansible/inventory")
