@@ -110,6 +110,15 @@ class TestAnsibleLint:
 
         assert "vault_password_file" not in config["defaults"]
 
+    def test_ansible_lint(self):
+        """Fail if ansible-lint reports any violations."""
+        result = run_resolved(
+            ["poetry", "run", "ansible-lint", "ansible"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
 
 # Vault keys whose names end in a recognised secret suffix are already caught
 # by the generic host-vars-no-inline-secret-keys pattern-regex.
