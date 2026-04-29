@@ -14,7 +14,6 @@ from rich.console import Console
 from rich.table import Table
 
 from linux_hi.cli._dispatch import dispatch
-from linux_hi.orchestration.config import HostRows, HostsConfigPort
 from linux_hi.vault.service import remove_become_password, write_become_password
 from models import ANSIBLE_DATA
 
@@ -52,8 +51,8 @@ def _resolve_port(value: int | None) -> int:
 class _HostsAdapter:
     """Adapter implementing HostsConfigPort against repository stores."""
 
-    def list(self) -> HostRows:
-        rows: HostRows = []
+    def list(self):
+        rows: list[dict[str, str]] = []
         for alias in ANSIBLE_DATA.inventory_hosts():
             hv = ANSIBLE_DATA.host_vars(alias)
             key = (
@@ -102,7 +101,7 @@ class _HostsAdapter:
         remove_become_password(name)
 
 
-_ADAPTER: HostsConfigPort = _HostsAdapter()
+_ADAPTER = _HostsAdapter()
 
 
 def cmd_list() -> None:

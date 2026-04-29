@@ -27,9 +27,7 @@ class MountOrchestrator:
         if not selected:
             return None
 
-        default_label = (
-            label_hint or getattr(selected, "label", None) or getattr(selected, "name", None)
-        )
+        default_label = label_hint or selected.label or selected.name
         label = self.prompter.ask_label(default_label)
         if not label:
             return None

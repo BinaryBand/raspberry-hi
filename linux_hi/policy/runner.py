@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from . import ansible_checks, app_checks, contract_checks, makefile_checks
@@ -16,8 +15,8 @@ class PolicyRunner:
         """Store the repository root; all check paths are derived in run()."""
         self._root = root
 
-    def run(self) -> None:
-        """Run all checks and exit non-zero if any fail."""
+    def run(self) -> Failures:
+        """Run all checks and return a list of failure messages."""
         root = self._root
         ansible_dir = root / "ansible"
         apps_dir = ansible_dir / "apps"
@@ -42,9 +41,4 @@ class PolicyRunner:
         makefile_checks.check_makefile_guard_checks(makefile, failures)
         makefile_checks.check_makefile_phony_and_style(makefile, app_roles, failures)
         ansible_checks.check_no_direct_host_group_writes(root, failures)
-        if failures:
-            print("\nREPO POLICY CHECK FAILED:")
-            for fail in failures:
-                print(f"- {fail}")
-            sys.exit(1)
-        print("All repo policy checks passed.")
+        return failures

@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import sys
+
 from linux_hi.policy import PolicyRunner
 from models import ANSIBLE_DATA
 
 
 def main() -> None:
     """Run all repo policy checks and exit non-zero if any fail."""
-    PolicyRunner(ANSIBLE_DATA.root).run()
+    failures = PolicyRunner(ANSIBLE_DATA.root).run()
+    if failures:
+        print("\nREPO POLICY CHECK FAILED:")
+        for fail in failures:
+            print(f"- {fail}")
+        sys.exit(1)
+    print("All repo policy checks passed.")
 
 
 if __name__ == "__main__":

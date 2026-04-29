@@ -8,7 +8,10 @@
     "monkeypatch",
     "mountpoint",
     "pydantic",
+    "pyyaml",
+    "quadlet",
     "rclone",
+    "ruamel",
     "ryaml",
     "semgrep"
   ],

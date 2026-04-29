@@ -12,7 +12,6 @@ from rich.console import Console
 from rich.table import Table
 
 from linux_hi.cli._dispatch import dispatch
-from linux_hi.orchestration.config import VaultConfigPort, VaultRows
 from linux_hi.vault.service import decrypt_vault_raw, remove_vault_key, write_vault_key
 
 _console = Console()
@@ -21,7 +20,7 @@ _console = Console()
 class _VaultAdapter:
     """Adapter implementing VaultConfigPort against the encrypted store."""
 
-    def list(self) -> VaultRows:
+    def list(self):
         data = decrypt_vault_raw()
         return [(key, type(value).__name__) for key, value in data.items()]
 
@@ -32,7 +31,7 @@ class _VaultAdapter:
         remove_vault_key(name)
 
 
-_ADAPTER: VaultConfigPort = _VaultAdapter()
+_ADAPTER = _VaultAdapter()
 
 
 def cmd_list() -> None:
