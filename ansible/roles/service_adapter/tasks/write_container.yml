@@ -1,15 +1,15 @@
 ---
 # Write a Podman quadlet .container file from the shared container.j2 template.
 # Call via: include_role: name: service_adapter tasks_from: write_container
-# Required vars: container_description, container_image, container_name
-# Optional vars: container_ports (list), container_volumes (list),
-#                container_exec (str), container_env_file (str)
-- name: Write {{ container_name }} container quadlet
+# Required vars: service_adapter_description, service_adapter_image, service_adapter_name
+# Optional vars: service_adapter_ports (list), service_adapter_volumes (list),
+#                service_adapter_exec (str), service_adapter_env_file (str)
+- name: "Write container quadlet for {{ service_adapter_name }}"
   ansible.builtin.template:
     src: container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/{{ container_name }}.container"
+    dest: "{{ app_user_home }}/.config/containers/systemd/{{ service_adapter_name }}.container"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: "0644"
   become: true
-  notify: "restart {{ container_name }}"
+  notify: "restart {{ service_adapter_name }}"

@@ -95,16 +95,16 @@
     name: service_adapter
     tasks_from: write_container
   vars:
-    container_description: "PostgreSQL Database"
-    container_image: "{{ postgres_image }}"
-    container_name: "{{ postgres_service_name }}"
-    container_ports:
+    service_adapter_description: "PostgreSQL Database"
+    service_adapter_image: "{{ postgres_image }}"
+    service_adapter_name: "{{ postgres_service_name }}"
+    service_adapter_ports:
       - "{{ postgres_port }}:5432"
-    container_volumes:
+    service_adapter_volumes:
       - "{{ postgres_data_path }}:/var/lib/postgresql/data:U"
       - "{{ postgres_hba_host_path }}:{{ postgres_hba_container_path }}:ro"
-    container_exec: "postgres -c hba_file={{ postgres_hba_container_path }}"
-    container_env_file: "{{ app_user_home }}/.config/postgres/postgres.env"
+    service_adapter_exec: "postgres -c hba_file={{ postgres_hba_container_path }}"
+    service_adapter_env_file: "{{ app_user_home }}/.config/postgres/postgres.env"
 
 - name: Register PostgreSQL with service_adapter
   ansible.builtin.import_role:

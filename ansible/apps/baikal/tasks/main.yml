@@ -242,12 +242,12 @@
     name: service_adapter
     tasks_from: write_container
   vars:
-    container_description: "Baikal CalDAV/CardDAV Server"
-    container_image: "{{ baikal_image }}"
-    container_name: "{{ baikal_service_name }}"
-    container_ports:
+    service_adapter_description: "Baikal CalDAV/CardDAV Server"
+    service_adapter_image: "{{ baikal_image }}"
+    service_adapter_name: "{{ baikal_service_name }}"
+    service_adapter_ports:
       - "{{ baikal_port }}:80"
-    container_volumes:
+    service_adapter_volumes:
       - "{{ baikal_config_path }}:/var/www/baikal/config:U"
       - "{{ baikal_data_path }}:/var/www/baikal/Specific:U"
 

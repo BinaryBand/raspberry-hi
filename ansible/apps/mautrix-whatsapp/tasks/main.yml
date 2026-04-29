@@ -173,12 +173,12 @@
     name: service_adapter
     tasks_from: write_container
   vars:
-    container_description: "mautrix-whatsapp Matrix bridge"
-    container_image: "{{ mautrix_whatsapp_image }}"
-    container_name: "{{ mautrix_whatsapp_service_name }}"
-    container_ports:
+    service_adapter_description: "mautrix-whatsapp Matrix bridge"
+    service_adapter_image: "{{ mautrix_whatsapp_image }}"
+    service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
+    service_adapter_ports:
       - "{{ mautrix_whatsapp_port }}:{{ mautrix_whatsapp_port }}"
-    container_volumes:
+    service_adapter_volumes:
       - "{{ mautrix_whatsapp_data_path }}:/data:U"
 
 # 4. Wire up service management — adapter handles init-system details.

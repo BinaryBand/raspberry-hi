@@ -52,16 +52,16 @@
     name: service_adapter
     tasks_from: write_container
   vars:
-    container_description: "MinIO Object Storage"
-    container_image: "{{ minio_image }}"
-    container_name: "{{ minio_service_name }}"
-    container_ports:
+    service_adapter_description: "MinIO Object Storage"
+    service_adapter_image: "{{ minio_image }}"
+    service_adapter_name: "{{ minio_service_name }}"
+    service_adapter_ports:
       - "{{ minio_port }}:9000"
       - "{{ minio_console_port }}:9001"
-    container_volumes:
+    service_adapter_volumes:
       - "{{ minio_data_path }}:/data"
-    container_exec: "server /data --address :{{ minio_port }} --console-address :{{ minio_console_port }}"
-    container_env_file: "{{ app_user_home }}/.config/minio/minio.env"
+    service_adapter_exec: "server /data --address :{{ minio_port }} --console-address :{{ minio_console_port }}"
+    service_adapter_env_file: "{{ app_user_home }}/.config/minio/minio.env"
 
 # 3. Wire up service management — adapter handles init-system details.
 - name: Register MinIO with service_adapter

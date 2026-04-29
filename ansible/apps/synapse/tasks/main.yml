@@ -185,12 +185,12 @@
     name: service_adapter
     tasks_from: write_container
   vars:
-    container_description: "Synapse Matrix homeserver"
-    container_image: "{{ synapse_image }}"
-    container_name: "{{ synapse_service_name }}"
-    container_ports:
+    service_adapter_description: "Synapse Matrix homeserver"
+    service_adapter_image: "{{ synapse_image }}"
+    service_adapter_name: "{{ synapse_service_name }}"
+    service_adapter_ports:
       - "{{ synapse_port }}:{{ synapse_port }}"
-    container_volumes:
+    service_adapter_volumes:
       - "{{ synapse_data_path }}:/data"
 
 # 4. Wire up service management — adapter handles init-system details.
