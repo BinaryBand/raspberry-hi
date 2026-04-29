@@ -25,7 +25,6 @@ from .runner import PolicyRunner
 
 __all__ = [
     "PolicyRunner",
-    "check_app_data_paths",
     "check_app_dirs",
     "check_app_playbooks",
     "check_app_tests",

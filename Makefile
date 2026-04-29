@@ -45,7 +45,7 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey baikal bootstrap check generate-apps help lint logs ping
+.PHONY: add-hostkey baikal bootstrap check generate-apps help lint logs mount ping
 .PHONY: format rclone ruff ruff-fix ruff-format setup ssh status
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
@@ -79,6 +79,7 @@ help:
 	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
+	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  rclone        Configure project rclone remotes and vault the config"
 	@echo "  config-rclone Open interactive rclone config editor for config/rclone.conf"
 	@echo "  config-rclone-edit Open config/rclone.conf in nano"
@@ -232,6 +233,9 @@ _vault_check:
 
 _inv_check:
 	@test -n "$(REMOTE_HOST)" || { echo "Error: HOST='$(HOST)' not found in inventory — check ansible/inventory/hosts.yml and host_vars/$(HOST).yml"; exit 1; }
+
+mount: _vault_check
+	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.mount
 
 rclone: _vault_check
 	$(POETRY) python -m linux_hi.cli.rclone

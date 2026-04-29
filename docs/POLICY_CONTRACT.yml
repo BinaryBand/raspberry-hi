@@ -69,14 +69,6 @@ policies:
       - semgrep:python-ansible-vault-only-in-vault-service
       - semgrep:python-ruamel-yaml-only-in-ansible-access
 
-  - id: app-data-paths-must-be-explicitly-declared
-    statement: "Application data paths must be explicitly declared."
-    source_line: 212
-    status: enforced
-    controls:
-      - repo-policy:app-data-paths
-      - make:lint-repo-policy
-
   - id: rclone-conf-must-not-be-committed
     statement: ".rclone.conf contains rclone OAuth tokens and must never be tracked by git."
     status: enforced

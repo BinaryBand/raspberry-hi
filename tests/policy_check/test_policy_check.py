@@ -15,7 +15,7 @@ apps:
     foo:
         service_type: containerized
     bar:
-        service_type: tool
+        service_type: containerized
 """
 
     with tempfile.TemporaryDirectory() as tmp:

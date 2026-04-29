@@ -13,8 +13,8 @@ Ansible + Python tooling for provisioning rootless Podman containers on personal
 ## Quick Reference
 
 ```bash
-make test              # run full test suite (119 tests, includes lint + policy checks)
-make generate-apps     # regenerate playbooks and defaults from registry.yml (fast, idempotent)
+make test              # run full test suite (includes lint + policy checks)
+make generate-apps     # regenerate group_vars/all/vars.yml from registry.yml (fast, idempotent)
 make lint              # full static quality gate (ruff, ty, semgrep, cpd, vulture, lizard, ansible-lint, mbake, policy)
 make check             # validate prerequisites (vault password, inventory)
 HOST=debian make <app> # provision an app (runs preflight automatically)
@@ -26,7 +26,7 @@ HOST=debian make <app> # provision an app (runs preflight automatically)
 
 ## Architecture in One Paragraph
 
-`ansible/registry.yml` is the single source of truth. `make generate-apps` reads it and emits per-app `playbook.yml`, per-app `defaults/generated.yml`, and `group_vars/all/vars.yml`. These generated files are gitignored and must be regenerated after fresh checkout or registry changes. The Python CLI layer (`linux_hi/`) handles the interactive pre-provisioning steps (preflight prompts, vault writes) and enforces structural policy (`linux_hi/policy/`). Ansible handles the actual convergence. The boundary between them is intentional and enforced by Semgrep.
+`ansible/registry.yml` is the single source of truth. `make generate-apps` reads it and emits `group_vars/all/vars.yml` (gitignored; regenerate after registry changes or fresh checkout). Per-app `playbook.yml` files are committed to git. The Python CLI layer (`linux_hi/`) handles the interactive pre-provisioning steps (preflight prompts, vault writes) and enforces structural policy (`linux_hi/policy/`). Ansible handles the actual convergence. The boundary between them is intentional and enforced by Semgrep.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architectural contract and rationale.
 
@@ -39,12 +39,8 @@ ansible/
   registry.yml         single source of truth for all app metadata
   apps/<app>/          Ansible role per app
     defaults/main.yml  hand-authored defaults (nulls for required vars, app-specific values)
-    defaults/generated.yml  GENERATED — do not edit; contains service_name, image, port, etc.
     tasks/main.yml     4-step pattern: guards → config/dirs → image → quadlet → service_adapter
-    playbook.yml       GENERATED — do not edit; import_playbook chain + pre_tasks
-    backup.yml         required if registry backup: true
-    restore.yml        required if registry restore: true
-    cleanup.yml        required if registry cleanup: true
+    playbook.yml       committed; import_playbook chain + pre_tasks
   roles/               shared roles (service_adapter, rclone, podman, auto-updates)
   group_vars/all/
     vars.yml           GENERATED — shared non-secret vars (service names, ports, shared_vars)
@@ -103,7 +99,7 @@ tests/                 fast unit + lint tests; e2e/ requires a live host
 
 **Generated files not present after fresh clone** — run `make generate-apps` first. App `make` targets now auto-detect and run this if files are missing, but tests and direct Ansible invocations will not.
 
-**Policy check failures in tests** — `make test` now includes `TestRepoPolicy`, which runs the full structural policy check against the actual project. If it fails, the failure message is specific. Common causes: new app not in registry, preflight var default conflicts between registry and role defaults, missing `backup.yml`/`restore.yml` for persistent apps.
+**Policy check failures in tests** — `make test` includes `TestRepoPolicy`, which runs the full structural policy check against the actual project. If it fails, the failure message is specific. Common causes: new app not in registry, preflight var default conflicts between registry and role defaults.
 
 **Vault decrypt error** — the vault password file must exist at `ansible/.vault-password`. Run `make bootstrap` on first setup.
 
@@ -115,11 +111,12 @@ tests/                 fast unit + lint tests; e2e/ requires a live host
 
 See [ADDING_AN_APP.md](ADDING_AN_APP.md) for the full guide. The checklist:
 
-1. Add entry to `ansible/registry.yml` (service_type, image, port, runtime_uid/gid if needed, backup/restore/cleanup flags, preflight_vars, vault_secrets)
-2. Create `ansible/apps/<app>/` with tasks, defaults, templates, handlers, backup/restore/cleanup as needed
-3. `make generate-apps` — creates `playbook.yml` and `defaults/generated.yml`
-4. Update `tests/test_ansible_apps.py` expected app lists
-5. `make test` — all 119+ tests must pass including `TestRepoPolicy`
+1. Add entry to `ansible/registry.yml` (service_type, image, port, runtime_uid/gid if needed, preflight_vars, vault_secrets)
+2. Create `ansible/apps/<app>/` with tasks, defaults, templates, handlers
+3. Write `ansible/apps/<app>/playbook.yml` (see existing apps for the pattern)
+4. `make generate-apps` — regenerates `group_vars/all/vars.yml`
+5. Update `tests/test_ansible_apps.py` expected app lists
+6. `make test` — all tests must pass including `TestRepoPolicy`
 
 **Note:** `ADDING_AN_APP.md` uses `service_name_var` in its example — that field was replaced by `service_name` (the value directly). Use `service_name: myapp` in the registry.
 
