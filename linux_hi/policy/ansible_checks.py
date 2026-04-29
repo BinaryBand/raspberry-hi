@@ -22,6 +22,49 @@ def check_playbook_vars(ansible_dir: Path, failures: Failures) -> None:
                 )
 
 
+def _find_become_assertion(tasks: list, source: Path, failures: Failures) -> bool:
+    """Scan a task list for a become_passwords assert tagged 'always'.
+
+    Returns True if found (appending a failure if tagged incorrectly), False if absent.
+    """
+    for task_obj in tasks:
+        task = _as_dict(task_obj)
+        if task is None:
+            continue
+        if _as_dict(task.get("ansible.builtin.assert", task.get("assert"))) is None:
+            continue
+        if "become_passwords" not in yaml.safe_dump(task, sort_keys=False):
+            continue
+        tags_obj = task.get("tags", [])
+        tags = (
+            [tags_obj]
+            if isinstance(tags_obj, str)
+            else [str(t) for t in (_as_list(tags_obj) or [])]
+        )
+        if "always" not in tags:
+            failures.append(
+                f"{source} assert task verifying become_passwords must be tagged 'always'"
+            )
+        return True
+    return False
+
+
+def _check_pre_tasks_file(pre_tasks_path: Path, failures: Failures) -> None:
+    """Verify pre_tasks.yml contains the become_passwords assertion tagged 'always'."""
+    if not pre_tasks_path.is_file():
+        failures.append(f"Missing shared pre_tasks file: {pre_tasks_path}")
+        return
+    tasks = _as_list(_load_yaml(pre_tasks_path))
+    if tasks is None:
+        failures.append(f"{pre_tasks_path} must define a task list")
+        return
+    if not _find_become_assertion(tasks, pre_tasks_path, failures):
+        failures.append(
+            f"{pre_tasks_path} missing an assert that verifies "
+            "become_passwords for inventory_hostname"
+        )
+
+
 def check_site_become_password_assertion(site_playbook_path: Path, failures: Failures) -> None:
     """Ensure canonical setup playbook asserts become_passwords for the current host."""
     if not site_playbook_path.is_file():
@@ -44,20 +87,17 @@ def check_site_become_password_assertion(site_playbook_path: Path, failures: Fai
             task = _as_dict(task_obj)
             if task is None:
                 continue
-            if _as_dict(task.get("ansible.builtin.assert", task.get("assert"))) is None:
-                continue
-            if "become_passwords" not in yaml.safe_dump(task, sort_keys=False):
-                continue
-            tags_obj = task.get("tags", [])
-            if isinstance(tags_obj, str):
-                tags = [tags_obj]
-            else:
-                tags = [str(t) for t in (_as_list(tags_obj) or [])]
-            if "always" not in tags:
-                failures.append(
-                    f"{site_playbook_path} assert task verifying "
-                    "become_passwords must be tagged 'always'"
+            # import_tasks delegation — verify the assertion lives in pre_tasks.yml
+            import_ref = task.get("ansible.builtin.import_tasks") or task.get("import_tasks")
+            if isinstance(import_ref, str) and "pre_tasks.yml" in import_ref:
+                # Look for pre_tasks.yml in the tasks directory relative to the playbook
+                _check_pre_tasks_file(
+                    (site_playbook_path.parent.parent / "tasks" / "pre_tasks.yml").resolve(),
+                    failures,
                 )
+                return
+        # Inline assert scan
+        if _find_become_assertion(list(pre_tasks), site_playbook_path, failures):
             return
 
     failures.append(

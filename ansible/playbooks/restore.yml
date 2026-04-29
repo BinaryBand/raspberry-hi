@@ -4,23 +4,8 @@
   gather_facts: true
 
   pre_tasks:
-    - name: Load shared non-secret variables
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../group_vars/all/vars.yml"
-      tags: [always]
-
-    - name: Load shared vault variables
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../group_vars/all/vault.yml"
-      tags: [always]
-
-    - name: Verify become password is configured for this host
-      ansible.builtin.assert:
-        that: (become_passwords | default({})).get(inventory_hostname, '') | length > 0
-        fail_msg: >-
-          become password not set for '{{ inventory_hostname }}'.
-          Run 'make bootstrap' to add it.
-      tags: [always]
+    - name: Load common pre-tasks
+      ansible.builtin.import_tasks: ../tasks/pre_tasks.yml
 
     - name: Load app registry metadata
       ansible.builtin.include_vars:
@@ -73,17 +58,6 @@
       when:
         - not (restore_skip_confirm | default(false) | bool)
         - _restore_confirm.user_input | default('') != 'yes'
-      tags: [always]
-
-    - name: Set service name and path defaults
-      ansible.builtin.set_fact:
-        minio_service_name: "{{ minio_service_name | default('minio') }}"
-        postgres_service_name: "{{ postgres_service_name | default('postgres') }}"
-        postgres_database: "{{ postgres_database | default('baikal') }}"
-        postgres_user: "{{ postgres_user | default('baikal') }}"
-        postgres_runtime_uid: "{{ postgres_runtime_uid | default(70) }}"
-        postgres_runtime_gid: "{{ postgres_runtime_gid | default(70) }}"
-        baikal_service_name: "{{ baikal_service_name | default('baikal') }}"
       tags: [always]
 
   tasks:

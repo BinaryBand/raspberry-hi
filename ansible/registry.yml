@@ -35,6 +35,7 @@ apps:
     shared_vars:
       postgres_host_access_name: host.containers.internal
       postgres_user: baikal
+      postgres_database: baikal
     backup: true
     restore: true
     cleanup: true
@@ -55,6 +56,8 @@ apps:
     port: 8088
     runtime_uid: 101
     runtime_gid: 101
+    shared_vars:
+      baikal_db_name: baikal
     backup: true
     restore: true
     cleanup: true

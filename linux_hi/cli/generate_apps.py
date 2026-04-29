@@ -9,23 +9,8 @@ from models.ansible.registry import AppRegistry, AppRegistryEntry
 
 _PRE_TASKS = """\
   pre_tasks:
-    - name: Load shared non-secret variables
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../group_vars/all/vars.yml"
-      tags: [always]
-
-    - name: Load shared vault variables
-      ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../../group_vars/all/vault.yml"
-      tags: [always]
-
-    - name: Verify become password is configured for this host
-      ansible.builtin.assert:
-        that: (become_passwords | default({})).get(inventory_hostname, '') | length > 0
-        fail_msg: >-
-          become password not set for '{{ inventory_hostname }}'.
-          Run 'make bootstrap' to add it.
-      tags: [always]
+    - name: Load common pre-tasks
+      ansible.builtin.import_tasks: ../../playbooks/pre_tasks.yml
 """
 
 _GENERATED_HEADER = (
@@ -95,6 +80,10 @@ def _render_group_vars(full_registry: AppRegistry) -> str:
             *_service_var_lines(prefix, entry),
             *(f"{k}: {v}" for k, v in entry.shared_vars.items()),
         ]
+        if entry.runtime_uid is not None:
+            app_lines.append(f"{prefix}_runtime_uid: {entry.runtime_uid}")
+        if entry.runtime_gid is not None:
+            app_lines.append(f"{prefix}_runtime_gid: {entry.runtime_gid}")
         if app_lines:
             lines.append(f"# {app}")
             lines.extend(app_lines)

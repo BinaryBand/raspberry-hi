@@ -149,10 +149,10 @@ def test_app_registry_smoke_for_live_host() -> None:
         )
 
         if entry.backup:
-            assert (role_path / "backup" / "main.yml").exists(), (
-                f"Backup role file is missing for app '{app}'"
+            assert (role_path / "backup.yml").exists(), (
+                f"Backup task file is missing for app '{app}'"
             )
         if entry.restore:
-            assert (role_path / "restore" / "main.yml").exists(), (
-                f"Restore role file is missing for app '{app}'"
+            assert (role_path / "restore.yml").exists(), (
+                f"Restore task file is missing for app '{app}'"
             )
