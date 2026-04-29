@@ -48,14 +48,20 @@
     service_adapter_run_script: "{{ app_user_home }}/bin/run-minio.sh"
 
 - name: Install MinIO Podman quadlet
-  ansible.builtin.template:
-    src: minio.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/minio.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart minio
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "MinIO Object Storage"
+    container_image: "{{ minio_image }}"
+    container_name: "{{ minio_service_name }}"
+    container_ports:
+      - "{{ minio_port }}:9000"
+      - "{{ minio_console_port }}:9001"
+    container_volumes:
+      - "{{ minio_data_path }}:/data"
+    container_exec: "server /data --address :{{ minio_port }} --console-address :{{ minio_console_port }}"
+    container_env_file: "{{ app_user_home }}/.config/minio/minio.env"
 
 # 3. Wire up service management — adapter handles init-system details.
 - name: Register MinIO with service_adapter

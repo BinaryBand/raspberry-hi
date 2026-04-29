@@ -238,14 +238,18 @@
     service_adapter_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
 
 - name: Install Baikal Podman quadlet
-  ansible.builtin.template:
-    src: baikal.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/baikal.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart baikal
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "Baikal CalDAV/CardDAV Server"
+    container_image: "{{ baikal_image }}"
+    container_name: "{{ baikal_service_name }}"
+    container_ports:
+      - "{{ baikal_port }}:80"
+    container_volumes:
+      - "{{ baikal_config_path }}:/var/www/baikal/config:U"
+      - "{{ baikal_data_path }}:/var/www/baikal/Specific:U"
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register Baikal with service_adapter

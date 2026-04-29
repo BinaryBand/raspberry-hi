@@ -223,7 +223,6 @@ config/**/.*
 docs/**/.*
 
 # Ansible generated files — produced by 'make generate-apps'; do not commit
-ansible/apps/*/playbook.yml
 ansible/apps/*/defaults/generated.yml
 ansible/group_vars/all/vars.yml
 

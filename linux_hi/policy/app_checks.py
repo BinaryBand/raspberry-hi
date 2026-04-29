@@ -104,14 +104,11 @@ def check_registry_conflicts(
 
 
 def check_app_playbooks(app_roles: list[str], apps_dir: Path, failures: Failures) -> None:
-    """Ensure every registered app has a generated per-app playbook."""
+    """Ensure every registered app has a per-app playbook."""
     for app in app_roles:
         playbook = apps_dir / app / "playbook.yml"
         if not playbook.is_file():
-            failures.append(
-                f"App '{app}' missing per-app playbook: {playbook} "
-                "(run 'make generate-apps' to regenerate)"
-            )
+            failures.append(f"App '{app}' missing per-app playbook: {playbook}")
 
 
 def check_app_data_paths(app_roles: list[str], registry_path: Path, failures: Failures) -> None:

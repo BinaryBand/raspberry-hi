@@ -123,7 +123,7 @@ def test_app_restart_handlers_delegate_to_service_adapter() -> None:
         assert "../../../roles/service_adapter/tasks/restart.yml" in content
 
 
-def test_generated_playbooks_have_named_import_playbook_items() -> None:
+def test_playbooks_have_named_import_playbook_items() -> None:
     """Every import_playbook item must have a name: to satisfy ansible-lint name[play]."""
     for app in ANSIBLE_DATA.all_apps():
         lines = (ANSIBLE_DIR / "apps" / app / "playbook.yml").read_text().splitlines()
@@ -131,8 +131,7 @@ def test_generated_playbooks_have_named_import_playbook_items() -> None:
             if "import_playbook:" in line:
                 preceding = lines[i - 1].strip().lstrip("- ") if i > 0 else ""
                 assert preceding.startswith("name:"), (
-                    f"ansible/apps/{app}/playbook.yml: import_playbook at line {i + 1} "
-                    "has no name: (run 'make generate-apps' to regenerate)"
+                    f"ansible/apps/{app}/playbook.yml: import_playbook at line {i + 1} has no name:"
                 )
 
 
@@ -145,8 +144,7 @@ def test_apps_with_dependencies_import_dependency_playbooks() -> None:
         content = (ANSIBLE_DIR / "apps" / app / "playbook.yml").read_text()
         for dep in entry.dependencies:
             assert f"import_playbook: ../{dep}/playbook.yml" in content, (
-                f"ansible/apps/{app}/playbook.yml is missing import for dependency '{dep}' "
-                "(run 'make generate-apps' to regenerate)"
+                f"ansible/apps/{app}/playbook.yml is missing import for dependency '{dep}'"
             )
 
 

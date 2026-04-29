@@ -1,0 +1,27 @@
+[Unit]
+Description={{ container_description }}
+After=network.target
+
+[Container]
+Image={{ container_image }}
+ContainerName={{ container_name }}
+{% for port in container_ports | default([]) %}
+PublishPort={{ port }}
+{% endfor %}
+{% for vol in container_volumes | default([]) %}
+Volume={{ vol }}
+{% endfor %}
+{% if container_exec | default('') %}
+Exec={{ container_exec }}
+{% endif %}
+{% if container_env_file | default('') %}
+EnvironmentFile={{ container_env_file }}
+{% endif %}
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

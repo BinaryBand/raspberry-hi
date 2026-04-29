@@ -78,7 +78,7 @@ help:
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
 	@echo "  setup         Provision base dependencies on a host (HOST=rpi|rpi2|debian)"
-	@echo "  generate-apps Regenerate per-app playbooks from ansible/registry.yml"
+	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
 	@echo "  rclone        Configure project rclone remotes and vault the config"
@@ -271,12 +271,8 @@ _%_preflight: _vault_check
 	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight $*
 
 _generate_check:
-	@missing=0; \
-	for app in $(APPS); do \
-		if [ ! -f ansible/apps/$$app/playbook.yml ]; then missing=1; break; fi; \
-		done; \
-	if [ $$missing -eq 1 ]; then \
-		echo "  [INFO]  Generated files missing — running 'make generate-apps'..."; \
+	@if [ ! -f ansible/group_vars/all/vars.yml ]; then \
+		echo "  [INFO]  ansible/group_vars/all/vars.yml missing — running 'make generate-apps'..."; \
 		$(MAKE) generate-apps; \
 	fi
 

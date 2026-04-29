@@ -91,14 +91,20 @@
   become: true
 
 - name: Install PostgreSQL Podman quadlet
-  ansible.builtin.template:
-    src: postgres.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/postgres.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart postgres
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "PostgreSQL Database"
+    container_image: "{{ postgres_image }}"
+    container_name: "{{ postgres_service_name }}"
+    container_ports:
+      - "{{ postgres_port }}:5432"
+    container_volumes:
+      - "{{ postgres_data_path }}:/var/lib/postgresql/data:U"
+      - "{{ postgres_hba_host_path }}:{{ postgres_hba_container_path }}:ro"
+    container_exec: "postgres -c hba_file={{ postgres_hba_container_path }}"
+    container_env_file: "{{ app_user_home }}/.config/postgres/postgres.env"
 
 - name: Register PostgreSQL with service_adapter
   ansible.builtin.import_role:

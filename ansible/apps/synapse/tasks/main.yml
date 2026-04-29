@@ -181,14 +181,17 @@
     service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"
 
 - name: Install Synapse Podman quadlet
-  ansible.builtin.template:
-    src: synapse.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/synapse.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart synapse
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "Synapse Matrix homeserver"
+    container_image: "{{ synapse_image }}"
+    container_name: "{{ synapse_service_name }}"
+    container_ports:
+      - "{{ synapse_port }}:{{ synapse_port }}"
+    container_volumes:
+      - "{{ synapse_data_path }}:/data"
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register Synapse with service_adapter

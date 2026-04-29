@@ -169,14 +169,17 @@
     service_adapter_run_script: "{{ app_user_home }}/bin/run-mautrix-whatsapp.sh"
 
 - name: Install mautrix-whatsapp Podman quadlet
-  ansible.builtin.template:
-    src: mautrix-whatsapp.container.j2
-    dest: "{{ app_user_home }}/.config/containers/systemd/mautrix-whatsapp.container"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  become: true
-  notify: restart mautrix-whatsapp
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    container_description: "mautrix-whatsapp Matrix bridge"
+    container_image: "{{ mautrix_whatsapp_image }}"
+    container_name: "{{ mautrix_whatsapp_service_name }}"
+    container_ports:
+      - "{{ mautrix_whatsapp_port }}:{{ mautrix_whatsapp_port }}"
+    container_volumes:
+      - "{{ mautrix_whatsapp_data_path }}:/data:U"
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register mautrix-whatsapp with service_adapter

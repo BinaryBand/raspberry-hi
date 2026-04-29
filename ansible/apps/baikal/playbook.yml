@@ -1,0 +1,14 @@
+---
+- name: Import postgres playbook
+  import_playbook: ../postgres/playbook.yml
+
+- name: Provision baikal
+  hosts: devices
+  gather_facts: true
+
+  pre_tasks:
+    - name: Load common pre-tasks
+      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+
+  roles:
+    - role: baikal

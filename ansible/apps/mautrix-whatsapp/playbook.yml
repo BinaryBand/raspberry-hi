@@ -1,0 +1,14 @@
+---
+- name: Import synapse playbook
+  import_playbook: ../synapse/playbook.yml
+
+- name: Provision mautrix-whatsapp
+  hosts: devices
+  gather_facts: true
+
+  pre_tasks:
+    - name: Load common pre-tasks
+      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+
+  roles:
+    - role: mautrix-whatsapp
