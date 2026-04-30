@@ -21,6 +21,11 @@ class VaultSecretSpec(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @property
+    def prompt_type(self) -> str:
+        """Resolve hidden flag to a PromptRegistry type name."""
+        return "password" if self.hidden else "text"
+
 
 class AppRegistryEntry(BaseModel):
     service_type: Literal["containerized"]
