@@ -48,69 +48,17 @@ def _resolve_port(value: int | None) -> int:
         sys.exit("  [FAIL]  PORT must be an integer.")
 
 
-class _HostsAdapter:
-    """Adapter implementing HostsConfigPort against repository stores."""
-
-    def list(self):
-        rows: list[dict[str, str]] = []
-        for alias in ANSIBLE_DATA.inventory_hosts():
-            hv = ANSIBLE_DATA.host_vars(alias)
-            key = (
-                Path(hv.ansible_ssh_private_key_file).name
-                if hv.ansible_ssh_private_key_file
-                else "—"
-            )
-            rows.append(
-                {
-                    "name": alias,
-                    "host": hv.ansible_host,
-                    "user": hv.ansible_user or "—",
-                    "port": str(hv.ansible_port or 22),
-                    "key": key,
-                }
-            )
-        return rows
-
-    def add(
-        self,
-        *,
-        name: str,
-        address: str,
-        user: str | None,
-        port: int | None,
-        secret: str | None,
-        password: str,
-    ) -> None:
-        host_vars_data: dict[str, object] = {
-            "ansible_host": address,
-            "ansible_user": user,
-            "ansible_port": port,
-            "ansible_become_password": (
-                "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
-            ),
-        }
-        if secret:
-            host_vars_data["ansible_ssh_private_key_file"] = secret
-        ANSIBLE_DATA.add_inventory_host(name)
-        ANSIBLE_DATA.write_host_vars_raw(name, host_vars_data)
-        write_become_password(name, password)
-
-    def remove(self, *, name: str) -> None:
-        ANSIBLE_DATA.remove_inventory_host(name)
-        ANSIBLE_DATA.remove_host_vars(name)
-        remove_become_password(name)
-
-
-_ADAPTER = _HostsAdapter()
-
-
 def cmd_list() -> None:
     """Print a table of configured inventory hosts and their connection details."""
     table = Table(show_header=True, header_style="bold")
     for col in ("name", "host", "user", "port", "key"):
         table.add_column(col)
-    for row in _ADAPTER.list():
-        table.add_row(row["name"], row["host"], row["user"], row["port"], row["key"])
+    for alias in ANSIBLE_DATA.inventory_hosts():
+        hv = ANSIBLE_DATA.host_vars(alias)
+        key = Path(hv.ansible_ssh_private_key_file).name if hv.ansible_ssh_private_key_file else "—"
+        table.add_row(
+            alias, hv.ansible_host, hv.ansible_user or "—", str(hv.ansible_port or 22), key
+        )
     _console.print(table)
 
 
@@ -139,15 +87,21 @@ def cmd_add() -> None:
     if not all([name, addr, user, password]):
         sys.exit("Aborted.")
 
+    host_vars_data: dict[str, object] = {
+        "ansible_host": addr,
+        "ansible_user": user,
+        "ansible_port": port,
+        "ansible_become_password": (
+            "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
+        ),
+    }
+    if secret:
+        host_vars_data["ansible_ssh_private_key_file"] = secret
+
     try:
-        _ADAPTER.add(
-            name=cast(str, name),
-            address=cast(str, addr),
-            user=cast(str, user),
-            port=port,
-            secret=secret or None,
-            password=cast(str, password),
-        )
+        ANSIBLE_DATA.add_inventory_host(cast(str, name))
+        ANSIBLE_DATA.write_host_vars_raw(cast(str, name), host_vars_data)
+        write_become_password(cast(str, name), cast(str, password))
     except Exception as exc:
         sys.exit(f"  [FAIL]  {exc}")
 
@@ -173,7 +127,9 @@ def cmd_remove() -> None:
         sys.exit(f"  [FAIL]  Host '{name}' not found in inventory.")
 
     try:
-        _ADAPTER.remove(name=name)
+        ANSIBLE_DATA.remove_inventory_host(name)
+        ANSIBLE_DATA.remove_host_vars(name)
+        remove_become_password(name)
     except Exception as exc:
         sys.exit(f"  [FAIL]  {exc}")
 

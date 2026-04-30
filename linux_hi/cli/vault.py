@@ -17,30 +17,13 @@ from linux_hi.vault.service import decrypt_vault_raw, remove_vault_key, write_va
 _console = Console()
 
 
-class _VaultAdapter:
-    """Adapter implementing VaultConfigPort against the encrypted store."""
-
-    def list(self):
-        data = decrypt_vault_raw()
-        return [(key, type(value).__name__) for key, value in data.items()]
-
-    def add(self, *, name: str, value: str) -> None:
-        write_vault_key(name, value)
-
-    def remove(self, *, name: str) -> None:
-        remove_vault_key(name)
-
-
-_ADAPTER = _VaultAdapter()
-
-
 def cmd_list() -> None:
     """Print a table of top-level vault keys (no values shown)."""
     table = Table(show_header=True, header_style="bold")
     table.add_column("key")
     table.add_column("type")
-    for key, value_type in _ADAPTER.list():
-        table.add_row(key, value_type)
+    for key, value in decrypt_vault_raw().items():
+        table.add_row(key, type(value).__name__)
     _console.print(table)
 
 
@@ -58,7 +41,7 @@ def cmd_add() -> None:
         sys.exit("Aborted.")
 
     try:
-        _ADAPTER.add(name=key, value=value)
+        write_vault_key(key, value)
     except Exception as exc:
         sys.exit(f"  [FAIL]  {exc}")
 
@@ -67,7 +50,7 @@ def cmd_add() -> None:
 
 def cmd_remove() -> None:
     """Remove a top-level key from the vault."""
-    keys = [key for key, _ in _ADAPTER.list()]
+    keys = list(decrypt_vault_raw())
     if not keys:
         sys.exit("Vault is empty.")
 
@@ -82,7 +65,7 @@ def cmd_remove() -> None:
         sys.exit("Aborted.")
 
     try:
-        _ADAPTER.remove(name=key)
+        remove_vault_key(key)
     except Exception as exc:
         sys.exit(f"  [FAIL]  {exc}")
 

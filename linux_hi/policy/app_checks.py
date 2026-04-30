@@ -40,14 +40,11 @@ def check_app_tests(
     test_content = test_file.read_text(encoding="utf-8") if test_file.exists() else ""
 
     for app in app_roles:
-        found = app in test_content
-        if not found:
-            for ef in e2e_files:
-                if ef.is_file() and app in ef.read_text(encoding="utf-8"):
-                    found = True
-                    break
-        if not found:
-            failures.append(f"App '{app}' missing test in test_ansible_apps.py or e2e/")
+        if app in test_content:
+            continue
+        if any(ef.is_file() and app in ef.read_text(encoding="utf-8") for ef in e2e_files):
+            continue
+        failures.append(f"App '{app}' missing test in test_ansible_apps.py or e2e/")
 
 
 def check_registry_conflicts(
