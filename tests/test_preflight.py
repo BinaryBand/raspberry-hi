@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from linux_hi.orchestration.preflight import PreflightOrchestrator, load_preflight_spec
+from linux_hi.orchestration.preflight import (
+    PreflightError,
+    PreflightOrchestrator,
+    load_preflight_spec,
+)
 from models import ANSIBLE_DATA
 from tests.support.preflight_fakes import FakeHostVarsStore, FakePromptRegistry, FakeVaultStore
 
@@ -171,5 +175,5 @@ def test_cycle_detection_prevents_infinite_loop() -> None:
         # Should return without RecursionError
         try:
             orch.run("minio", HOST)
-        except SystemExit:
+        except PreflightError:
             pass  # role_path lookup will fail — that's fine; cycle guard ran

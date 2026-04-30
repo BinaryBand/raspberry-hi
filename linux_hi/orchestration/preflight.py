@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import secrets
-import sys
 from pathlib import Path
 from typing import Protocol
 
@@ -13,6 +12,10 @@ from linux_hi.vault.service import decrypt_vault_raw, encrypt_vault
 from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, str]
+
+
+class PreflightError(Exception):
+    """Raised by the orchestration layer when preflight cannot proceed."""
 
 
 class HostVarsPort(Protocol):
@@ -64,11 +67,11 @@ class AnsibleVaultStore:
 
 
 def _resolve_role_path(app: str) -> Path:
-    """Return the role directory for *app* or exit with a clear error."""
+    """Return the role directory for *app* or raise PreflightError."""
     try:
         return ANSIBLE_DATA.role_path(app)
     except KeyError as exc:
-        sys.exit(f"  [FAIL]  {exc}")
+        raise PreflightError(str(exc)) from exc
 
 
 def load_preflight_spec(
@@ -87,7 +90,7 @@ def _prompt_host_var(var_name: str, spec: PreflightVarSpec, registry: PromptRegi
     label = f"  {var_name}" + (f" ({spec.hint})" if spec.hint else "") + ":"
     value = registry.prompt(spec.type, label, spec.default or "")
     if not value:
-        sys.exit(f"  [FAIL]  {var_name} is required. Aborting.")
+        raise PreflightError(f"{var_name} is required. Aborting.")
     return value
 
 
@@ -99,7 +102,7 @@ def _prompt_secret(spec: VaultSecretSpec, registry: PromptRegistryPort) -> str:
             generated = secrets.token_hex(32)
             print(f"  [AUTO]  Generated {spec.key}")
             return generated
-        sys.exit(f"  [FAIL]  {spec.key} is required. Aborting.")
+        raise PreflightError(f"{spec.key} is required. Aborting.")
     return value
 
 

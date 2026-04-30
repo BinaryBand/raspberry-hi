@@ -9,6 +9,7 @@ from linux_hi.adapters.prompt_handlers import PasswordHandler, PromptRegistry, T
 from linux_hi.orchestration.preflight import (
     AnsibleHostVarsStore,
     AnsibleVaultStore,
+    PreflightError,
     PreflightOrchestrator,
 )
 from models import ANSIBLE_DATA
@@ -41,7 +42,10 @@ def main(argv: list[str] | None = None) -> None:
         hv=AnsibleHostVarsStore(),
         vault=AnsibleVaultStore(),
     )
-    orchestrator.run(app, hostname)
+    try:
+        orchestrator.run(app, hostname)
+    except PreflightError as exc:
+        sys.exit(f"  [FAIL]  {exc}")
 
 
 if __name__ == "__main__":

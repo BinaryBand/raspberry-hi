@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from linux_hi.process.exec import resolve_executable, run_resolved
 from linux_hi.vault.service import VAULT_PASSWORD_FILE, decrypt_vault
@@ -46,6 +47,54 @@ def check_vault_secrets() -> bool:
     )
 
 
+def _check_ansible_vault_available() -> bool:
+    return _check_executable(
+        "ansible-vault",
+        "ansible-vault available in PATH",
+        "poetry install  (or: pipx install ansible)",
+    )
+
+
+def _check_rclone_available() -> bool:
+    return _check_executable(
+        "rclone",
+        "rclone available in PATH",
+        "https://rclone.org/install/",
+    )
+
+
+def _check_podman_available() -> bool:
+    return _check_executable(
+        "podman",
+        "podman available in PATH",
+        "install Podman via your distro's package manager",
+    )
+
+
+def _check_hosts_configured() -> bool:
+    hosts = ANSIBLE_DATA.inventory_hosts()
+    return check(
+        f"At least one host configured ({len(hosts)} found)",
+        bool(hosts),
+        "run `make config-hosts-add` to add a host",
+    )
+
+
+def _check_ssh_key() -> bool:
+    hosts = ANSIBLE_DATA.inventory_hosts()
+    missing: list[str] = []
+    for alias in hosts:
+        hv = ANSIBLE_DATA.host_vars(alias)
+        key_path = hv.ansible_ssh_private_key_file
+        if key_path and not Path(key_path).exists():
+            missing.append(alias)
+    return check(
+        "SSH key files exist for all hosts",
+        not missing,
+        "fix key path for: " + ", ".join(missing) if missing else "",
+    )
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments for prerequisite checks."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -53,6 +102,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--vault-only",
         action="store_true",
         help="Run only the vault/password validation check.",
+    )
+    parser.add_argument(
+        "--doctor",
+        action="store_true",
+        help="Run environment health checks (binaries, hosts, keys).",
     )
     return parser.parse_args(argv)
 
@@ -124,6 +178,25 @@ def _check_host_reachable() -> bool:
 def main(argv: Sequence[str] | None = None) -> None:
     """Run prerequisite checks and exit non-zero when any check fails."""
     args = parse_args(argv)
+
+    if args.doctor:
+        print("Environment health check...\n")
+        all_ok = _check_python_version()
+        all_ok &= _check_ansible_available()
+        all_ok &= _check_ansible_vault_available()
+        all_ok &= _check_rclone_available()
+        all_ok &= _check_podman_available()
+        all_ok &= _check_node_available()
+        all_ok &= _check_vault_password_file()
+        all_ok &= _check_hosts_configured()
+        all_ok &= _check_ssh_key()
+        print()
+        if all_ok:
+            print("All environment checks passed.")
+        else:
+            print("Fix the issues above before provisioning.")
+            sys.exit(1)
+        return
 
     if args.vault_only:
         if not check_vault_secrets():

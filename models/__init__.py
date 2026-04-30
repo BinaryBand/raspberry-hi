@@ -4,6 +4,7 @@ from .ansible.registry import (
     AppRegistry,
     AppRegistryEntry,
     PreflightVarSpec,
+    PromptType,
     VaultSecretSpec,
 )
 from .services.vault import VaultSecrets
@@ -19,6 +20,7 @@ __all__ = [
     "HostVars",
     "MountInfo",
     "PreflightVarSpec",
+    "PromptType",
     "VaultSecretSpec",
     "VaultSecrets",
 ]

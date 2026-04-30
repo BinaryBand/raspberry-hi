@@ -5,19 +5,17 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections.abc import Callable
 
 import questionary
 from rich.console import Console
 from rich.table import Table
 
-from linux_hi.cli._dispatch import dispatch
 from linux_hi.vault.service import decrypt_vault_raw, remove_vault_key, write_vault_key
 
 _console = Console()
 
 
-def cmd_list() -> None:
+def cmd_list(args: argparse.Namespace) -> None:
     """Print a table of top-level vault keys (no values shown)."""
     table = Table(show_header=True, header_style="bold")
     table.add_column("key")
@@ -27,12 +25,8 @@ def cmd_list() -> None:
     _console.print(table)
 
 
-def cmd_add() -> None:
+def cmd_add(args: argparse.Namespace) -> None:
     """Add or update a top-level key in the vault."""
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--name")
-    args, _ = parser.parse_known_args()
-
     key = args.name or os.environ.get("NAME") or questionary.text("Vault key:").ask()
     if not key:
         sys.exit("Aborted.")
@@ -48,15 +42,11 @@ def cmd_add() -> None:
     print(f"  [OK  ]  Vault key '{key}' written.")
 
 
-def cmd_remove() -> None:
+def cmd_remove(args: argparse.Namespace) -> None:
     """Remove a top-level key from the vault."""
     keys = list(decrypt_vault_raw())
     if not keys:
         sys.exit("Vault is empty.")
-
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--name")
-    args, _ = parser.parse_known_args()
 
     key = args.name or os.environ.get("NAME")
     if not key:
@@ -72,16 +62,25 @@ def cmd_remove() -> None:
     print(f"  [OK  ]  Vault key '{key}' removed.")
 
 
-_SUBCOMMANDS: dict[str, Callable[[], None]] = {
-    "add": cmd_add,
-    "list": cmd_list,
-    "remove": cmd_remove,
-}
-
-
 def main(argv: list[str] | None = None) -> None:
     """Dispatch vault key management subcommands."""
-    dispatch(_SUBCOMMANDS, argv)
+    parser = argparse.ArgumentParser(description="Vault key management")
+    parser.set_defaults(func=cmd_list)
+    sub = parser.add_subparsers()
+
+    list_p = sub.add_parser("list", help="List vault keys")
+    list_p.set_defaults(func=cmd_list)
+
+    add_p = sub.add_parser("add", help="Add or update a vault key")
+    add_p.add_argument("--name")
+    add_p.set_defaults(func=cmd_add)
+
+    rm_p = sub.add_parser("remove", help="Remove a vault key")
+    rm_p.add_argument("--name")
+    rm_p.set_defaults(func=cmd_remove)
+
+    args = parser.parse_args(argv)
+    args.func(args)
 
 
 if __name__ == "__main__":

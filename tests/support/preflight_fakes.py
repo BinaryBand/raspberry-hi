@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models import PromptType
+
 
 class FakePromptRegistry:
     """Returns pre-configured values without user interaction.
@@ -16,7 +21,7 @@ class FakePromptRegistry:
         self._responses = responses or {}
         self._default = default
 
-    def prompt(self, type_name: str | None, label: str, default: str = "") -> str | None:
+    def prompt(self, type_name: PromptType | None, label: str, default: str = "") -> str | None:
         """Return the configured value for *type_name*, or the default."""
         return self._responses.get(type_name or "text", self._default)
 

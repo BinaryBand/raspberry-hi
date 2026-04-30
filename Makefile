@@ -45,7 +45,7 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey baikal bootstrap check generate-apps help lint logs mount ping
+.PHONY: add-hostkey baikal bootstrap check doctor generate-apps help lint logs mount ping
 .PHONY: format rclone ruff ruff-fix ruff-format setup ssh status
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
@@ -59,6 +59,7 @@ help:
 	@echo ""
 	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
 	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
+	@echo "  doctor        Environment health check (binaries, hosts, SSH keys)"
 	@echo "  lint               Run the full static quality gate"
 	@echo "  lint-check         Ruff lint checks"
 	@echo "  lint-format        Ruff format check"
@@ -105,6 +106,9 @@ help:
 
 check:
 	$(POETRY) python -m linux_hi.cli.check
+
+doctor:
+	$(POETRY) python -m linux_hi.cli.check --doctor
 
 lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-checkmake lint-repo-policy
 

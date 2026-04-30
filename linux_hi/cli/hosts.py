@@ -5,15 +5,12 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections.abc import Callable
 from pathlib import Path
-from typing import cast
 
 import questionary
 from rich.console import Console
 from rich.table import Table
 
-from linux_hi.cli._dispatch import dispatch
 from linux_hi.vault.service import remove_become_password, write_become_password
 from models import ANSIBLE_DATA
 
@@ -48,7 +45,7 @@ def _resolve_port(value: int | None) -> int:
         sys.exit("  [FAIL]  PORT must be an integer.")
 
 
-def cmd_list() -> None:
+def cmd_list(args: argparse.Namespace) -> None:
     """Print a table of configured inventory hosts and their connection details."""
     table = Table(show_header=True, header_style="bold")
     for col in ("name", "host", "user", "port", "key"):
@@ -62,15 +59,9 @@ def cmd_list() -> None:
     _console.print(table)
 
 
-def cmd_add() -> None:
+def cmd_add(args: argparse.Namespace) -> None:
     """Interactively add a host to inventory, host_vars, and vault."""
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--name")
-    parser.add_argument("--address")
-    parser.add_argument("--secret")
-    parser.add_argument("--user")
-    parser.add_argument("--port", type=int)
-    args, _ = parser.parse_known_args()
+    from typing import cast
 
     name = _prompt_if_missing(_pick(args.name, os.environ.get("NAME")), "Host alias:")
     addr = _prompt_if_missing(
@@ -108,15 +99,11 @@ def cmd_add() -> None:
     print(f"  [OK  ]  Host '{name}' added to inventory, host_vars, and vault.")
 
 
-def cmd_remove() -> None:
+def cmd_remove(args: argparse.Namespace) -> None:
     """Interactively remove a host from inventory, host_vars, and vault."""
     hosts = ANSIBLE_DATA.inventory_hosts()
     if not hosts:
         sys.exit("No hosts configured.")
-
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--name")
-    args, _ = parser.parse_known_args()
 
     name = args.name or os.environ.get("NAME")
     if not name:
@@ -136,16 +123,29 @@ def cmd_remove() -> None:
     print(f"  [OK  ]  Host '{name}' removed from inventory, host_vars, and vault.")
 
 
-_SUBCOMMANDS: dict[str, Callable[[], None]] = {
-    "add": cmd_add,
-    "list": cmd_list,
-    "remove": cmd_remove,
-}
-
-
 def main(argv: list[str] | None = None) -> None:
     """Dispatch host management subcommands."""
-    dispatch(_SUBCOMMANDS, argv)
+    parser = argparse.ArgumentParser(description="Host inventory management")
+    parser.set_defaults(func=cmd_list)
+    sub = parser.add_subparsers()
+
+    list_p = sub.add_parser("list", help="List configured hosts")
+    list_p.set_defaults(func=cmd_list)
+
+    add_p = sub.add_parser("add", help="Add a host to inventory")
+    add_p.add_argument("--name")
+    add_p.add_argument("--address")
+    add_p.add_argument("--secret")
+    add_p.add_argument("--user")
+    add_p.add_argument("--port", type=int)
+    add_p.set_defaults(func=cmd_add)
+
+    rm_p = sub.add_parser("remove", help="Remove a host from inventory")
+    rm_p.add_argument("--name")
+    rm_p.set_defaults(func=cmd_remove)
+
+    args = parser.parse_args(argv)
+    args.func(args)
 
 
 if __name__ == "__main__":

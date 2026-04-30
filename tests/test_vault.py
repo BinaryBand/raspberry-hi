@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+
 import pytest
 
 from linux_hi.cli.vault import cmd_list
@@ -16,7 +18,7 @@ def test_vault_list_shows_keys(
         "linux_hi.cli.vault.decrypt_vault_raw",
         lambda: fake_data,
     )
-    cmd_list()
+    cmd_list(argparse.Namespace())
     captured = capsys.readouterr()
     assert "become_passwords" in captured.out
     assert "rclone_config" in captured.out

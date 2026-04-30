@@ -4,11 +4,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+PromptType = Literal["text", "password", "rclone_remote"]
+
 
 class PreflightVarSpec(BaseModel):
     hint: str = ""
     default: str | None = None
-    type: str | None = None
+    type: PromptType | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -22,7 +24,7 @@ class VaultSecretSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @property
-    def prompt_type(self) -> str:
+    def prompt_type(self) -> PromptType:
         """Resolve hidden flag to a PromptRegistry type name."""
         return "password" if self.hidden else "text"
 

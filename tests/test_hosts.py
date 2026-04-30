@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ from models.ansible.access import AnsibleDataStore
 
 def test_hosts_list_covers_all_inventory_hosts(capsys: pytest.CaptureFixture[str]) -> None:
     """hosts-list must display every host in the configured inventory."""
-    cmd_list()
+    cmd_list(argparse.Namespace())
     captured = capsys.readouterr()
     for alias in ANSIBLE_DATA.inventory_hosts():
         assert alias in captured.out, f"Expected '{alias}' in hosts-list output"
@@ -77,7 +78,7 @@ def test_remove_host_vars_is_silent_when_missing(tmp_path: Path) -> None:
 
 def test_hosts_list_shows_connection_details(capsys: pytest.CaptureFixture[str]) -> None:
     """hosts-list must show ansible_host for at least one host."""
-    cmd_list()
+    cmd_list(argparse.Namespace())
     captured = capsys.readouterr()
     hosts_with_explicit_host = [
         alias
