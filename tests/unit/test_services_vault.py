@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -100,12 +101,10 @@ def test_write_and_remove_become_password(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(vault, "encrypt_vault", lambda data: writes.append(dict(data)))
 
     vault.write_become_password("debian", "new")
-    become = writes[-1]["become_passwords"]
-    assert isinstance(become, dict)
+    become = cast(dict[str, str], writes[-1]["become_passwords"])
     assert become["debian"] == "new"
 
     monkeypatch.setattr(vault, "decrypt_vault_raw", lambda: dict(writes[-1]))
     vault.remove_become_password("rpi")
-    become_after = writes[-1]["become_passwords"]
-    assert isinstance(become_after, dict)
+    become_after = cast(dict[str, str], writes[-1]["become_passwords"])
     assert "rpi" not in become_after

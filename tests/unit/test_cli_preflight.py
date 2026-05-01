@@ -2,10 +2,39 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from linux_hi.cli import preflight
 from linux_hi.services.preflight import PreflightError
+
+
+def _patch_preflight_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    require_inventory_host: Callable[[str], str],
+    run: Callable[[str, str], None],
+) -> None:
+    """Patch preflight dependencies with custom host validation and run behavior."""
+
+    class _Store:
+        def require_inventory_host(self, host: str) -> str:
+            return require_inventory_host(host)
+
+    class _Orchestrator:
+        def __init__(self, **_kwargs: object) -> None:
+            """Accept injected ports in test double constructor."""
+
+        def run(self, app: str, hostname: str) -> None:
+            run(app, hostname)
+
+    monkeypatch.setenv("HOST", "rpi")
+    monkeypatch.setattr(preflight, "ANSIBLE_DATA", _Store())
+    monkeypatch.setattr(preflight, "_build_registry", lambda: object())
+    monkeypatch.setattr(preflight, "AnsibleHostVarsStore", lambda: object())
+    monkeypatch.setattr(preflight, "AnsibleVaultStore", lambda: object())
+    monkeypatch.setattr(preflight, "PreflightOrchestrator", _Orchestrator)
 
 
 def test_main_requires_app_argument() -> None:
@@ -30,24 +59,18 @@ def test_main_runs_orchestrator_with_validated_host(monkeypatch: pytest.MonkeyPa
     """Main should validate host alias and run orchestrator for the target app."""
     calls: list[tuple[str, str]] = []
 
-    class _Store:
-        def require_inventory_host(self, host: str) -> str:
-            calls.append(("require", host))
-            return "validated-host"
+    def _require(host: str) -> str:
+        calls.append(("require", host))
+        return "validated-host"
 
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Accept injected ports and capture run invocation."""
+    def _run(app: str, hostname: str) -> None:
+        calls.append((app, hostname))
 
-        def run(self, app: str, hostname: str) -> None:
-            calls.append((app, hostname))
-
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(preflight, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(preflight, "_build_registry", lambda: object())
-    monkeypatch.setattr(preflight, "AnsibleHostVarsStore", lambda: object())
-    monkeypatch.setattr(preflight, "AnsibleVaultStore", lambda: object())
-    monkeypatch.setattr(preflight, "PreflightOrchestrator", _Orchestrator)
+    _patch_preflight_runtime(
+        monkeypatch,
+        require_inventory_host=_require,
+        run=_run,
+    )
 
     preflight.main(["synapse"])
 
@@ -57,23 +80,14 @@ def test_main_runs_orchestrator_with_validated_host(monkeypatch: pytest.MonkeyPa
 def test_main_exits_on_preflight_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """Main should convert preflight orchestration errors into CLI failure output."""
 
-    class _Store:
-        def require_inventory_host(self, host: str) -> str:
-            return host
+    def _raise(_app: str, _hostname: str) -> None:
+        raise PreflightError("bad settings")
 
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Construct orchestrator test double."""
-
-        def run(self, _app: str, _hostname: str) -> None:
-            raise PreflightError("bad settings")
-
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(preflight, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(preflight, "_build_registry", lambda: object())
-    monkeypatch.setattr(preflight, "AnsibleHostVarsStore", lambda: object())
-    monkeypatch.setattr(preflight, "AnsibleVaultStore", lambda: object())
-    monkeypatch.setattr(preflight, "PreflightOrchestrator", _Orchestrator)
+    _patch_preflight_runtime(
+        monkeypatch,
+        require_inventory_host=lambda host: host,
+        run=_raise,
+    )
 
     with pytest.raises(SystemExit) as exc:
         preflight.main(["synapse"])

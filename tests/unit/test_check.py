@@ -2,11 +2,40 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
 from linux_hi.cli import check
+
+
+def _patch_doctor_checks(monkeypatch: pytest.MonkeyPatch, *, python_ok: bool) -> None:
+    """Patch doctor-mode checks, toggling only Python result for branch tests."""
+    monkeypatch.setattr(check, "_check_python_version", lambda: python_ok)
+    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
+    monkeypatch.setattr(check, "_check_ansible_vault_available", lambda: True)
+    monkeypatch.setattr(check, "_check_rclone_available", lambda: True)
+    monkeypatch.setattr(check, "_check_podman_available", lambda: True)
+    monkeypatch.setattr(check, "_check_node_available", lambda: True)
+    monkeypatch.setattr(check, "_check_vault_password_file", lambda: True)
+    monkeypatch.setattr(check, "_check_hosts_configured", lambda: True)
+    monkeypatch.setattr(check, "_check_ssh_key", lambda: True)
+
+
+def _patch_default_checks(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    vault_password_ok: bool,
+    vault_secrets: Callable[[], bool],
+) -> None:
+    """Patch default-mode checks while varying vault password and vault secrets behavior."""
+    monkeypatch.setattr(check, "_check_python_version", lambda: True)
+    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
+    monkeypatch.setattr(check, "_check_node_available", lambda: True)
+    monkeypatch.setattr(check, "_check_vault_password_file", lambda: vault_password_ok)
+    monkeypatch.setattr(check, "check_vault_secrets", vault_secrets)
+    monkeypatch.setattr(check, "_check_host_reachable", lambda: True)
 
 
 def test_parse_args_accepts_vault_only_flag() -> None:
@@ -49,15 +78,7 @@ def test_main_doctor_success(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Doctor mode should run all checks and print a success summary."""
-    monkeypatch.setattr(check, "_check_python_version", lambda: True)
-    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
-    monkeypatch.setattr(check, "_check_ansible_vault_available", lambda: True)
-    monkeypatch.setattr(check, "_check_rclone_available", lambda: True)
-    monkeypatch.setattr(check, "_check_podman_available", lambda: True)
-    monkeypatch.setattr(check, "_check_node_available", lambda: True)
-    monkeypatch.setattr(check, "_check_vault_password_file", lambda: True)
-    monkeypatch.setattr(check, "_check_hosts_configured", lambda: True)
-    monkeypatch.setattr(check, "_check_ssh_key", lambda: True)
+    _patch_doctor_checks(monkeypatch, python_ok=True)
 
     check.main(["--doctor"])
 
@@ -68,15 +89,7 @@ def test_main_doctor_success(
 
 def test_main_doctor_exits_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """Doctor mode should exit non-zero when any check fails."""
-    monkeypatch.setattr(check, "_check_python_version", lambda: False)
-    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
-    monkeypatch.setattr(check, "_check_ansible_vault_available", lambda: True)
-    monkeypatch.setattr(check, "_check_rclone_available", lambda: True)
-    monkeypatch.setattr(check, "_check_podman_available", lambda: True)
-    monkeypatch.setattr(check, "_check_node_available", lambda: True)
-    monkeypatch.setattr(check, "_check_vault_password_file", lambda: True)
-    monkeypatch.setattr(check, "_check_hosts_configured", lambda: True)
-    monkeypatch.setattr(check, "_check_ssh_key", lambda: True)
+    _patch_doctor_checks(monkeypatch, python_ok=False)
 
     with pytest.raises(SystemExit) as exc:
         check.main(["--doctor"])
@@ -94,12 +107,11 @@ def test_main_default_skips_vault_secret_check_when_password_missing(
         calls.append("vault")
         return True
 
-    monkeypatch.setattr(check, "_check_python_version", lambda: True)
-    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
-    monkeypatch.setattr(check, "_check_node_available", lambda: True)
-    monkeypatch.setattr(check, "_check_vault_password_file", lambda: False)
-    monkeypatch.setattr(check, "check_vault_secrets", _vault_secrets)
-    monkeypatch.setattr(check, "_check_host_reachable", lambda: True)
+    _patch_default_checks(
+        monkeypatch,
+        vault_password_ok=False,
+        vault_secrets=_vault_secrets,
+    )
 
     with pytest.raises(SystemExit) as exc:
         check.main([])
@@ -118,12 +130,11 @@ def test_main_default_runs_vault_secret_check_when_password_present(
         calls.append("vault")
         return False
 
-    monkeypatch.setattr(check, "_check_python_version", lambda: True)
-    monkeypatch.setattr(check, "_check_ansible_available", lambda: True)
-    monkeypatch.setattr(check, "_check_node_available", lambda: True)
-    monkeypatch.setattr(check, "_check_vault_password_file", lambda: True)
-    monkeypatch.setattr(check, "check_vault_secrets", _vault_secrets)
-    monkeypatch.setattr(check, "_check_host_reachable", lambda: True)
+    _patch_default_checks(
+        monkeypatch,
+        vault_password_ok=True,
+        vault_secrets=_vault_secrets,
+    )
 
     with pytest.raises(SystemExit) as exc:
         check.main([])

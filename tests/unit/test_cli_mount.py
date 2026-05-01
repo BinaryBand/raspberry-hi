@@ -18,6 +18,25 @@ class _VaultSecrets:
         self.become_passwords = become_passwords
 
 
+class _Store:
+    """Minimal ANSIBLE_DATA substitute exposing host_vars."""
+
+    def host_vars(self, _hostname: str) -> object:
+        """Return an opaque host vars object for connection factory wiring."""
+        return object()
+
+
+@dataclass
+class _OrchestratorDouble:
+    """Mount orchestrator double that returns a configured selection result."""
+
+    result: tuple[str, str] | None
+
+    def mount_new_device(self, _conn: object) -> tuple[str, str] | None:
+        """Return the preconfigured mount selection result."""
+        return self.result
+
+
 @dataclass
 class _Conn:
     """Connection double that records sudo invocations and fstab appends."""
@@ -36,6 +55,22 @@ class _Conn:
             if in_stream is not None:
                 self.appended.append(in_stream.read())
         return type("R", (), {"stdout": ""})()
+
+
+def _patch_mount_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    orchestrator: _OrchestratorDouble,
+    conn: _Conn,
+    uuid: str | None = "uuid-123",
+) -> None:
+    """Patch mount CLI runtime dependencies with deterministic test doubles."""
+    monkeypatch.setenv("HOST", "rpi")
+    monkeypatch.setattr(mount, "ANSIBLE_DATA", _Store())
+    monkeypatch.setattr(mount, "_become_password", lambda _h: "pw")
+    monkeypatch.setattr(mount, "make_connection", lambda _hv, become_password: conn)
+    monkeypatch.setattr(mount, "MountOrchestrator", lambda **_kwargs: orchestrator)
+    monkeypatch.setattr(mount, "get_device_uuid", lambda _conn, _dev: uuid)
 
 
 def test_become_password_reads_from_vault(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -67,23 +102,11 @@ def test_main_requires_host_environment(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_main_exits_when_no_device_selected(monkeypatch: pytest.MonkeyPatch) -> None:
     """Main should exit when orchestrator returns no selected device."""
-
-    class _Store:
-        def host_vars(self, _hostname: str) -> object:
-            return object()
-
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Construct orchestrator test double."""
-
-        def mount_new_device(self, _conn: object) -> None:
-            return None
-
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(mount, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(mount, "_become_password", lambda _h: "pw")
-    monkeypatch.setattr(mount, "make_connection", lambda _hv, become_password: _Conn())
-    monkeypatch.setattr(mount, "MountOrchestrator", _Orchestrator)
+    _patch_mount_runtime(
+        monkeypatch,
+        orchestrator=_OrchestratorDouble(result=None),
+        conn=_Conn(),
+    )
 
     with pytest.raises(SystemExit) as exc:
         mount.main()
@@ -93,23 +116,11 @@ def test_main_exits_when_no_device_selected(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_main_exits_when_label_sanitizes_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Main should fail when label sanitization yields an empty mount name."""
-
-    class _Store:
-        def host_vars(self, _hostname: str) -> object:
-            return object()
-
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Construct orchestrator test double."""
-
-        def mount_new_device(self, _conn: object) -> tuple[str, str]:
-            return ("/dev/sdb1", "###")
-
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(mount, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(mount, "_become_password", lambda _h: "pw")
-    monkeypatch.setattr(mount, "make_connection", lambda _hv, become_password: _Conn())
-    monkeypatch.setattr(mount, "MountOrchestrator", _Orchestrator)
+    _patch_mount_runtime(
+        monkeypatch,
+        orchestrator=_OrchestratorDouble(result=("/dev/sdb1", "###")),
+        conn=_Conn(),
+    )
 
     with pytest.raises(SystemExit) as exc:
         mount.main()
@@ -119,26 +130,14 @@ def test_main_exits_when_label_sanitizes_to_empty(monkeypatch: pytest.MonkeyPatc
 
 def test_main_appends_uuid_fstab_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     """Main should append a UUID-based fstab entry when UUID is available and absent."""
-
-    class _Store:
-        def host_vars(self, _hostname: str) -> object:
-            return object()
-
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Construct orchestrator test double."""
-
-        def mount_new_device(self, _conn: object) -> tuple[str, str]:
-            return ("/dev/sdb1", "usb")
-
     conn = _Conn(fstab="proc /proc proc defaults 0 0\n")
 
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(mount, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(mount, "_become_password", lambda _h: "pw")
-    monkeypatch.setattr(mount, "make_connection", lambda _hv, become_password: conn)
-    monkeypatch.setattr(mount, "MountOrchestrator", _Orchestrator)
-    monkeypatch.setattr(mount, "get_device_uuid", lambda _conn, _dev: "uuid-123")
+    _patch_mount_runtime(
+        monkeypatch,
+        orchestrator=_OrchestratorDouble(result=("/dev/sdb1", "usb")),
+        conn=conn,
+        uuid="uuid-123",
+    )
 
     mount.main()
 
@@ -151,26 +150,14 @@ def test_main_skips_fstab_append_when_uuid_already_present(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Main should not append duplicate UUID entries to /etc/fstab."""
-
-    class _Store:
-        def host_vars(self, _hostname: str) -> object:
-            return object()
-
-    class _Orchestrator:
-        def __init__(self, **_kwargs: object) -> None:
-            """Construct orchestrator test double."""
-
-        def mount_new_device(self, _conn: object) -> tuple[str, str]:
-            return ("/dev/sdb1", "usb")
-
     conn = _Conn(fstab="UUID=uuid-123 /mnt/usb auto defaults,nofail 0 0\n")
 
-    monkeypatch.setenv("HOST", "rpi")
-    monkeypatch.setattr(mount, "ANSIBLE_DATA", _Store())
-    monkeypatch.setattr(mount, "_become_password", lambda _h: "pw")
-    monkeypatch.setattr(mount, "make_connection", lambda _hv, become_password: conn)
-    monkeypatch.setattr(mount, "MountOrchestrator", _Orchestrator)
-    monkeypatch.setattr(mount, "get_device_uuid", lambda _conn, _dev: "uuid-123")
+    _patch_mount_runtime(
+        monkeypatch,
+        orchestrator=_OrchestratorDouble(result=("/dev/sdb1", "usb")),
+        conn=conn,
+        uuid="uuid-123",
+    )
 
     mount.main()
 
