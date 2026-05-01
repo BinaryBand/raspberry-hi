@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import configparser
 import re
-import tomllib
 from pathlib import Path
 
 import yaml
@@ -201,21 +200,8 @@ class TestCoverage:
 
     def test_coverage_floor(self) -> None:
         """Fail if total coverage of linux_hi/ is below the configured floor."""
-        with open(ROOT / "config" / "lint.toml", "rb") as f:
-            config = tomllib.load(f)
-        floor = config["coverage"]["floor"]
         result = run_resolved(
-            [
-                "poetry",
-                "run",
-                "pytest",
-                "-q",
-                "tests/",
-                "--ignore=tests/unit/test_lint.py",
-                "--cov=linux_hi",
-                "--cov-report=term",
-                f"--cov-fail-under={floor}",
-            ],
+            ["poetry", "run", "python", "-m", "linux_hi.cli.linters.coverage"],
             capture_output=True,
             text=True,
         )

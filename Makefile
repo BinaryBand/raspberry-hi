@@ -51,7 +51,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
-.PHONY: lint-ansible lint-check lint-checkmake lint-cpd lint-format lint-lizard lint-repo-policy
+.PHONY: lint-ansible lint-check lint-checkmake lint-coverage lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
 .PHONY: _ci _generate_check _inv_check _vault_check $(APPS)
 
@@ -67,6 +67,7 @@ help:
 	@echo "  lint-ty            ty type checks"
 	@echo "  lint-semgrep       Semgrep architectural and process audits"
 	@echo "  lint-cpd           Copy-paste duplication check (jscpd, threshold 0%)"
+	@echo "  lint-coverage       Coverage floor check (config/lint.toml)"
 	@echo "  lint-vulture       Unused Python code check"
 	@echo "  lint-lizard        Cyclomatic complexity and function length check"
 	@echo "  lint-checkmake     Makefile style check (mbake)"
@@ -148,6 +149,9 @@ lint-cpd:
 
 lint-vulture:
 	$(POETRY) python -m linux_hi.cli.linters.vulture
+
+lint-coverage:
+	$(POETRY) python -m linux_hi.cli.linters.coverage
 
 lint-lizard:
 	$(POETRY) python -m linux_hi.cli.linters.lizard
