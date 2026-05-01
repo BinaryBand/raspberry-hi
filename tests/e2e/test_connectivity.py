@@ -119,9 +119,10 @@ def test_ansible_site_syntax_probe(selected_host: str) -> None:
 def test_service_adapter_contract_smoke() -> None:
     """Verify service_adapter role shape and required-vars contract."""
     role_path = ANSIBLE_DATA.role_path("service_adapter")
-    assert (role_path / "tasks" / "start.yml").exists()
-    assert (role_path / "tasks" / "stop.yml").exists()
+    assert (role_path / "tasks" / "main.yml").exists()
+    assert (role_path / "tasks" / "prepare.yml").exists()
     assert (role_path / "tasks" / "restart.yml").exists()
+    assert (role_path / "tasks" / "write_container.yml").exists()
 
     required_vars = role_required_vars(role_path)
     assert not required_vars, (

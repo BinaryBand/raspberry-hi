@@ -97,12 +97,6 @@
     service_adapter_user: "{{ ansible_user }}"
     service_adapter_run_script: "{{ app_user_home }}/bin/run-postgres.sh"
 
-- name: Remove legacy PostgreSQL Podman network quadlet
-  ansible.builtin.file:
-    path: "{{ app_user_home }}/.config/containers/systemd/postgres.network"
-    state: absent
-  become: true
-
 - name: Install PostgreSQL Podman quadlet
   ansible.builtin.include_role:
     name: service_adapter
