@@ -12,7 +12,7 @@ import pytest
 
 from linux_hi.adapters.connection_types import RemoteConnection
 from linux_hi.adapters.info_port import RemoteInfoPort
-from models import BlockDevice, MountInfo
+from linux_hi.models import BlockDevice, MountInfo
 from tests.support.builders import blk, mnt, partition
 from tests.support.connections import FakeConnection
 

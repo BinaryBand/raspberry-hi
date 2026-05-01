@@ -43,7 +43,7 @@ markers = ["e2e: requires a live Pi — run with: make test-e2e"]
 addopts = "-m 'not e2e'"
 
 [tool.poetry]
-packages = [{ include = "linux_hi" }, { include = "models" }]
+packages = [{ include = "linux_hi" }]
 
 [tool.ruff]
 target-version = "py312"
@@ -57,7 +57,7 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "linux_hi/cli/*.py" = ["D"]
-"models/*.py" = ["D"]
+"linux_hi/models/**/*.py" = ["D"]
 "conftest.py" = ["D"]
 # Tests use `assert` idiomatically — S101 is expected.
 # Docstrings ARE required for test functions/classes (D rules apply here).
@@ -70,7 +70,7 @@ extra-paths = []
 root = ["."]
 
 [tool.ty.src]
-include = ["linux_hi", "models", "tests", "typings"]
+include = ["linux_hi", "tests", "typings"]
 
 [tool.ty.analysis]
 allowed-unresolved-imports = ["tests.**", "typings.**", "ansible.**"]

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import sys
 
+from linux_hi.models import ANSIBLE_DATA
 from linux_hi.policy import PolicyRunner
-from models import ANSIBLE_DATA
 
 
 def main() -> None:

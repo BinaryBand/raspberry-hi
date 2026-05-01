@@ -18,7 +18,7 @@ class AnsibleDataStore:
     """Central access point for validated Ansible project data."""
 
     def __init__(self, root: Path | None = None) -> None:
-        self.root = root or Path(__file__).resolve().parents[2]
+        self.root = root or Path(__file__).resolve().parents[3]
         self.ansible_dir = self.root / "ansible"
         self.inventory_dir = self.ansible_dir / "inventory"
         self.inventory_file = self.inventory_dir / "hosts.yml"

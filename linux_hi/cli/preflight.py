@@ -6,13 +6,13 @@ import os
 import sys
 
 from linux_hi.adapters.prompt_handlers import PasswordHandler, PromptRegistry, TextHandler
+from linux_hi.models import ANSIBLE_DATA
 from linux_hi.orchestration.preflight import (
     AnsibleHostVarsStore,
     AnsibleVaultStore,
     PreflightError,
     PreflightOrchestrator,
 )
-from models import ANSIBLE_DATA
 
 
 def _build_registry() -> PromptRegistry:

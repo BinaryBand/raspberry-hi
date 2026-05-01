@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 import questionary
 
-if TYPE_CHECKING:
-    from models import BlockDevice
+from linux_hi.models import BlockDevice
 
 
 class Prompter(Protocol):

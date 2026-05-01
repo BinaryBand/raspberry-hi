@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import getpass
 
+from linux_hi.models import ANSIBLE_DATA, VaultSecrets
 from linux_hi.vault.service import (
     VAULT_FILE,
     decrypt_vault_raw,
     encrypt_vault,
     setup_vault_password,
 )
-from models import ANSIBLE_DATA, VaultSecrets
 
 
 def prompt_missing_become_passwords(existing: dict[str, str], hosts: list[str]) -> dict[str, str]:

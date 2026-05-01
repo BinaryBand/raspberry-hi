@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from models import BlockDevice, MountInfo
+    from linux_hi.models import BlockDevice, MountInfo
 
 SYSTEM_MOUNT_PREFIXES = ("/sys", "/proc", "/dev", "/run")
 

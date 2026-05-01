@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from models import ANSIBLE_DATA
+from linux_hi.models import ANSIBLE_DATA
 
 ROOT = Path(__file__).resolve().parents[1]
 ANSIBLE_DIR = ROOT / "ansible"

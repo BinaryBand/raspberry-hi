@@ -26,7 +26,7 @@ def get_device_uuid(conn: RemoteConnection, device_path: str) -> str | None:
     """Return the UUID of a device (partition) by path, or None if not found."""
     import json
 
-    from models.system.blockdevice import BlockDevice
+    from linux_hi.models.system.blockdevice import BlockDevice
 
     result = conn.run("lsblk -J -o NAME,UUID,PATH", hide=True)
     raw = json.loads(result.stdout)

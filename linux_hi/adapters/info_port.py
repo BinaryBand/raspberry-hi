@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from linux_hi.adapters.connection_types import RemoteConnection
-
-if TYPE_CHECKING:
-    from models import BlockDevice, MountInfo
+from linux_hi.models import BlockDevice, MountInfo
 
 
 class InfoPort(Protocol):

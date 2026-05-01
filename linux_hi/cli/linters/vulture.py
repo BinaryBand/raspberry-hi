@@ -9,7 +9,7 @@ def _flags(cfg: dict) -> list[str]:
     flags: list[str] = []
     if min_confidence := cfg.get("min_confidence"):
         flags += ["--min-confidence", str(min_confidence)]
-    return flags + cfg.get("paths", ["linux_hi", "models", "tests"])
+    return flags + cfg.get("paths", ["linux_hi", "tests"])
 
 
 def main() -> None:

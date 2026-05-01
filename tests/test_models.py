@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from models import BlockDevice, HostVars, MountInfo, VaultSecrets
+from linux_hi.models import BlockDevice, HostVars, MountInfo, VaultSecrets
 
 
 class TestBlockDevice:

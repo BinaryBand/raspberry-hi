@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from models import ANSIBLE_DATA
-from models.ansible.access import AnsibleDataStore
+from linux_hi.models import ANSIBLE_DATA
+from linux_hi.models.ansible.access import AnsibleDataStore
 
 
 def test_inventory_hosts_returns_configured_aliases() -> None:

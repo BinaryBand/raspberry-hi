@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fabric import Config, Connection
 
-from models import ANSIBLE_DATA, HostVars
+from linux_hi.models import ANSIBLE_DATA, HostVars
 
 
 def make_connection(host: str | HostVars, *, become_password: str | None = None) -> Connection:

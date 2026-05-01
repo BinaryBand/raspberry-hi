@@ -13,7 +13,7 @@ def _flags(cfg: dict) -> list[str]:
         flags += ["--length", str(length)]
     if cfg.get("warnings_only"):
         flags += ["--warnings_only"]
-    return flags + cfg.get("paths", ["linux_hi", "models"])
+    return flags + cfg.get("paths", ["linux_hi"])
 
 
 def main() -> None:

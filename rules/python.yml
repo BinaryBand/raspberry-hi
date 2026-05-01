@@ -117,7 +117,7 @@ rules:
           - pattern: resolve_executable("ansible-inventory")
 
   - id: python-ruamel-yaml-only-in-ansible-access
-    message: Direct ruamel.yaml usage is reserved for models/ansible/access.py. Writes to host_vars must go through ANSIBLE_DATA.
+    message: Direct ruamel.yaml usage is reserved for linux_hi/models/ansible/access.py. Writes to host_vars must go through ANSIBLE_DATA.
     severity: ERROR
     languages:
       - python
@@ -125,9 +125,9 @@ rules:
       include:
         - /linux_hi/**/*.py
         - /tests/**/*.py
-        - /models/**/*.py
+        - /linux_hi/models/**/*.py
       exclude:
-        - /models/ansible/access.py
+        - /linux_hi/models/ansible/access.py
     pattern-either:
       - pattern: from ruamel.yaml import $X
       - pattern: import ruamel.yaml
@@ -177,7 +177,7 @@ rules:
     paths:
       include:
         - /linux_hi/**/*.py
-        - /models/**/*.py
+        - /linux_hi/models/**/*.py
         - /tests/**/*.py
       exclude:
         - /linux_hi/process/exec.py

@@ -8,8 +8,8 @@ from typing import Any, cast
 import yaml
 from pydantic import ValidationError
 
-from models.ansible.registry import AppRegistry, AppRegistryEntry
-from models.policy import PolicyRegistry
+from linux_hi.models.ansible.registry import AppRegistry, AppRegistryEntry
+from linux_hi.models.policy import PolicyRegistry
 
 Failures = list[str]
 

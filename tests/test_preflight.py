@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
+from linux_hi.models import ANSIBLE_DATA
 from linux_hi.orchestration.preflight import (
     PreflightError,
     PreflightOrchestrator,
     load_preflight_spec,
 )
-from models import ANSIBLE_DATA
 from tests.support.preflight_fakes import FakeHostVarsStore, FakePromptRegistry, FakeVaultStore
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ def test_cycle_detection_prevents_infinite_loop() -> None:
     """Artificially cyclic dependency entries do not cause infinite recursion."""
     from unittest.mock import patch
 
-    from models.ansible.registry import AppRegistryEntry
+    from linux_hi.models.ansible.registry import AppRegistryEntry
 
     cyclic_entry = AppRegistryEntry(service_type="containerized", dependencies=["minio"])
 

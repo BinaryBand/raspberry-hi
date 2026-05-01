@@ -8,9 +8,9 @@ from pathlib import Path
 
 import yaml
 
+from linux_hi.models import VaultSecrets
+from linux_hi.models.ansible.registry import AppRegistry
 from linux_hi.process.exec import run_resolved
-from models import VaultSecrets
-from models.ansible.registry import AppRegistry
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,7 +31,7 @@ class TestCpd:
 class TestRuff:
     """Ensure the codebase passes ruff linting and formatting checks."""
 
-    PATHS = ["linux_hi/", "models/", "tests/"]
+    PATHS = ["linux_hi/", "tests/"]
 
     def test_ruff_check(self):
         """Fail if ruff reports any lint violations."""

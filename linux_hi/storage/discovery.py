@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING
 from linux_hi.adapters.connection_types import RemoteConnection
 
 if TYPE_CHECKING:
-    from models import BlockDevice, MountInfo
+    from linux_hi.models import BlockDevice, MountInfo
 
 
 def get_block_devices(conn: RemoteConnection) -> list[BlockDevice]:
     """Return all block devices reported by lsblk on the remote host."""
-    from models import BlockDevice
+    from linux_hi.models import BlockDevice
 
     result = conn.run("lsblk -J -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL,FSTYPE", hide=True)
     raw = json.loads(result.stdout)["blockdevices"]
@@ -22,7 +22,7 @@ def get_block_devices(conn: RemoteConnection) -> list[BlockDevice]:
 
 def get_real_mounts(conn: RemoteConnection) -> list[MountInfo]:
     """Return all real (non-virtual) mount points on the remote host."""
-    from models import MountInfo
+    from linux_hi.models import MountInfo
 
     result = conn.run(
         "findmnt -J -o TARGET,SOURCE,FSTYPE,SIZE --real 2>/dev/null",

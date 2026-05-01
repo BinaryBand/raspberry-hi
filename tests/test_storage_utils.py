@@ -100,7 +100,7 @@ class TestMountCovering:
 
     def test_trailing_slash_on_mount_point(self) -> None:
         """Verify trailing slash handling."""
-        from models import MountInfo
+        from linux_hi.models import MountInfo
 
         mounts = [mnt("/"), MountInfo(target="/mnt/usb/", source="sda1", fstype="ext4", size="1G")]
         assert mount_covering(mounts, "/mnt/usb/data") == "/mnt/usb/"

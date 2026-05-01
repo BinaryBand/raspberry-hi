@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from models import BlockDevice
+    from linux_hi.models import BlockDevice
 
 console = Console()
 

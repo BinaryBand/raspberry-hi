@@ -3,11 +3,11 @@ SHELL := /usr/bin/env bash
 MAKEFLAGS += --warn-undefined-variables
 
 POETRY := poetry run
-PY_DIRS := linux_hi/ models/ tests/
+PY_DIRS := linux_hi/ tests/
 
 ANSIBLE_DIR := ansible
 ROLES := service_adapter rclone
-APPS := $(shell $(POETRY) python -c "from models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
+APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.yml.
 # Override per-run: HOST=myserver make site

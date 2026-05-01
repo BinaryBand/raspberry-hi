@@ -5,7 +5,7 @@ Builders provide sensible defaults so each test only specifies what it cares abo
 
 from __future__ import annotations
 
-from models import BlockDevice, MountInfo
+from linux_hi.models import BlockDevice, MountInfo
 
 
 def mnt(

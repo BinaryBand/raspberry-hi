@@ -8,8 +8,8 @@ from typing import Protocol
 
 from linux_hi.adapters.prompt_handlers import PromptRegistryPort
 from linux_hi.ansible.role_vars import role_required_vars
+from linux_hi.models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 from linux_hi.vault.service import decrypt_vault_raw, encrypt_vault
-from models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 
 StoreData = dict[str, str]
 

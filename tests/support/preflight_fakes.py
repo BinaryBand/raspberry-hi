@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models import PromptType
+    from linux_hi.models import PromptType
 
 
 class FakePromptRegistry:

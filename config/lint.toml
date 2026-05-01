@@ -2,8 +2,8 @@
 ccn = 15
 length = 60
 warnings_only = true
-paths = ["linux_hi", "models"]
+paths = ["linux_hi"]
 
 [vulture]
 min_confidence = 80
-paths = ["linux_hi", "models", "tests"]
+paths = ["linux_hi", "tests"]

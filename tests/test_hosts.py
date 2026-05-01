@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 from linux_hi.cli.hosts import cmd_list
-from models import ANSIBLE_DATA
-from models.ansible.access import AnsibleDataStore
+from linux_hi.models import ANSIBLE_DATA
+from linux_hi.models.ansible.access import AnsibleDataStore
 
 
 def test_hosts_list_covers_all_inventory_hosts(capsys: pytest.CaptureFixture[str]) -> None:
