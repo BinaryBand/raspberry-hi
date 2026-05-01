@@ -36,6 +36,8 @@ def test_registry_entries_expose_preflight_fields() -> None:
         entry = ANSIBLE_DATA.get_app_entry(app)
         assert isinstance(entry.preflight_vars, dict)
         assert isinstance(entry.vault_secrets, list)
+        for spec in entry.preflight_vars.values():
+            assert spec.type in {"text", "password", "rclone_remote", "path"}
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +116,7 @@ def _preflight_state_for(
     vault_data: dict[str, object] = {}
     prompt_responses = {
         "text": "/srv/test-path",
+        "path": "/srv/test-path",
         "rclone_remote": "remote:test-path",
         "password": "test-secret",
     }
@@ -161,7 +164,7 @@ def test_missing_vars_are_prompted_and_written() -> None:
     role_path = ANSIBLE_DATA.role_path(app)
     vars_spec, _ = load_preflight_spec(app, role_path)
     target_var = next(iter(vars_spec))
-    var_type = vars_spec[target_var].type or "text"
+    var_type = vars_spec[target_var].type
 
     host_vars, vault_data, prompt_responses = _preflight_state_for(app)
     del host_vars[target_var]

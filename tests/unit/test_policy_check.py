@@ -185,6 +185,7 @@ apps:
             foo_config_path:
                 hint: config path
                 default: /registry/default
+                type: path
 """.lstrip(),
             encoding="utf-8",
         )

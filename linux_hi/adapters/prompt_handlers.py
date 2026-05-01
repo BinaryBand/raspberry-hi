@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+from string import Template
 from typing import Protocol
 
 import questionary
@@ -33,10 +36,25 @@ class PasswordHandler:
         return questionary.password(label).ask()
 
 
+class PathHandler:
+    """Path input with a default and shell-like expansion."""
+
+    def prompt(self, label: str, default: str) -> str | None:
+        """Return a normalized path, expanding '~' and env vars from the input."""
+        value = questionary.path(label, default=default).ask()
+        if value is None:
+            return None
+        expanded = value.strip()
+        if not expanded:
+            return expanded
+        expanded = Template(expanded).safe_substitute(os.environ)
+        return str(Path(expanded).expanduser().resolve(strict=False))
+
+
 class PromptRegistryPort(Protocol):
     """Port for dispatching a prompt by type name."""
 
-    def prompt(self, type_name: PromptType | None, label: str, default: str = "") -> str | None:
+    def prompt(self, type_name: PromptType, label: str, default: str = "") -> str | None:
         """Return the entered value, or None if the operator aborted."""
         ...
 
@@ -48,7 +66,9 @@ class PromptRegistry:
         """Initialise with a mapping of type names to handlers."""
         self._handlers = handlers
 
-    def prompt(self, type_name: PromptType | None, label: str, default: str = "") -> str | None:
-        """Dispatch to the handler registered for *type_name*, falling back to text."""
-        handler = self._handlers.get(type_name or "text", self._handlers["text"])
+    def prompt(self, type_name: PromptType, label: str, default: str = "") -> str | None:
+        """Dispatch to the handler registered for *type_name*."""
+        if type_name not in self._handlers:
+            raise ValueError(f"Unsupported prompt type: {type_name}")
+        handler = self._handlers[type_name]
         return handler.prompt(label, default)

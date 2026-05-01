@@ -33,6 +33,7 @@ apps:
       jellyfin_data_path:
         hint: directory for Jellyfin library and config data
         default: /home/linux-hi/jellyfin
+        type: path
     vault_secrets:
       - key: jellyfin_api_key
         label: Jellyfin API key
@@ -48,7 +49,7 @@ apps:
 | `image` | string | The fully-qualified container image with a pinned tag. `:latest` is rejected by Semgrep. |
 | `port` | int | Primary published port. Emitted into `group_vars/all/vars.yml`. |
 | `dependencies` | list | Apps that must be preflighted and provisioned before this one. |
-| `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: rclone_remote` to get an interactive remote selector. |
+| `preflight_vars` | map | Variables written to `host_vars/<host>.yml` before provisioning. Each var must declare an explicit `type` (`text`, `password`, `rclone_remote`, or `path`). Null defaults (`~`) trigger a prompt; non-null defaults are offered as suggestions. Use `type: path` for filesystem paths and `type: rclone_remote` for interactive remote selection. |
 | `vault_secrets` | list | Secrets written to the vault before provisioning. `hidden: true` uses password-style input. `generate: true` auto-generates a random hex value when left blank. |
 
 **App with a dependency** (e.g. Baikal depending on PostgreSQL):

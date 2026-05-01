@@ -80,9 +80,14 @@ def load_preflight_spec(
     """Return the prompt schema for *app* by merging registry metadata and role defaults."""
     entry: AppRegistryEntry = ANSIBLE_DATA.get_app_entry(app)
     required_vars = role_required_vars(role_path)
-    vars_spec = {
-        var: entry.preflight_vars.get(var, PreflightVarSpec(hint="")) for var in required_vars
-    }
+    missing = [var for var in required_vars if var not in entry.preflight_vars]
+    if missing:
+        missing_csv = ", ".join(sorted(missing))
+        raise PreflightError(
+            f"Registry entry for '{app}' is missing required preflight vars: {missing_csv}"
+        )
+
+    vars_spec = {var: entry.preflight_vars[var] for var in required_vars}
     return vars_spec, entry.vault_secrets
 
 

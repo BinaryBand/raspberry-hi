@@ -80,55 +80,66 @@ When a user requests an app (`make <app>`), the Python layer guarantees all depe
 
 ```mermaid
 graph
-	subgraph Deps [Dependency Recursion]
-		NextDep[Next dependency]
-		Recurse([Recursive: Resolve dependencies])
-	end
+  subgraph Deps [Dependency Recursion]
+    NextDep[Next dependency]
+    Recurse([Recursive: Resolve dependencies])
+  end
 
-	subgraph Vars [Host Vars]
-		NextVar[Next host var]
-		PromptVar([Prompt operator])
-		VarProvided{Provided?}
-		VarError([Error: Missing host var])
-	end
+  subgraph Vars [Host Vars]
+    NextVar[Next host var]
+    PromptVar([Prompt operator])
+    VarProvided{Provided?}
+    VarError([Error: Missing host var])
+  end
 
-	subgraph Vault [Vault Secrets]
-		NextSecret[Next vault secret]
-		PromptSecret([Prompt operator])
-		SecretProvided{Provided?}
-		CanGenerate{generate=True?}
-		AutoGen[Auto-generate]
-		VaultError([Error: Missing Secret])
-	end
+  subgraph Vault [Vault Secrets]
+    NextSecret[Next vault secret]
+    PromptSecret([Prompt operator])
+    SecretProvided{Provided?}
+    CanGenerate{generate=True?}
+    AutoGen[Auto-generate]
+    VaultError([Error: Missing Secret])
+  end
 
-	%% Phase 1: Dependency Recursion
-	Start([Start: Pre-flight]) --> NextDep
-	NextDep -- While --> Recurse
-	Recurse --> NextDep
+  %% Phase 1: Dependency Recursion
+  Start([Start: Pre-flight]) --> NextDep
+  NextDep -- While --> Recurse
+  Recurse --> NextDep
 
-	%% Phase 2: Host Vars
-	Deps -- Break --> NextVar
-	NextVar -- While --> PromptVar
-	PromptVar --> VarProvided
-	VarProvided -- Yes --> NextVar
-	VarProvided -- No --> VarError
+  %% Phase 2: Host Vars
+  Deps -- Break --> NextVar
+  NextVar -- While --> PromptVar
+  PromptVar --> VarProvided
+  VarProvided -- Yes --> NextVar
+  VarProvided -- No --> VarError
 
-	%% Phase 3: Vault Secrets
-	Vars -- Break --> NextSecret
-	NextSecret -- While --> PromptSecret
-	PromptSecret --> SecretProvided
-	SecretProvided -- Yes --> NextSecret
-	SecretProvided -- No --> CanGenerate
-	CanGenerate -- No --> VaultError
-	CanGenerate -- Yes --> AutoGen
-	AutoGen --> NextSecret
+  %% Phase 3: Vault Secrets
+  Vars -- Break --> NextSecret
+  NextSecret -- While --> PromptSecret
+  PromptSecret --> SecretProvided
+  SecretProvided -- Yes --> NextSecret
+  SecretProvided -- No --> CanGenerate
+  CanGenerate -- No --> VaultError
+  CanGenerate -- Yes --> AutoGen
+  AutoGen --> NextSecret
 
-	Vault -- Break --> Ready([Status: Ready])
+  Vault -- Break --> Ready([Status: Ready])
 ```
 
 ## Input Var Types
 
-### Relationships
+### Prompt Types
+
+Each var spec declares a prompt type that determines how the operator is asked for a value:
+
+| Type | Behavior |
+| :--- | :--- |
+| `text` | Free-text input, value shown as typed |
+| `password` | Masked input, value hidden from terminal |
+| `path` | Path input with home/env expansion and normalized output |
+| `rclone_remote` | Selection from configured remotes stored in vault; prompts for host then path |
+
+### Value Formats
 
 All input types are strings, separated only by format. They need to be in order to 'fit' our file-declarative model.
 
@@ -152,8 +163,9 @@ erDiagram
 
 ### Prompt Flow
 
-- **Rclone input** -> Prompt for 'host' -> Prompt for path
-- **Path input** -> Prompt for path ('host=local' implicitly)
+- **`rclone_remote`** → Select configured remote → Prompt for path → stored as `<host>:<path>`
+- **`path`** → Path prompt → `~`/env expansion + normalization → stored as string path
+- **`text` / `password`** → Single prompt → stored as plain string
 
 ## Commands
 

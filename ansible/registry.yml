@@ -14,6 +14,7 @@ apps:
       minio_data_path:
         hint: persistent path for MinIO data
         default: /home/linux-hi/minio
+        type: path
     vault_secrets:
       - key: minio_root_user
         label: MinIO root username
@@ -38,6 +39,7 @@ apps:
       postgres_data_path:
         hint: storage path for PostgreSQL data files
         default: /home/linux-hi/postgres
+        type: path
     vault_secrets:
       - key: postgres_password
         label: PostgreSQL password for the Baikal application user
@@ -58,9 +60,11 @@ apps:
       baikal_config_path:
         hint: directory for Baikal config files and app settings
         default: /home/linux-hi/baikal/config
+        type: path
       baikal_data_path:
         hint: directory for Baikal persistent data files
         default: /home/linux-hi/baikal/data
+        type: path
     vault_secrets:
       - key: baikal_admin_password
         label: Baikal admin password
@@ -82,9 +86,11 @@ apps:
       synapse_data_path:
         hint: directory for Synapse config, signing key, and media
         default: /home/linux-hi/synapse
+        type: path
       synapse_server_name:
         hint: "Matrix server name / domain (e.g. chat.doreeto.com)"
         default: ~
+        type: text
     vault_secrets:
       - key: synapse_registration_shared_secret
         label: "Synapse registration shared secret (leave blank to auto-generate)"
@@ -112,12 +118,15 @@ apps:
       mautrix_whatsapp_data_path:
         hint: directory for mautrix-whatsapp config and data
         default: /home/linux-hi/mautrix-whatsapp
+        type: path
       mautrix_whatsapp_homeserver_domain:
         hint: "Matrix server domain (e.g. chat.doreeto.com)"
         default: ~
+        type: text
       mautrix_whatsapp_appservice_address:
         hint: "address where Synapse can reach the bridge"
         default: "http://host.containers.internal:29318"
+        type: text
     vault_secrets:
       - key: mautrix_whatsapp_as_token
         label: "mautrix-whatsapp appservice token (leave blank to auto-generate)"

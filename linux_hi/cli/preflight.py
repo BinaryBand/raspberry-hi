@@ -5,7 +5,12 @@ from __future__ import annotations
 import os
 import sys
 
-from linux_hi.adapters.prompt_handlers import PasswordHandler, PromptRegistry, TextHandler
+from linux_hi.adapters.prompt_handlers import (
+    PasswordHandler,
+    PathHandler,
+    PromptRegistry,
+    TextHandler,
+)
 from linux_hi.models import ANSIBLE_DATA
 from linux_hi.services.preflight import (
     AnsibleHostVarsStore,
@@ -22,6 +27,7 @@ def _build_registry() -> PromptRegistry:
         {
             "text": TextHandler(),
             "password": PasswordHandler(),
+            "path": PathHandler(),
             "rclone_remote": RcloneRemoteHandler(),
         }
     )

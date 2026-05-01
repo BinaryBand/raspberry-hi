@@ -21,9 +21,9 @@ class FakePromptRegistry:
         self._responses = responses or {}
         self._default = default
 
-    def prompt(self, type_name: PromptType | None, label: str, default: str = "") -> str | None:
+    def prompt(self, type_name: PromptType, label: str, default: str = "") -> str | None:
         """Return the configured value for *type_name*, or the default."""
-        return self._responses.get(type_name or "text", self._default)
+        return self._responses.get(type_name, self._default)
 
 
 class FakeHostVarsStore:

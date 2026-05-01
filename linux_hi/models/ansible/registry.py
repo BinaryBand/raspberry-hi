@@ -4,13 +4,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PromptType = Literal["text", "password", "rclone_remote"]
+PromptType = Literal["text", "password", "rclone_remote", "path"]
 
 
 class PreflightVarSpec(BaseModel):
     hint: str = ""
     default: str | None = None
-    type: PromptType | None = None
+    type: PromptType
 
     model_config = ConfigDict(extra="forbid")
 
