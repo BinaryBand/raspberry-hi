@@ -93,7 +93,7 @@ def test_write_and_remove_vault_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_write_and_remove_become_password(monkeypatch: pytest.MonkeyPatch) -> None:
-    """become password helpers should update nested become_passwords mapping."""
+    """Become password helpers should update nested become_passwords mapping."""
     writes: list[dict[str, object]] = []
 
     monkeypatch.setattr(vault, "decrypt_vault_raw", lambda: {"become_passwords": {"rpi": "old"}})

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 import pytest
@@ -158,7 +157,11 @@ def test_cmd_add_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
         "password",
         lambda *_a, **_k: type("Q", (), {"ask": lambda self: next(answers)})(),
     )
-    monkeypatch.setattr(hosts, "write_become_password", lambda name, pwd: calls.append(("vault", (name, pwd))))
+    monkeypatch.setattr(
+        hosts,
+        "write_become_password",
+        lambda name, pwd: calls.append(("vault", (name, pwd))),
+    )
 
     args = argparse.Namespace(name=None, address=None, secret=None, user=None, port=22)
     hosts.cmd_add(args)
@@ -204,7 +207,7 @@ def test_cmd_remove_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_main_dispatches_list(monkeypatch: pytest.MonkeyPatch) -> None:
-    """main should dispatch to cmd_list when no subcommand is provided."""
+    """Main should dispatch to cmd_list when no subcommand is provided."""
     called: list[str] = []
     monkeypatch.setattr(hosts, "cmd_list", lambda _args: called.append("list"))
     hosts.main([])
