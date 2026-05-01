@@ -56,18 +56,22 @@ ansible/
   inventory/             # GENERATED/HAND-EDITABLE — Managed via `make config-hosts-*`
 
 linux_hi/
+  adapters/              # I/O ports (connection types, prompters, info port)
   cli/                   # Operator-facing entry points
-  policy/                # Structural repo checks (run via TestRepoPolicy)
   models/
-    ansible/             # Typed access boundaries (registry, host_vars)
-    services/            # (inventory, vault)
-    system/              # Existing info shapes (blockdevice, mount)
-  utils/
+    ansible/             # Typed access boundaries (registry, host_vars, connection, role_vars)
+    inventory/           # Inventory-backed model types (vault secrets schema)
+    system/              # System info shapes (blockdevice, mount)
+  policy/                # Structural repo checks (run via TestRepoPolicy)
+  services/              # Business logic (vault, preflight, mount orchestration)
+  storage/               # Storage domain (device discovery, display, rclone)
+  utils/                 # Generic helpers (subprocess execution)
 
 tests/
-  apps                   # App layer
-  e2e                    # Requires live host
-  unit                   # Fast unit + lint tests
+  apps/                  # App-specific contract tests
+  e2e/                   # Requires live host
+  support/               # Shared test infrastructure (fakes, fixtures, data)
+  unit/                  # Fast unit + lint tests
 ```
 
 ## Pre-Provisioning Logic
@@ -76,40 +80,50 @@ When a user requests an app (`make <app>`), the Python layer guarantees all depe
 
 ```mermaid
 graph
-  Start([Start: Pre-flight]) --> NextDep[Get next dependency]
-  
-  %% Phase 1: Dependency Recursion
-  NextDep --> Recurse([Recursive Call: Resolve Dependency])
-  Recurse --> MoreDeps{More dependencies?}
-  MoreDeps -- Yes --> NextDep
-  
-  %% Phase 2: Parameter Resolution
-  MoreDeps -- No --> NextParam[Get next parameter]
-  
-  NextParam --> Known{Value already available?}
-  
-  %% Variable Acquisition
-  Known -- No --> Request([Request input])
-  Request --> Provided{Provided?}
-  
-  Provided -- No --> HasDefault{Has default fallback?}
-  HasDefault -- Yes --> IsSensitive
-  
-  %% Storage & Security
-  Provided -- Yes --> IsSensitive{Is value sensitive?}
-  
-  IsSensitive -- Yes --> Vault[Store in Vault]
-  IsSensitive -- No --> Inventory[Store in Inventory]
-  
-  %% Parameter Loop-back
-  Vault --> MoreParams{More parameters?}
-  Inventory --> MoreParams
-  Known -- Yes --> MoreParams
-  
-  MoreParams -- Yes --> NextParam
+	subgraph Deps [Dependency Recursion]
+		NextDep[Next dependency]
+		Recurse([Recursive: Resolve dependencies])
+	end
 
- HasDefault -- No --> Error([Status: Error])
-  MoreParams -- No --> Ready([Status: Ready])
+	subgraph Vars [Host Vars]
+		NextVar[Next host var]
+		PromptVar([Prompt operator])
+		VarProvided{Provided?}
+		VarError([Error: Missing host var])
+	end
+
+	subgraph Vault [Vault Secrets]
+		NextSecret[Next vault secret]
+		PromptSecret([Prompt operator])
+		SecretProvided{Provided?}
+		CanGenerate{generate=True?}
+		AutoGen[Auto-generate]
+		VaultError([Error: Missing Secret])
+	end
+
+	%% Phase 1: Dependency Recursion
+	Start([Start: Pre-flight]) --> NextDep
+	NextDep -- While --> Recurse
+	Recurse --> NextDep
+
+	%% Phase 2: Host Vars
+	Deps -- Break --> NextVar
+	NextVar -- While --> PromptVar
+	PromptVar --> VarProvided
+	VarProvided -- Yes --> NextVar
+	VarProvided -- No --> VarError
+
+	%% Phase 3: Vault Secrets
+	Vars -- Break --> NextSecret
+	NextSecret -- While --> PromptSecret
+	PromptSecret --> SecretProvided
+	SecretProvided -- Yes --> NextSecret
+	SecretProvided -- No --> CanGenerate
+	CanGenerate -- No --> VaultError
+	CanGenerate -- Yes --> AutoGen
+	AutoGen --> NextSecret
+
+	Vault -- Break --> Ready([Status: Ready])
 ```
 
 ## Input Var Types
