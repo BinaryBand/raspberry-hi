@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from linux_hi.storage.devices import (
     SYSTEM_MOUNT_PREFIXES,
     external_mounts,
     get_block_devices,
+    get_device_uuid,
     get_external_devices,
     get_real_mounts,
     is_system_device,
@@ -206,3 +209,64 @@ class TestIsSystemDevice:
 
         disk = blk("nvme0n1", "disk", None, [blk("nvme0n1p1", "part", "/efi", fstype="vfat")])
         assert is_system_device(disk, mount_policy=custom_policy)
+
+
+class TestGetDeviceUuid:
+    """Test suite for UUID lookup over lsblk JSON output."""
+
+    def test_returns_uuid_for_top_level_device(self) -> None:
+        """UUID lookup should match exact top-level device path."""
+        payload = {
+            "blockdevices": [
+                {"name": "sdb", "path": "/dev/sdb", "uuid": "disk-uuid", "children": []}
+            ]
+        }
+        conn = FakeConnection({"lsblk": json.dumps(payload)})
+
+        assert get_device_uuid(conn, "/dev/sdb") == "disk-uuid"
+
+    def test_returns_uuid_for_nested_partition(self) -> None:
+        """UUID lookup should recurse into child partitions."""
+        payload = {
+            "blockdevices": [
+                {
+                    "name": "sdb",
+                    "path": "/dev/sdb",
+                    "uuid": None,
+                    "children": [
+                        {
+                            "name": "sdb1",
+                            "path": "/dev/sdb1",
+                            "uuid": "part-uuid",
+                            "children": [],
+                        }
+                    ],
+                }
+            ]
+        }
+        conn = FakeConnection({"lsblk": json.dumps(payload)})
+
+        assert get_device_uuid(conn, "/dev/sdb1") == "part-uuid"
+
+    def test_returns_none_when_device_not_found(self) -> None:
+        """UUID lookup should return None for unknown device paths."""
+        payload = {
+            "blockdevices": [
+                {"name": "sdb", "path": "/dev/sdb", "uuid": "disk-uuid", "children": []}
+            ]
+        }
+        conn = FakeConnection({"lsblk": json.dumps(payload)})
+
+        assert get_device_uuid(conn, "/dev/sdz1") is None
+
+    def test_handles_non_dict_payload(self) -> None:
+        """UUID lookup should tolerate non-dict JSON payloads and return None."""
+        conn = FakeConnection({"lsblk": json.dumps(["unexpected"])})
+
+        assert get_device_uuid(conn, "/dev/sdb1") is None
+
+    def test_handles_non_list_blockdevices(self) -> None:
+        """UUID lookup should tolerate non-list blockdevices structures."""
+        conn = FakeConnection({"lsblk": json.dumps({"blockdevices": {"bad": "shape"}})})
+
+        assert get_device_uuid(conn, "/dev/sdb1") is None
