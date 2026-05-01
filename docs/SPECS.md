@@ -206,7 +206,7 @@ Run `make lint` to run all of the following:
 | `make lint-format` | `poetry run ruff format --check` | `<root>/pyproject.toml` |
 | `make lint-ty` | `poetry run ty check` | `<root>/pyproject.toml` |
 | `make lint-checkmake` | `poetry run mbake format --check Makefile` | `-` |
-| `make lint-cpd` | `npx jscpd --config .jscpd.json .` | `<root>/.jscpd.json` |
+| `make lint-cpd` | `npx jscpd --config config/jscpd.json .` | `config/jscpd.json` |
 | `make lint-repo-policy` | `poetry run python -m linux_hi.cli.repo_policy_check` | `-` |
 | `make lint-semgrep` | `poetry run semgrep scan --config rules/ --error` | `<root>/rules/**/*.yml` |
 | `make lint-lizard` | `poetry run python -m linux_hi.cli.lizard` | `<root>/config/lint.toml` |

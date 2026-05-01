@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import configparser
 import re
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -21,7 +22,7 @@ class TestCpd:
     def test_cpd(self):
         """Fail if jscpd reports any copy-paste duplication."""
         result = run_resolved(
-            ["npx", "jscpd", "--config", ".jscpd.json", "."],
+            ["npx", "jscpd", "--config", "config/jscpd.json", "."],
             capture_output=True,
             text=True,
         )
@@ -193,3 +194,29 @@ class TestRepoPolicy:
 
         failures = PolicyRunner(ROOT).run()
         assert not failures, "Repo policy failures:\n" + "\n".join(failures)
+
+
+class TestCoverage:
+    """Enforce the coverage floor defined in config/lint.toml."""
+
+    def test_coverage_floor(self) -> None:
+        """Fail if total coverage of linux_hi/ is below the configured floor."""
+        with open(ROOT / "config" / "lint.toml", "rb") as f:
+            config = tomllib.load(f)
+        floor = config["coverage"]["floor"]
+        result = run_resolved(
+            [
+                "poetry",
+                "run",
+                "pytest",
+                "-q",
+                "tests/",
+                "--ignore=tests/unit/test_lint.py",
+                "--cov=linux_hi",
+                "--cov-report=term",
+                f"--cov-fail-under={floor}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr

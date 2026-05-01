@@ -7,6 +7,7 @@ PY_DIRS := linux_hi/ tests/
 
 ANSIBLE_DIR := ansible
 ROLES := service_adapter rclone
+COVERAGE_FLOOR ?= 55
 APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.yml.
@@ -134,7 +135,7 @@ _ci:
 	$(POETRY) ty check
 	$(POETRY) semgrep scan --config rules/ --error
 	$(POETRY) mbake format --check Makefile
-	$(POETRY) pytest -q tests/ --ignore=tests/test_lint.py
+	$(POETRY) pytest -q tests/ --ignore=tests/unit/test_lint.py --cov=linux_hi --cov-report=term --cov-fail-under=$(COVERAGE_FLOOR)
 
 lint-ty:
 	$(POETRY) ty check
@@ -143,7 +144,7 @@ lint-semgrep:
 	$(POETRY) semgrep scan --config rules/ --error
 
 lint-cpd:
-	npx jscpd --config .jscpd.json .
+	npx jscpd --config config/jscpd.json .
 
 lint-vulture:
 	$(POETRY) python -m linux_hi.cli.linters.vulture
@@ -161,7 +162,7 @@ lint-repo-policy:
 	$(POETRY) python -m linux_hi.cli.linters.repo_policy_check
 
 test:
-	$(POETRY) pytest tests/ -v
+	$(POETRY) pytest tests/ -v --cov=linux_hi --cov-report=term --cov-fail-under=$(COVERAGE_FLOOR)
 
 test-e2e:
 	HOST=$(HOST) $(POETRY) pytest tests/e2e/ -v -m e2e -s

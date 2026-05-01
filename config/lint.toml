@@ -7,3 +7,6 @@ paths = ["linux_hi"]
 [vulture]
 min_confidence = 80
 paths = ["linux_hi", "tests"]
+
+[coverage]
+floor = 55
