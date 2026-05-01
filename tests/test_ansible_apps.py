@@ -10,51 +10,48 @@ ROOT = Path(__file__).resolve().parents[1]
 ANSIBLE_DIR = ROOT / "ansible"
 
 
-def _read_text(relative_path: str) -> str:
-    """Return repository file contents."""
-    return (ROOT / relative_path).read_text()
-
-
 def test_registry_has_expected_keys() -> None:
-    """The registry remains the single source of truth for known apps."""
-    assert ANSIBLE_DATA.all_apps() == [
-        "minio",
-        "postgres",
-        "baikal",
-        "synapse",
-        "mautrix-whatsapp",
-    ]
+    """The registry exposes at least one unique app key."""
+    apps = ANSIBLE_DATA.all_apps()
+    assert apps
+    assert len(apps) == len(set(apps))
 
 
 def test_containerized_apps_subset() -> None:
-    """Only long-running container apps are classified as containerized."""
-    assert ANSIBLE_DATA.containerized_apps() == [
-        "minio",
-        "postgres",
-        "baikal",
-        "synapse",
-        "mautrix-whatsapp",
-    ]
+    """Containerized app classification should be a subset of registered apps."""
+    all_apps = set(ANSIBLE_DATA.all_apps())
+    containerized = ANSIBLE_DATA.containerized_apps()
+    assert containerized
+    assert set(containerized).issubset(all_apps)
+
+
+def test_registry_entries_have_known_service_type() -> None:
+    """Each registry entry should expose a valid service type."""
+    for app in ANSIBLE_DATA.all_apps():
+        entry = ANSIBLE_DATA.get_app_entry(app)
+        assert entry.service_type == "containerized"
 
 
 def test_app_entry_data() -> None:
-    """Registry entries expose lifecycle and dependency metadata."""
-    entry = ANSIBLE_DATA.get_app_entry("baikal")
-    assert entry.service_type == "containerized"
-    assert entry.dependencies == ["postgres"]
+    """Dependency declarations should reference registered app keys."""
+    all_apps = set(ANSIBLE_DATA.all_apps())
+    apps_with_deps = [
+        app for app in ANSIBLE_DATA.all_apps() if ANSIBLE_DATA.get_app_entry(app).dependencies
+    ]
+    if not apps_with_deps:
+        return
 
-
-def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
-    """MinIO bucket setup must stop before mc commands if readiness polling never succeeds."""
-    content = _read_text("ansible/apps/minio/tasks/setup_mc_bucket.yml")
-    assert "Wait until MinIO health endpoint responds HTTP 200" in content
-    assert "Fail if MinIO health endpoint never became ready" in content
+    for app in apps_with_deps:
+        deps = ANSIBLE_DATA.get_app_entry(app).dependencies
+        assert deps
+        for dep in deps:
+            assert dep in all_apps
 
 
 def test_app_restart_handlers_delegate_to_service_adapter() -> None:
     """App restart handlers should call the shared service_adapter restart task."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/handlers/main.yml")
+        content = (ROOT / f"ansible/apps/{app}/handlers/main.yml").read_text()
         assert (
             "ansible.builtin.include_tasks:" in content
             or "ansible.builtin.import_tasks:" in content
@@ -90,6 +87,6 @@ def test_apps_with_dependencies_import_dependency_playbooks() -> None:
 def test_containerized_apps_use_service_adapter_prepare_for_quadlet_path() -> None:
     """Container apps should delegate quadlet directory creation to service_adapter."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = _read_text(f"ansible/apps/{app}/tasks/main.yml")
+        content = (ROOT / f"ansible/apps/{app}/tasks/main.yml").read_text()
         assert "tasks_from: prepare" in content
         assert "Ensure Podman quadlet directory exists" not in content

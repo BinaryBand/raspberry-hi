@@ -170,18 +170,20 @@ This reads `registry.yml` and emits `service_name`, `image`, `port`, `runtime_ui
 
 ---
 
-## Step 4 — Update `tests/test_ansible_apps.py`
+## Step 4 — Validate Test Coverage
 
-Two things need updating:
+Framework tests are app-agnostic and iterate over registry metadata automatically.
+You should not need to update an expected app-name list when adding a new app.
 
-**1. Expected app list** — add `jellyfin` in registry order:
+Do two checks instead:
 
-```python
-def test_registry_has_expected_keys() -> None:
-    assert ANSIBLE_DATA.all_apps() == ["minio", "postgres", "baikal", "jellyfin"]
+**1. Ensure framework tests still pass unchanged**:
+
+```bash
+make test
 ```
 
-**2. Add any app-specific contract assertions** (optional but encouraged):
+**2. Add app-specific assertions only when behavior is unique to this app** (optional but encouraged):
 
 ```python
 def test_jellyfin_entry_data() -> None:
@@ -190,7 +192,7 @@ def test_jellyfin_entry_data() -> None:
     assert entry.dependencies == []
 ```
 
-Run `make test` to verify everything passes before provisioning.
+Use app-specific tests sparingly. Prefer framework-level invariants that loop over all apps unless the behavior is unique to one app.
 
 ---
 
@@ -219,5 +221,5 @@ The preflight step will prompt for any missing `host_vars` and vault secrets bef
 - [ ] `ansible/apps/<app>/defaults/main.yml` — null out required vars only (no service_name/image/port — those come from registry)
 - [ ] `ansible/apps/<app>/tasks/main.yml` — assert → dirs → prepare + write_container → service_adapter
 - [ ] `make generate-apps` run to update `group_vars/all/vars.yml`
-- [ ] `tests/test_ansible_apps.py` updated and `make test` passes
+- [ ] `make test` passes without framework test rewrites; add app-specific tests only if needed
 - [ ] `make lint-repo-policy` passes

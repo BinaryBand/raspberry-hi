@@ -1,5 +1,14 @@
 # Project Specs
 
+<!-- 
+TODO: Formalize these points:
+
+	- Ansible is the main, stand-alone project. It's strictly declarative. Python exists soley to modify the declaration files.
+	- Lean app agnostic for testing.
+	- Define terraform logic and states.
+	- Reference enforcers for every statement in the doc.
+-->
+
 ## System Architecture
 
 ```mermaid
@@ -49,9 +58,16 @@ ansible/
 linux_hi/
   cli/                   # Operator-facing entry points
   policy/                # Structural repo checks (run via TestRepoPolicy)
-  models/ansible/        # Typed access boundaries (registry, host_vars)
+  models/
+    ansible/             # Typed access boundaries (registry, host_vars)
+  services/            # (inventory, vault)
+  system/              # Existing info shapes (blockdevice, mount)
+  utils/
 
-tests/                   # Fast unit + lint tests; e2e/ requires live host
+tests/
+  apps                   # App layer
+  e2e                    # Requires live host
+  unit                   # Fast unit + lint tests
 ```
 
 ## Pre-Provisioning Logic
@@ -92,16 +108,20 @@ graph
   
   MoreParams -- Yes --> NextParam
 
-  HasDefault -- No --> Error([Status: Error])
+ HasDefault -- No --> Error([Status: Error])
   MoreParams -- No --> Ready([Status: Ready])
 ```
 
 ## Input Var Types
 
+### Relationships
+
+All input types are strings, separated only by format. They need to be in order to 'fit' our file-declarative model.
+
 ```mermaid
 erDiagram
     RCLONE {
-      string host "regex: r/^(?<host>):(?<path>)$/"
+      string host "r/^(?<host>):(?<path>)$/"
       string path "named capture: path"
     }
     PATH {
@@ -115,6 +135,11 @@ erDiagram
     PATH ||--|| STRING : "is a"
 
 ```
+
+### Prompt Flow
+
+- **Rclone input** -> Prompt for 'host' -> Prompt for path
+- **Path input** -> Prompt for path ('host=local' implicitly)
 
 ## Commands
 
@@ -156,16 +181,16 @@ Run `make lint` to run all of the following:
 | `make lint-ty` | `poetry run ty check` | `<root>/pyproject.toml` |
 | `make lint-checkmake` | `poetry run mbake format --check Makefile` | `-` |
 | `make lint-cpd` | `npx jscpd --config .jscpd.json .` | `<root>/.jscpd.json` |
-| `make lint-repo-policy` | `poetry run python -m linux_hi.cli.linters.repo_policy_check` | `-` |
+| `make lint-repo-policy` | `poetry run python -m linux_hi.cli.repo_policy_check` | `-` |
 | `make lint-semgrep` | `poetry run semgrep scan --config rules/ --error` | `<root>/rules/**/*.yml` |
-| `make lint-lizard` | `poetry run python -m linux_hi.cli.linters.lizard` | `<root>/config/lint.toml` |
-| `make lint-vulture` | `poetry run python -m linux_hi.cli.linters.vulture` | `<root>/config/lint.toml` |
+| `make lint-lizard` | `poetry run python -m linux_hi.cli.lizard` | `<root>/config/lint.toml` |
+| `make lint-vulture` | `poetry run python -m linux_hi.cli.vulture` | `<root>/config/lint.toml` |
 
 ### SSH
 
 | **Command** | Command |
 | --- | --- |
-| `make ssh` | `ssh -i <key> <user>@<host> -p <port>` |
+| `make ssh` | `poetry run python -m linux_hi.cli.rclone` |
 
 ### Debug
 

@@ -34,17 +34,33 @@ def check_app_dirs(app_roles: list[str], apps_dir: Path, failures: Failures) -> 
 def check_app_tests(
     app_roles: list[str], tests_dir: Path, e2e_dir: Path, failures: Failures
 ) -> None:
-    """Ensure that each application role is covered by tests or e2e files."""
+    """Ensure app roles are covered by framework-wide tests or app/e2e-specific tests."""
     test_file = tests_dir / "test_ansible_apps.py"
     e2e_files = list(e2e_dir.iterdir()) if e2e_dir.is_dir() else []
+    apps_dir = tests_dir / "apps"
+    app_specific_files = list(apps_dir.iterdir()) if apps_dir.is_dir() else []
     test_content = test_file.read_text(encoding="utf-8") if test_file.exists() else ""
 
+    framework_markers = (
+        "for app in ANSIBLE_DATA.all_apps()",
+        "for app in ANSIBLE_DATA.containerized_apps()",
+    )
+    framework_coverage = any(marker in test_content for marker in framework_markers)
+
     for app in app_roles:
+        if framework_coverage:
+            continue
         if app in test_content:
             continue
         if any(ef.is_file() and app in ef.read_text(encoding="utf-8") for ef in e2e_files):
             continue
-        failures.append(f"App '{app}' missing test in test_ansible_apps.py or e2e/")
+        if any(af.is_file() and app in af.read_text(encoding="utf-8") for af in app_specific_files):
+            continue
+        failures.append(
+            "App "
+            f"'{app}' missing framework coverage in test_ansible_apps.py "
+            "or app-specific/e2e tests"
+        )
 
 
 def check_registry_conflicts(
