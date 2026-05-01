@@ -5,9 +5,13 @@ After=network.target
 [Container]
 Image={{ container_image }}
 ContainerName={{ container_name }}
+{% if container_pod | default('') %}
+Pod={{ container_pod }}.pod
+{% else %}
 {% for port in container_ports | default([]) %}
 PublishPort={{ port }}
 {% endfor %}
+{% endif %}
 {% for vol in container_volumes | default([]) %}
 Volume={{ vol }}
 {% endfor %}

@@ -188,8 +188,7 @@
     service_adapter_description: "Synapse Matrix homeserver"
     service_adapter_image: "{{ synapse_image }}"
     service_adapter_name: "{{ synapse_service_name }}"
-    service_adapter_ports:
-      - "{{ synapse_port }}:{{ synapse_port }}"
+    service_adapter_pod: matrix-pod
     service_adapter_volumes:
       - "{{ synapse_data_path }}:/data"
 

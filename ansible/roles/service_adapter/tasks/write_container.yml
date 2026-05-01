@@ -3,7 +3,8 @@
 # Call via: include_role: name: service_adapter tasks_from: write_container
 # Required vars: service_adapter_description, service_adapter_image, service_adapter_name
 # Optional vars: service_adapter_ports (list), service_adapter_volumes (list),
-#                service_adapter_exec (str), service_adapter_env_file (str)
+#                service_adapter_exec (str), service_adapter_env_file (str),
+#                service_adapter_pod (str) — pod name; suppresses PublishPort and adds Pod=
 - name: "Write container quadlet for {{ service_adapter_name }}"
   ansible.builtin.template:
     src: container.j2
@@ -12,4 +13,13 @@
     group: "{{ ansible_user }}"
     mode: "0644"
   become: true
+  vars:
+    container_description: "{{ service_adapter_description }}"
+    container_image: "{{ service_adapter_image }}"
+    container_name: "{{ service_adapter_name }}"
+    container_ports: "{{ service_adapter_ports | default([]) }}"
+    container_volumes: "{{ service_adapter_volumes | default([]) }}"
+    container_exec: "{{ service_adapter_exec | default('') }}"
+    container_env_file: "{{ service_adapter_env_file | default('') }}"
+    container_pod: "{{ service_adapter_pod | default('') }}"
   notify: "restart {{ service_adapter_name }}"

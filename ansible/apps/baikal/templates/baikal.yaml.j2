@@ -11,10 +11,6 @@ system:
   invite_from: {{ baikal_invite_from | to_json }}
 
 database:
-  sqlite_file: {{ (baikal_data_path ~ '/db/db.sqlite') | to_json }}
+  sqlite_file: {{ baikal_db_path | to_json }}
   backend: {{ baikal_db_backend | to_json }}
   encryption_key: {{ baikal_encryption_key | to_json }}
-  pgsql_host: {{ baikal_db_host | to_json }}
-  pgsql_dbname: {{ baikal_db_name | to_json }}
-  pgsql_username: {{ baikal_db_user | to_json }}
-  pgsql_password: {{ baikal_db_password | to_json }}

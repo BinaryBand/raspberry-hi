@@ -10,6 +10,6 @@ synapse_report_stats: "no"
 
 # PostgreSQL database (uses the shared postgres instance and user).
 synapse_db_name: synapse
-synapse_db_host: "{{ postgres_host_access_name }}"
+synapse_db_host: localhost
 synapse_db_user: "{{ postgres_user }}"
 synapse_db_password: "{{ postgres_password }}"

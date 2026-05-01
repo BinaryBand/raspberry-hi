@@ -31,7 +31,6 @@ apps:
     runtime_uid: 70
     runtime_gid: 70
     shared_vars:
-      postgres_host_access_name: host.containers.internal
       postgres_user: baikal
       postgres_database: baikal
     dependencies: []
@@ -52,10 +51,7 @@ apps:
     port: 8088
     runtime_uid: 101
     runtime_gid: 101
-    shared_vars:
-      baikal_db_name: baikal
-    dependencies:
-      - postgres
+    dependencies: []
     preflight_vars:
       baikal_config_path:
         hint: directory for Baikal config files and app settings
@@ -88,7 +84,7 @@ apps:
         default: /home/linux-hi/synapse
         type: path
       synapse_server_name:
-        hint: "Matrix server name / domain (e.g. chat.doreeto.com)"
+        hint: "Matrix server name / domain (e.g. chat.example.com)"
         default: ~
         type: text
     vault_secrets:
@@ -120,7 +116,7 @@ apps:
         default: /home/linux-hi/mautrix-whatsapp
         type: path
       mautrix_whatsapp_homeserver_domain:
-        hint: "Matrix server domain (e.g. chat.doreeto.com)"
+        hint: "Matrix server domain (e.g. chat.example.com)"
         default: ~
         type: text
       mautrix_whatsapp_appservice_address:

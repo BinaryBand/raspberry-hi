@@ -1,0 +1,11 @@
+[Unit]
+Description={{ pod_description }}
+After=network.target
+
+[Pod]
+{% for port in pod_ports | default([]) %}
+PublishPort={{ port }}
+{% endfor %}
+
+[Install]
+WantedBy=default.target

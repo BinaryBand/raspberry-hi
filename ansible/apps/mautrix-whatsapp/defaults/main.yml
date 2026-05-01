@@ -3,11 +3,11 @@ mautrix_whatsapp_data_path: ~  # required; set in host_vars/<hostname>.yml
 
 # Matrix homeserver connection — Synapse runs on the same host, reachable via pasta's
 # host gateway. mautrix_whatsapp_homeserver_domain must match synapse_server_name.
-mautrix_whatsapp_homeserver_address: "http://{{ postgres_host_access_name }}:{{ synapse_port }}"
-mautrix_whatsapp_homeserver_domain: ~  # required; e.g. chat.doreeto.com
+mautrix_whatsapp_homeserver_address: "http://localhost:{{ synapse_port }}"
+mautrix_whatsapp_homeserver_domain: ~  # required; e.g. chat.example.com
 
 # PostgreSQL database (uses the shared postgres instance and user).
 mautrix_whatsapp_db_name: mautrix_whatsapp
-mautrix_whatsapp_db_host: "{{ postgres_host_access_name }}"
+mautrix_whatsapp_db_host: localhost
 mautrix_whatsapp_db_user: "{{ postgres_user }}"
 mautrix_whatsapp_db_password: "{{ postgres_password }}"

@@ -1,0 +1,19 @@
+---
+# Write a Podman quadlet .pod file from the shared pod.j2 template.
+# Call via: include_role: name: service_adapter tasks_from: write_pod
+# Required vars: service_adapter_pod_name, service_adapter_user
+# Optional vars: service_adapter_pod_ports (list), service_adapter_pod_description (str)
+#
+# Note: systemd daemon-reload is handled by the subsequent service_adapter enable/start
+# task (adapter_systemd.yml), which always passes daemon_reload: true.
+- name: "Write pod quadlet for {{ service_adapter_pod_name }}"
+  ansible.builtin.template:
+    src: pod.j2
+    dest: "{{ app_user_home }}/.config/containers/systemd/{{ service_adapter_pod_name }}.pod"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  vars:
+    pod_description: "{{ service_adapter_pod_description | default(service_adapter_pod_name ~ ' pod') }}"
+    pod_ports: "{{ service_adapter_pod_ports | default([]) }}"

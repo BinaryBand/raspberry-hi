@@ -75,6 +75,19 @@
   notify: restart postgres
   no_log: true
 
+- name: Write matrix-pod quadlet
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_pod
+  vars:
+    service_adapter_pod_name: matrix-pod
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_pod_description: Matrix services pod (postgres, synapse, mautrix-whatsapp)
+    service_adapter_pod_ports:
+      - "{{ postgres_port }}:5432"
+      - "{{ synapse_port }}:{{ synapse_port }}"
+      - "{{ mautrix_whatsapp_port }}:{{ mautrix_whatsapp_port }}"
+
 - name: Prepare service adapter paths for PostgreSQL
   ansible.builtin.include_role:
     name: service_adapter
@@ -98,8 +111,7 @@
     service_adapter_description: "PostgreSQL Database"
     service_adapter_image: "{{ postgres_image }}"
     service_adapter_name: "{{ postgres_service_name }}"
-    service_adapter_ports:
-      - "{{ postgres_port }}:5432"
+    service_adapter_pod: matrix-pod
     service_adapter_volumes:
       - "{{ postgres_data_path }}:/var/lib/postgresql/data:U"
       - "{{ postgres_hba_host_path }}:{{ postgres_hba_container_path }}:ro"

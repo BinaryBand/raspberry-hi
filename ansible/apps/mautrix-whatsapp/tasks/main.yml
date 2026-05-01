@@ -176,8 +176,7 @@
     service_adapter_description: "mautrix-whatsapp Matrix bridge"
     service_adapter_image: "{{ mautrix_whatsapp_image }}"
     service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
-    service_adapter_ports:
-      - "{{ mautrix_whatsapp_port }}:{{ mautrix_whatsapp_port }}"
+    service_adapter_pod: matrix-pod
     service_adapter_volumes:
       - "{{ mautrix_whatsapp_data_path }}:/data:U"
 
