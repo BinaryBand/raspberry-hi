@@ -22,7 +22,7 @@ def test_path_handler_expands_home_and_env(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("HI_PATH_ROOT", "var-root")
     monkeypatch.setattr(
         "linux_hi.adapters.prompt_handlers.questionary.path",
-        lambda label, default: _AskStub("~/$HI_PATH_ROOT/../data"),
+        lambda label, default, **_: _AskStub("~/$HI_PATH_ROOT/../data"),
     )
 
     value = PathHandler().prompt("path:", "")
@@ -37,10 +37,28 @@ def test_path_handler_returns_none_on_abort(monkeypatch: pytest.MonkeyPatch) -> 
     """Path handler should return None when prompt is aborted."""
     monkeypatch.setattr(
         "linux_hi.adapters.prompt_handlers.questionary.path",
-        lambda label, default: _AskStub(None),
+        lambda label, default, **_: _AskStub(None),
     )
 
     assert PathHandler().prompt("path:", "") is None
+
+
+def test_path_handler_decorates_label_with_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Path handler should append the UX hint before the colon in the displayed label."""
+    captured: list[str] = []
+    monkeypatch.setattr(
+        "linux_hi.adapters.prompt_handlers.questionary.path",
+        lambda label, default, **_: captured.append(label) or _AskStub("/srv/data"),
+    )
+
+    PathHandler().prompt("  some_var (a hint):", "")
+
+    assert len(captured) == 1
+    label = captured[0]
+    assert PathHandler._HINT in label
+    assert label.endswith(":")
+    # Original trailing colon should not be doubled
+    assert "::" not in label
 
 
 def test_prompt_registry_raises_on_unknown_type() -> None:

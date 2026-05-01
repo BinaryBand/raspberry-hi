@@ -37,11 +37,19 @@ class PasswordHandler:
 
 
 class PathHandler:
-    """Path input with a default and shell-like expansion."""
+    """Path input with directory tab-completion and shell-like expansion."""
+
+    _HINT = "[tab to browse · ~ and $VAR ok]"
 
     def prompt(self, label: str, default: str) -> str | None:
-        """Return a normalized path, expanding '~' and env vars from the input."""
-        value = questionary.path(label, default=default).ask()
+        """Return a normalized absolute path, expanding '~' and env vars."""
+        display_label = label.rstrip(": ") + f" {self._HINT}:"
+        value = questionary.path(
+            display_label,
+            default=default,
+            only_directories=True,
+            validate=lambda v: bool(v.strip()) or "Path cannot be empty",
+        ).ask()
         if value is None:
             return None
         expanded = value.strip()
