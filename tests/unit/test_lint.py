@@ -12,7 +12,7 @@ from linux_hi.models import VaultSecrets
 from linux_hi.models.ansible.registry import AppRegistry
 from linux_hi.process.exec import run_resolved
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class TestCpd:

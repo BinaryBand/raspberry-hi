@@ -35,7 +35,7 @@ def check_app_tests(
     app_roles: list[str], tests_dir: Path, e2e_dir: Path, failures: Failures
 ) -> None:
     """Ensure app roles are covered by framework-wide tests or app/e2e-specific tests."""
-    test_file = tests_dir / "test_ansible_apps.py"
+    test_file = tests_dir / "unit" / "test_ansible_apps.py"
     e2e_files = list(e2e_dir.iterdir()) if e2e_dir.is_dir() else []
     apps_dir = tests_dir / "apps"
     app_specific_files = list(apps_dir.iterdir()) if apps_dir.is_dir() else []

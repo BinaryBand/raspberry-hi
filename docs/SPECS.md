@@ -60,8 +60,8 @@ linux_hi/
   policy/                # Structural repo checks (run via TestRepoPolicy)
   models/
     ansible/             # Typed access boundaries (registry, host_vars)
-  services/            # (inventory, vault)
-  system/              # Existing info shapes (blockdevice, mount)
+    services/            # (inventory, vault)
+    system/              # Existing info shapes (blockdevice, mount)
   utils/
 
 tests/
