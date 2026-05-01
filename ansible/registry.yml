@@ -52,15 +52,6 @@ apps:
     runtime_uid: 101
     runtime_gid: 101
     dependencies: []
-    preflight_vars:
-      baikal_config_path:
-        hint: directory for Baikal config files and app settings
-        default: /home/linux-hi/baikal/config
-        type: path
-      baikal_data_path:
-        hint: directory for Baikal persistent data files
-        default: /home/linux-hi/baikal/data
-        type: path
     vault_secrets:
       - key: baikal_admin_password
         label: Baikal admin password
@@ -79,10 +70,6 @@ apps:
     dependencies:
       - postgres
     preflight_vars:
-      synapse_data_path:
-        hint: directory for Synapse config, signing key, and media
-        default: /home/linux-hi/synapse
-        type: path
       synapse_server_name:
         hint: "Matrix server name / domain (e.g. chat.example.com)"
         default: ~
@@ -111,17 +98,13 @@ apps:
     dependencies:
       - synapse
     preflight_vars:
-      mautrix_whatsapp_data_path:
-        hint: directory for mautrix-whatsapp config and data
-        default: /home/linux-hi/mautrix-whatsapp
-        type: path
       mautrix_whatsapp_homeserver_domain:
         hint: "Matrix server domain (e.g. chat.example.com)"
         default: ~
         type: text
       mautrix_whatsapp_appservice_address:
         hint: "address where Synapse can reach the bridge"
-        default: "http://host.containers.internal:29318"
+        default: "http://localhost:29318"
         type: text
     vault_secrets:
       - key: mautrix_whatsapp_as_token

@@ -1,5 +1,5 @@
 ---
-synapse_data_path: ~  # required; set in host_vars/<hostname>.yml
+synapse_data_path: /home/linux-hi/synapse
 
 # Matrix server name — appears in all user and room IDs (@user:server_name).
 # Must match the domain your Matrix clients connect to.

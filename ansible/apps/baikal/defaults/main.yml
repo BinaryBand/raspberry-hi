@@ -1,6 +1,6 @@
 ---
-baikal_config_path: ~  # required; set in host_vars/<hostname>.yml
-baikal_data_path: ~    # required; set in host_vars/<hostname>.yml
+baikal_config_path: /home/linux-hi/baikal/config
+baikal_data_path: /home/linux-hi/baikal/data
 
 baikal_configured_version: "0.10.1"
 baikal_timezone: Europe/Paris

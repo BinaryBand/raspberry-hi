@@ -1,8 +1,8 @@
 ---
-mautrix_whatsapp_data_path: ~  # required; set in host_vars/<hostname>.yml
+mautrix_whatsapp_data_path: /home/linux-hi/mautrix-whatsapp
 
-# Matrix homeserver connection — Synapse runs on the same host, reachable via pasta's
-# host gateway. mautrix_whatsapp_homeserver_domain must match synapse_server_name.
+# Matrix homeserver connection within the same pod network namespace.
+# mautrix_whatsapp_homeserver_domain must match synapse_server_name.
 mautrix_whatsapp_homeserver_address: "http://localhost:{{ synapse_port }}"
 mautrix_whatsapp_homeserver_domain: ~  # required; e.g. chat.example.com
 
