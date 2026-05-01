@@ -7,7 +7,7 @@ import sys
 
 from linux_hi.adapters.prompt_handlers import PasswordHandler, PromptRegistry, TextHandler
 from linux_hi.models import ANSIBLE_DATA
-from linux_hi.orchestration.preflight import (
+from linux_hi.services.preflight import (
     AnsibleHostVarsStore,
     AnsibleVaultStore,
     PreflightError,

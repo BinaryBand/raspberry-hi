@@ -7,7 +7,7 @@ from .ansible.registry import (
     PromptType,
     VaultSecretSpec,
 )
-from .services.vault import VaultSecrets
+from .inventory.vault import VaultSecrets
 from .system.blockdevice import BlockDevice
 from .system.mount import MountInfo
 

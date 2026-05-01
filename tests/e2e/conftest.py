@@ -11,8 +11,8 @@ import os
 import pytest
 
 from linux_hi.adapters.connection_types import RemoteConnection
-from linux_hi.ansible.connection import make_connection
 from linux_hi.models import ANSIBLE_DATA
+from linux_hi.models.ansible.connection import make_connection
 
 
 @pytest.fixture(scope="session")

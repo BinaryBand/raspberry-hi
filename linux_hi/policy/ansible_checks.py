@@ -110,7 +110,7 @@ def check_no_direct_host_group_writes(root: Path, failures: Failures) -> None:
     """Detect direct writes to host_vars/group_vars outside the dedicated seams."""
     allowed_files = {
         root / "linux_hi" / "models" / "ansible" / "access.py",
-        root / "linux_hi" / "vault" / "service.py",
+        root / "linux_hi" / "services" / "vault.py",
         root / "linux_hi" / "cli" / "generate_apps.py",
     }
 
@@ -130,5 +130,5 @@ def check_no_direct_host_group_writes(root: Path, failures: Failures) -> None:
             if any(marker in line for marker in write_markers):
                 failures.append(
                     f"Direct write to Ansible state detected in {py_file}:{line_no}; "
-                    "use linux_hi/models/ansible/access.py or linux_hi/vault/service.py"
+                    "use linux_hi/models/ansible/access.py or linux_hi/services/vault.py"
                 )

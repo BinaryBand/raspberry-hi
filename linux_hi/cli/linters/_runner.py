@@ -7,7 +7,7 @@ import tomllib
 from collections.abc import Callable
 from pathlib import Path
 
-from linux_hi.process.exec import run_resolved
+from linux_hi.utils.exec import run_resolved
 
 _CONFIG = Path("config/lint.toml")
 

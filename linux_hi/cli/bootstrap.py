@@ -5,7 +5,7 @@ from __future__ import annotations
 import getpass
 
 from linux_hi.models import ANSIBLE_DATA, VaultSecrets
-from linux_hi.vault.service import (
+from linux_hi.services.vault import (
     VAULT_FILE,
     decrypt_vault_raw,
     encrypt_vault,

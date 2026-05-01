@@ -13,7 +13,7 @@ import yaml
 
 from linux_hi.models import ANSIBLE_DATA, VaultSecrets
 from linux_hi.models.ansible.yaml import yaml_mapping
-from linux_hi.process.exec import run_resolved
+from linux_hi.utils.exec import run_resolved
 
 VAULT_PASSWORD_FILE = ANSIBLE_DATA.ansible_dir / ".vault-password"
 VAULT_FILE = ANSIBLE_DATA.ansible_dir / "group_vars" / "all" / "vault.yml"

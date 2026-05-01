@@ -6,7 +6,7 @@ import pytest
 
 from linux_hi.models import ANSIBLE_DATA
 from linux_hi.models.ansible.registry import AppRegistryEntry, VaultSecretSpec
-from linux_hi.orchestration.preflight import (
+from linux_hi.services.preflight import (
     PreflightError,
     PreflightOrchestrator,
     load_preflight_spec,

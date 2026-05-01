@@ -10,11 +10,11 @@ import sys
 
 from linux_hi.adapters.info_port import RemoteInfoPort
 from linux_hi.adapters.prompter import QuestionaryPrompter
-from linux_hi.ansible.connection import make_connection
 from linux_hi.models import ANSIBLE_DATA
-from linux_hi.orchestration.mount import MountOrchestrator
+from linux_hi.models.ansible.connection import make_connection
+from linux_hi.services.mount import MountOrchestrator
+from linux_hi.services.vault import decrypt_vault
 from linux_hi.storage.devices import get_device_uuid
-from linux_hi.vault.service import decrypt_vault
 
 
 def _become_password(hostname: str) -> str:

@@ -10,7 +10,7 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
-from linux_hi.vault.service import decrypt_vault_raw, remove_vault_key, write_vault_key
+from linux_hi.services.vault import decrypt_vault_raw, remove_vault_key, write_vault_key
 
 _console = Console()
 

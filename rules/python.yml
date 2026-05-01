@@ -4,7 +4,7 @@ rules:
 
   # Process execution seams
   - id: python-no-direct-subprocess-import
-    message: Use linux_hi.process.exec.run_resolved instead of importing subprocess directly.
+    message: Use linux_hi.utils.exec.run_resolved instead of importing subprocess directly.
     severity: ERROR
     languages:
       - python
@@ -13,14 +13,14 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /linux_hi/process/exec.py
+        - /linux_hi/utils/exec.py
     patterns:
       - pattern-either:
           - pattern: import subprocess
           - pattern: from subprocess import $X
 
   - id: python-no-direct-subprocess-call
-    message: Use linux_hi.process.exec.run_resolved instead of calling subprocess directly.
+    message: Use linux_hi.utils.exec.run_resolved instead of calling subprocess directly.
     severity: ERROR
     languages:
       - python
@@ -29,7 +29,7 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /linux_hi/process/exec.py
+        - /linux_hi/utils/exec.py
     patterns:
       - pattern-either:
           - pattern: subprocess.run(...)
@@ -85,7 +85,7 @@ rules:
 
   # Inventory and vault authority seams
   - id: python-ansible-vault-only-in-vault-service
-    message: ansible-vault access is reserved for linux_hi.vault.service.
+    message: ansible-vault access is reserved for linux_hi.services.vault.
     severity: ERROR
     languages:
       - python
@@ -94,7 +94,7 @@ rules:
         - /linux_hi/**/*.py
         - /tests/**/*.py
       exclude:
-        - /linux_hi/vault/service.py
+        - /linux_hi/services/vault.py
     patterns:
       - pattern-either:
           - pattern: $F(["ansible-vault", ...], ...)
@@ -180,7 +180,7 @@ rules:
         - /linux_hi/models/**/*.py
         - /tests/**/*.py
       exclude:
-        - /linux_hi/process/exec.py
+        - /linux_hi/utils/exec.py
     pattern-either:
       - pattern: os.path.join(...)
       - pattern: os.path.exists(...)

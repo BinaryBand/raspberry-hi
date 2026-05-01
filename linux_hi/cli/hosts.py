@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from linux_hi.models import ANSIBLE_DATA
-from linux_hi.vault.service import remove_become_password, write_become_password
+from linux_hi.services.vault import remove_become_password, write_become_password
 
 _console = Console()
 

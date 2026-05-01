@@ -8,8 +8,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from linux_hi.models import ANSIBLE_DATA
-from linux_hi.process.exec import resolve_executable, run_resolved
-from linux_hi.vault.service import VAULT_PASSWORD_FILE, decrypt_vault
+from linux_hi.services.vault import VAULT_PASSWORD_FILE, decrypt_vault
+from linux_hi.utils.exec import resolve_executable, run_resolved
 
 MIN_PYTHON = (3, 12)
 

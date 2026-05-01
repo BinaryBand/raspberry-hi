@@ -12,8 +12,8 @@ class RcloneRemoteHandler:
 
     def prompt(self, label: str, default: str) -> str | None:
         """Select a configured rclone remote from the vault."""
+        from linux_hi.services.vault import decrypt_vault
         from linux_hi.storage.rclone import list_remotes
-        from linux_hi.vault.service import decrypt_vault
 
         vault = decrypt_vault()
         remotes = list_remotes(vault.rclone_config or {})

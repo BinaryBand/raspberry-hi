@@ -9,9 +9,9 @@ from typing import Any
 import pytest
 import yaml
 
-from linux_hi.ansible import connection as ansible_connection
 from linux_hi.models import ANSIBLE_DATA, HostVars
 from linux_hi.models.ansible import access as ansible_access
+from linux_hi.models.ansible import connection as ansible_connection
 from tests.support.connections import RecordingConnectionFactory
 
 

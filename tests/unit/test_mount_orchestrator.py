@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from linux_hi.adapters.connection_types import RemoteConnection
 from linux_hi.models import BlockDevice, MountInfo
-from linux_hi.orchestration.mount import MountOrchestrator
+from linux_hi.services.mount import MountOrchestrator
 from tests.support.connections import FakeConnection
 
 

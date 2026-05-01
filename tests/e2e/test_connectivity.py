@@ -9,11 +9,11 @@ from pathlib import Path
 import pytest
 
 from linux_hi.adapters.connection_types import RemoteConnection
-from linux_hi.ansible.role_vars import role_required_vars
 from linux_hi.models import ANSIBLE_DATA
-from linux_hi.process.exec import run_resolved
+from linux_hi.models.ansible.role_vars import role_required_vars
+from linux_hi.services.vault import VAULT_PASSWORD_FILE, decrypt_vault
 from linux_hi.storage.devices import get_block_devices, get_real_mounts
-from linux_hi.vault.service import VAULT_PASSWORD_FILE, decrypt_vault
+from linux_hi.utils.exec import run_resolved
 
 
 @pytest.mark.e2e
