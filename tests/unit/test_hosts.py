@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 import pytest
 
-from linux_hi.cli.hosts import cmd_list
+from linux_hi.cli import hosts
 from linux_hi.models import ANSIBLE_DATA
 from linux_hi.models.ansible.access import AnsibleDataStore
 
 
 def test_hosts_list_covers_all_inventory_hosts(capsys: pytest.CaptureFixture[str]) -> None:
     """hosts-list must display every host in the configured inventory."""
-    cmd_list(argparse.Namespace())
+    hosts.cmd_list(argparse.Namespace())
     captured = capsys.readouterr()
     for alias in ANSIBLE_DATA.inventory_hosts():
         assert alias in captured.out, f"Expected '{alias}' in hosts-list output"
@@ -78,7 +79,7 @@ def test_remove_host_vars_is_silent_when_missing(tmp_path: Path) -> None:
 
 def test_hosts_list_shows_connection_details(capsys: pytest.CaptureFixture[str]) -> None:
     """hosts-list must show ansible_host for at least one host."""
-    cmd_list(argparse.Namespace())
+    hosts.cmd_list(argparse.Namespace())
     captured = capsys.readouterr()
     hosts_with_explicit_host = [
         alias
@@ -90,3 +91,121 @@ def test_hosts_list_shows_connection_details(capsys: pytest.CaptureFixture[str])
         assert hv.ansible_host in captured.out, (
             f"Expected ansible_host '{hv.ansible_host}' for '{alias}' in hosts-list output"
         )
+
+
+def test_pick_returns_first_non_empty_value() -> None:
+    """_pick should return the first truthy value among candidates."""
+    assert hosts._pick(None, "", "alpha", "beta") == "alpha"
+
+
+def test_prompt_if_missing_uses_existing_value(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_prompt_if_missing should bypass questionary when value is already present."""
+    called: list[str] = []
+
+    def _ask() -> str:
+        called.append("ask")
+        return "unused"
+
+    monkeypatch.setattr(hosts.questionary, "text", lambda *_a, **_k: type("Q", (), {"ask": _ask})())
+    assert hosts._prompt_if_missing("existing", "Label") == "existing"
+    assert called == []
+
+
+def test_resolve_port_from_argument() -> None:
+    """_resolve_port should return the explicit argument without prompting."""
+    assert hosts._resolve_port(2222) == 2222
+
+
+def test_resolve_port_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_resolve_port should use PORT environment variable when argument is absent."""
+    monkeypatch.setenv("PORT", "2200")
+    assert hosts._resolve_port(None) == 2200
+
+
+def test_resolve_port_rejects_non_integer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_resolve_port should exit with an error when non-integer input is provided."""
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.setattr(
+        hosts.questionary,
+        "text",
+        lambda *_a, **_k: type("Q", (), {"ask": lambda self: "not-an-int"})(),
+    )
+    with pytest.raises(SystemExit):
+        hosts._resolve_port(None)
+
+
+def test_cmd_add_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """cmd_add should write inventory, host_vars, and vault entries on success."""
+    calls: list[tuple[str, object]] = []
+
+    class _Store:
+        def add_inventory_host(self, name: str) -> None:
+            calls.append(("add_inventory_host", name))
+
+        def write_host_vars_raw(self, name: str, data: dict[str, object]) -> None:
+            calls.append(("write_host_vars_raw", (name, data)))
+
+    answers = iter(["rpi", "192.168.1.10", "pi", "/home/me/.ssh/id_ed25519", "s3cr3t"])
+
+    monkeypatch.setattr(hosts, "ANSIBLE_DATA", _Store())
+    monkeypatch.setattr(
+        hosts.questionary,
+        "text",
+        lambda *_a, **_k: type("Q", (), {"ask": lambda self: next(answers)})(),
+    )
+    monkeypatch.setattr(
+        hosts.questionary,
+        "password",
+        lambda *_a, **_k: type("Q", (), {"ask": lambda self: next(answers)})(),
+    )
+    monkeypatch.setattr(hosts, "write_become_password", lambda name, pwd: calls.append(("vault", (name, pwd))))
+
+    args = argparse.Namespace(name=None, address=None, secret=None, user=None, port=22)
+    hosts.cmd_add(args)
+
+    assert any(c[0] == "add_inventory_host" for c in calls)
+    assert any(c[0] == "write_host_vars_raw" for c in calls)
+    assert any(c[0] == "vault" for c in calls)
+
+
+def test_cmd_remove_unknown_host_exits(monkeypatch: pytest.MonkeyPatch) -> None:
+    """cmd_remove should exit when requested host is not in inventory."""
+
+    class _Store:
+        def inventory_hosts(self) -> list[str]:
+            return ["rpi"]
+
+    monkeypatch.setattr(hosts, "ANSIBLE_DATA", _Store())
+
+    with pytest.raises(SystemExit):
+        hosts.cmd_remove(argparse.Namespace(name="ghost"))
+
+
+def test_cmd_remove_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """cmd_remove should remove inventory, host vars, and become password for host."""
+    calls: list[tuple[str, str]] = []
+
+    class _Store:
+        def inventory_hosts(self) -> list[str]:
+            return ["rpi", "rpi2"]
+
+        def remove_inventory_host(self, name: str) -> None:
+            calls.append(("inventory", name))
+
+        def remove_host_vars(self, name: str) -> None:
+            calls.append(("host_vars", name))
+
+    monkeypatch.setattr(hosts, "ANSIBLE_DATA", _Store())
+    monkeypatch.setattr(hosts, "remove_become_password", lambda name: calls.append(("vault", name)))
+
+    hosts.cmd_remove(argparse.Namespace(name="rpi"))
+
+    assert calls == [("inventory", "rpi"), ("host_vars", "rpi"), ("vault", "rpi")]
+
+
+def test_main_dispatches_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    """main should dispatch to cmd_list when no subcommand is provided."""
+    called: list[str] = []
+    monkeypatch.setattr(hosts, "cmd_list", lambda _args: called.append("list"))
+    hosts.main([])
+    assert called == ["list"]
