@@ -5,7 +5,7 @@
     fail_msg: >-
       minio_data_path is not set for '{{ inventory_hostname }}'.
       Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        minio_data_path: /srv/minio/data
+        minio_data_path: /home/linux-hi/minio
 
 # 1. Directories: data path + app config.
 - name: Ensure MinIO data directory exists

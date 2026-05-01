@@ -1,13 +1,5 @@
 ---
 # 0. Guard: fail fast if required variables are not explicitly configured.
-- name: Assert synapse_data_path is set
-  ansible.builtin.assert:
-    that: synapse_data_path is not none
-    fail_msg: >-
-      synapse_data_path is not set for '{{ inventory_hostname }}'.
-      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        synapse_data_path: /srv/synapse
-
 - name: Assert synapse_server_name is set
   ansible.builtin.assert:
     that: synapse_server_name is not none

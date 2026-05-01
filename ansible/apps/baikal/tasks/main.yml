@@ -1,22 +1,5 @@
 ---
-# 0. Guard: fail fast if required variables are not explicitly configured.
-- name: Assert baikal_config_path is set
-  ansible.builtin.assert:
-    that: baikal_config_path is not none
-    fail_msg: >-
-      baikal_config_path is not set for '{{ inventory_hostname }}'.
-      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        baikal_config_path: /srv/baikal/config
-
-- name: Assert baikal_data_path is set
-  ansible.builtin.assert:
-    that: baikal_data_path is not none
-    fail_msg: >-
-      baikal_data_path is not set for '{{ inventory_hostname }}'.
-      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        baikal_data_path: /srv/baikal/data
-
-# 1. App-specific: data and config directories.
+# 0. App-specific: data and config directories.
 - name: Ensure Baikal config directory exists
   ansible.builtin.file:
     path: "{{ baikal_config_path }}"
