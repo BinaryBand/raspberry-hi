@@ -1,6 +1,0 @@
----
-caddy_data_path: ~  # required; persistent path for ACME certificate data
-caddy_acme_email: ~  # required; email address for Let's Encrypt notifications
-caddy_server_name: ~  # required; domain Caddy should serve (e.g. chat.example.com)
-caddy_minio_server_name: ~  # optional; domain for MinIO (e.g. db.example.com)
-caddy_jelly_server_name: ~  # optional; domain for Jellyfin (e.g. jelly.example.com)

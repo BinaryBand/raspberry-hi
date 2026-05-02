@@ -35,3 +35,7 @@
     # Run `make baikal` to provision or re-provision Baikal independently.
     - role: baikal
       tags: [apps, baikal]
+
+    # Caddy is a native system service (not containerised) — run `make caddy` to provision.
+    - role: caddy
+      tags: [caddy]

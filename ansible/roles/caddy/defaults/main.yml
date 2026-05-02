@@ -1,0 +1,6 @@
+---
+caddy_data_path: /var/lib/caddy  # override to persist ACME certs at a custom path
+caddy_acme_email: ~              # required; email for Let's Encrypt notifications
+caddy_server_name: ~             # required; primary domain (e.g. chat.example.com)
+caddy_minio_server_name: ~       # optional; domain for MinIO
+caddy_jelly_server_name: ~       # optional; domain for Jellyfin

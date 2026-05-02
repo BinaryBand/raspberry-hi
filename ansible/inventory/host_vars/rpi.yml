@@ -8,7 +8,6 @@ minio_data_path: /mnt/external/minio
 postgres_data_path: /postgres
 baikal_config_path: /home/linux-hi/baikal/config
 baikal_data_path: /home/linux-hi/baikal/data
-caddy_data_path: /home/linux-hi/caddy
 caddy_acme_email: retouch-cork-chunk@duck.com
 caddy_server_name: chat.doreeto.com
 caddy_minio_server_name: db.doreeto.com

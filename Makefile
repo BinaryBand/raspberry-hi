@@ -46,7 +46,7 @@ SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
-.PHONY: add-hostkey baikal bootstrap check doctor generate-apps help lint logs mount ping
+.PHONY: add-hostkey baikal bootstrap caddy check doctor generate-apps help lint logs mount ping
 .PHONY: format rclone ruff ruff-fix ruff-format setup ssh status
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
@@ -79,6 +79,7 @@ help:
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
 	@echo "  setup         Provision base dependencies on a host (HOST=rpi|rpi2|debian)"
+	@echo "  caddy         Provision Caddy reverse proxy (native system service)"
 	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
@@ -274,6 +275,9 @@ logs: _inv_check
 
 setup: _vault_check
 	$(SETUP_PLAY)
+
+caddy: _vault_check
+	$(_ANSIBLE_FLAGS) ansible/playbooks/site.yml --tags caddy
 
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1

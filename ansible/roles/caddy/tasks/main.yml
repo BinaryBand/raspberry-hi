@@ -1,0 +1,70 @@
+---
+# 0. Guard: fail fast if required variables are not configured.
+- name: Assert caddy_acme_email is set
+  ansible.builtin.assert:
+    that: caddy_acme_email is not none
+    fail_msg: >-
+      caddy_acme_email is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        caddy_acme_email: you@example.com
+
+- name: Assert caddy_server_name is set
+  ansible.builtin.assert:
+    that: caddy_server_name is not none
+    fail_msg: >-
+      caddy_server_name is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        caddy_server_name: chat.example.com
+
+# 1. Add Caddy apt repository.
+- name: Download Caddy GPG key
+  ansible.builtin.get_url:
+    url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+    dest: /usr/share/keyrings/caddy-stable.gpg.asc
+    mode: "0644"
+  become: true
+
+- name: Add Caddy apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/caddy-stable.gpg.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+    filename: caddy-stable
+    state: present
+  become: true
+
+# 2. Install caddy package.
+- name: Install caddy
+  ansible.builtin.package:
+    name: caddy
+    state: present
+  become: true
+
+# 3. Ensure custom data directory exists and is owned by the caddy system user.
+- name: Ensure Caddy data directory exists
+  ansible.builtin.file:
+    path: "{{ caddy_data_path }}"
+    state: directory
+    owner: caddy
+    group: caddy
+    mode: "0750"
+  become: true
+  when: caddy_data_path != '/var/lib/caddy'
+
+# 4. Deploy Caddyfile.
+- name: Install Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    owner: root
+    group: caddy
+    mode: "0640"
+  become: true
+  notify: restart caddy
+
+# 5. Enable and start the caddy system service.
+- name: Enable and start caddy service
+  ansible.builtin.systemd:
+    name: caddy
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true

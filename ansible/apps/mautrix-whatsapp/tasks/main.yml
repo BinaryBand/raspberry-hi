@@ -150,6 +150,26 @@
   notify: restart mautrix-whatsapp
   no_log: true
 
+# Also place the registration file in the Synapse data directory so Synapse
+# can read it via app_service_config_files in homeserver.yaml.
+- name: Install registration file into Synapse data directory
+  ansible.builtin.template:
+    src: mautrix-whatsapp-registration.yaml.j2
+    dest: "{{ synapse_data_path }}/mautrix-whatsapp-registration.yaml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  become: true
+  register: _mautrix_whatsapp_synapse_registration
+  no_log: true
+
+- name: Restart Synapse to load new appservice registration
+  ansible.builtin.command:
+    argv: [systemctl, --user, restart, synapse]
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _mautrix_whatsapp_synapse_registration.changed
+
 # 3. Deploy container unit.
 - name: Prepare service adapter paths for mautrix-whatsapp
   ansible.builtin.include_role:
