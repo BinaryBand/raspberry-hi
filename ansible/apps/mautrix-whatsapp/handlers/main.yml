@@ -6,3 +6,11 @@
     service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
     service_adapter_run_script: "{{ app_user_home }}/bin/run-mautrix-whatsapp.sh"
+
+- name: Restart synapse
+  listen: restart synapse
+  ansible.builtin.include_tasks: ../../../roles/service_adapter/tasks/restart.yml
+  vars:
+    service_adapter_name: "{{ synapse_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"

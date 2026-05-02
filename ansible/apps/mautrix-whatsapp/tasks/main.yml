@@ -160,15 +160,8 @@
     group: "{{ ansible_user }}"
     mode: "0600"
   become: true
-  register: _mautrix_whatsapp_synapse_registration
+  notify: restart synapse
   no_log: true
-
-- name: Restart Synapse to load new appservice registration
-  ansible.builtin.command:
-    argv: [systemctl, --user, restart, synapse]
-  become: true
-  become_user: "{{ ansible_user }}"
-  when: _mautrix_whatsapp_synapse_registration.changed
 
 # 3. Deploy container unit.
 - name: Prepare service adapter paths for mautrix-whatsapp

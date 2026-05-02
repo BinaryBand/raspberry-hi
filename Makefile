@@ -51,7 +51,7 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
-.PHONY: lint-ansible lint-ansible-coverage lint-check lint-checkmake lint-coverage lint-cpd lint-format lint-lizard lint-repo-policy
+.PHONY: lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-check lint-checkmake lint-coverage lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
 .PHONY: _ci _generate_check _inv_check _vault_check $(APPS)
 
@@ -74,6 +74,7 @@ help:
 	@echo "  lint-repo-policy   Repository structural and architecture policy checks"
 	@echo "  lint-ansible       ansible-lint over ansible/"
 	@echo "  lint-ansible-coverage  Ansible app test coverage floor check (config/lint.toml)"
+	@echo "  lint-ansible-roles-coverage  Setup-role test coverage floor check (config/lint.toml)"
 	@echo "  ruff               Alias for lint-check"
 	@echo "  ruff-fix           Auto-fix Ruff lint violations"
 	@echo "  ruff-format        Reformat Python files with Ruff"
@@ -114,7 +115,7 @@ check:
 doctor:
 	$(POETRY) python -m linux_hi.cli.check --doctor
 
-lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-ansible-coverage lint-checkmake lint-repo-policy
+lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-checkmake lint-repo-policy
 
 # Ruff targets: check / format / fix
 lint-check:
@@ -163,6 +164,9 @@ lint-ansible:
 
 lint-ansible-coverage:
 	$(POETRY) python -m linux_hi.cli.linters.ansible_coverage
+
+lint-ansible-roles-coverage:
+	$(POETRY) python -m linux_hi.cli.linters.ansible_roles_coverage
 
 lint-checkmake:
 	$(POETRY) mbake format --check Makefile
