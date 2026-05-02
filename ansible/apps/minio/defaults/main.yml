@@ -1,7 +1,6 @@
 ---
 minio_data_path: ~  # required; set in host_vars/<hostname>.yml
 minio_console_port: 9001
-minio_console_url: ~  # public console URL when behind a reverse proxy; e.g. https://console.example.com
 
 # MinIO client — run via Podman, no binary installation required.
 # Pin to a matching release tag for consistency with minio_image.

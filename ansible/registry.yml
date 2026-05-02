@@ -7,7 +7,7 @@ apps:
   minio:
     service_type: containerized
     service_name: minio
-    image: docker.io/minio/minio:RELEASE.2025-04-08T15-41-24Z
+    image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     port: 9000
     dependencies: []
     preflight_vars:
@@ -15,10 +15,6 @@ apps:
         hint: persistent path for MinIO data
         default: /home/linux-hi/minio
         type: path
-      minio_console_url:
-        hint: "public console URL when behind a reverse proxy (e.g. https://console.example.com)"
-        default: ~
-        type: text
     vault_secrets:
       - key: minio_root_user
         label: MinIO root username
