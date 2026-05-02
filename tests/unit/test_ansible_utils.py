@@ -129,7 +129,7 @@ def test_read_effective_vars_merges_group_vars_under_host_vars(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """host_vars should override group_vars; group_vars fill in the rest."""
-    group_vars_dir = tmp_path / "group_vars" / "devices"
+    group_vars_dir = tmp_path / "group_vars" / "all"
     group_vars_dir.mkdir(parents=True)
     (group_vars_dir / "vars.yml").write_text(
         "shared_var: from_group\ngroup_only_var: group_value\n", encoding="utf-8"

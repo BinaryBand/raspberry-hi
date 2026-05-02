@@ -17,7 +17,6 @@ flowchart LR
       VP[.vault-password]
       R[registry.yml]
       PB[playbooks]
-      GVD[group_vars/devices/vars.yml]
   end
 
   subgraph VARS [Generated / Operator State]
@@ -55,10 +54,6 @@ ansible/
     all/
       vars.yml           # GENERATED (gitignored) — service names, ports, shared_vars from registry
       vault.yml          # GENERATED — Encrypted secrets (ansible-vault)
-    devices/
-      vars.yml           # Hand-authored — project-wide defaults for all devices
-                         # (e.g. synapse_server_name, caddy_acme_email)
-                         # host_vars/ overrides these per-host
   inventory/             # GENERATED/HAND-EDITABLE — Managed via `make config-hosts-*`
 
 linux_hi/
@@ -112,7 +107,7 @@ make <app>           # App layer: runs preflight, then app playbook
 
 When a user requests an app (`make <app>`), the Python layer guarantees all dependencies, host variables, and secrets are satisfied before Ansible is invoked.
 
-**Var resolution order (highest precedence last):** `group_vars/all/vars.yml` → `group_vars/devices/vars.yml` → `host_vars/<hostname>.yml`. The preflight checks this full effective set before prompting — a var already set in `group_vars/devices/` is never re-prompted and never written to `host_vars/`. When a var is missing from all three layers, the operator is prompted and the value is written to `host_vars/<hostname>.yml` only.
+**Var resolution order (highest precedence last):** `group_vars/all/vars.yml` → `host_vars/<hostname>.yml`. The preflight checks this full effective set before prompting — a var already set in `group_vars/all/` is never re-prompted and never written to `host_vars/`. When a var is missing, the operator is prompted and the value is written to `host_vars/<hostname>.yml` only.
 
 ```mermaid
 graph

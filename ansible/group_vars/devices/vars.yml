@@ -1,7 +1,0 @@
----
-# Shared variables for all devices in the 'devices' group.
-# Host-specific overrides belong in inventory/host_vars/<hostname>.yml.
-
-ansible_python_interpreter: auto_silent
-caddy_acme_email: retouch-cork-chunk@duck.com
-synapse_server_name: chat.doreeto.com
