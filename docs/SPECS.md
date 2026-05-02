@@ -3,7 +3,7 @@
 <!-- 
 TODO: Formalize these points:
 
-	- Ansible is the main, stand-alone project. It's strictly declarative. Python exists soley to modify the declaration files.
+	- Ansible is the main, stand-alone project. It's strictly declarative. Python exists solely to modify the declaration files.
 	- Lean app agnostic for testing.
 	- Define terraform logic and states.
 	- Reference enforcers for every statement in the doc.
@@ -220,6 +220,7 @@ Run `make lint` to run all of the following:
 | `make lint-ansible-coverage` | `poetry run python -m linux_hi.cli.linters.ansible_coverage` | `config/lint.toml → [ansible_coverage]` |
 | `make lint-ansible-roles-coverage` | `poetry run python -m linux_hi.cli.linters.ansible_roles_coverage` | `config/lint.toml → [ansible_roles_coverage]` |
 | `make lint-check` | `poetry run ruff check` | `<root>/pyproject.toml` |
+| `make lint-coverage` | `poetry run python -m linux_hi.cli.linters.coverage` | `<root>/config/lint.toml` |
 | `make lint-format` | `poetry run ruff format --check` | `<root>/pyproject.toml` |
 | `make lint-ty` | `poetry run ty check` | `<root>/pyproject.toml` |
 | `make lint-checkmake` | `poetry run mbake format --check Makefile` | `-` |
