@@ -3,6 +3,11 @@ Description={{ pod_description }}
 After=network.target
 
 [Pod]
+# Keep the pod infra container alive when individual member containers restart.
+# Without this, restarting any container causes the pod to stop (default
+# exit-policy=stop), which then prevents the container from starting again
+# because its BindsTo=<pod>.service dependency is inactive.
+PodmanArgs=--exit-policy=continue
 {% for port in pod_ports | default([]) %}
 PublishPort={{ port }}
 {% endfor %}

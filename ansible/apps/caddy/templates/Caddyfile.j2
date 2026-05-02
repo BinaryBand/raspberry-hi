@@ -1,0 +1,26 @@
+# Managed by Ansible — do not edit manually.
+# Caddy reverse proxy configuration. Caddy handles TLS automatically via Let's Encrypt.
+#
+# Requirement: ports 80 and 443 must be allowed for unprivileged users.
+# On the host: sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80
+# (persist in /etc/sysctl.d/99-unprivileged-ports.conf)
+
+{
+	email {{ caddy_acme_email }}
+}
+
+{{ caddy_server_name }} {
+	reverse_proxy localhost:{{ synapse_port }}
+}
+
+{% if caddy_minio_server_name is not none %}
+{{ caddy_minio_server_name }} {
+	reverse_proxy localhost:{{ minio_port }}
+}
+{% endif %}
+
+{% if caddy_jelly_server_name is not none %}
+{{ caddy_jelly_server_name }} {
+	reverse_proxy localhost:8096
+}
+{% endif %}

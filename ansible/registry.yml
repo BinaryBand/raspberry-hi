@@ -115,3 +115,31 @@ apps:
         label: "mautrix-whatsapp homeserver token (leave blank to auto-generate)"
         hidden: true
         generate: true
+
+  caddy:
+    service_type: containerized
+    service_name: caddy
+    image: docker.io/library/caddy:2.9
+    port: 443
+    dependencies: []
+    preflight_vars:
+      caddy_data_path:
+        hint: persistent path for Caddy ACME certificate data
+        default: /home/linux-hi/caddy
+        type: path
+      caddy_acme_email:
+        hint: email address for Let's Encrypt notifications
+        default: ~
+        type: text
+      caddy_server_name:
+        hint: "domain Caddy should serve (e.g. chat.example.com)"
+        default: ~
+        type: text
+      caddy_minio_server_name:
+        hint: "optional domain Caddy should proxy to MinIO (e.g. db.example.com)"
+        default: ~
+        type: text
+      caddy_jelly_server_name:
+        hint: "optional domain Caddy should proxy to Jellyfin (e.g. jelly.example.com)"
+        default: ~
+        type: text
