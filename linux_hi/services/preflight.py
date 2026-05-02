@@ -46,8 +46,8 @@ class AnsibleHostVarsStore:
     """Concrete HostVarsPort backed by ANSIBLE_DATA."""
 
     def read(self, hostname: str) -> dict[str, object]:
-        """Return raw host_vars dict for *hostname*."""
-        return ANSIBLE_DATA.read_host_vars_raw(hostname)
+        """Return effective vars for *hostname* (group_vars merged with host_vars)."""
+        return ANSIBLE_DATA.read_effective_vars(hostname)
 
     def write(self, hostname: str, updates: dict[str, str]) -> None:
         """Write *updates* to host_vars for *hostname*."""

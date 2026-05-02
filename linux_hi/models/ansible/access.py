@@ -98,6 +98,23 @@ class AnsibleDataStore:
             return {}
         return self._read_yaml_mapping(host_vars_file)
 
+    def read_group_vars(self) -> dict[str, Any]:
+        """Return merged plaintext group_vars (all/ then devices/ precedence order)."""
+        result: dict[str, Any] = {}
+        for path in [
+            self.ansible_dir / "group_vars" / "all" / "vars.yml",
+            self.ansible_dir / "group_vars" / "devices" / "vars.yml",
+        ]:
+            if path.exists():
+                result.update(self._read_yaml_mapping(path))
+        return result
+
+    def read_effective_vars(self, hostname: str) -> dict[str, Any]:
+        """Return group_vars merged with host_vars; host_vars take precedence."""
+        effective = self.read_group_vars()
+        effective.update(self.read_host_vars_raw(hostname))
+        return effective
+
     def write_host_vars_raw(self, hostname: str, updates: dict[str, Any]) -> None:
         """Merge and persist host_vars data for a host."""
         self.require_inventory_host(hostname)

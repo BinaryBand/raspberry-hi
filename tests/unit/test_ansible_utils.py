@@ -122,3 +122,31 @@ def test_inventory_host_vars_rejects_unknown_inventory_alias() -> None:
     """Unknown inventory aliases should fail before fabric connection setup."""
     with pytest.raises(KeyError, match="Unknown inventory host"):
         ANSIBLE_DATA.host_vars("unknown-host")
+
+
+def test_read_effective_vars_merges_group_vars_under_host_vars(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """host_vars should override group_vars; group_vars fill in the rest."""
+    group_vars_dir = tmp_path / "group_vars" / "devices"
+    group_vars_dir.mkdir(parents=True)
+    (group_vars_dir / "vars.yml").write_text(
+        "shared_var: from_group\ngroup_only_var: group_value\n", encoding="utf-8"
+    )
+
+    host_vars_dir = tmp_path / "host_vars"
+    host_vars_dir.mkdir()
+    (host_vars_dir / "rpi.yml").write_text(
+        "shared_var: from_host\nhost_only_var: host_value\n", encoding="utf-8"
+    )
+
+    store = ansible_access.AnsibleDataStore.from_inventory_file(ANSIBLE_DATA.inventory_file)
+    monkeypatch.setattr(store, "ansible_dir", tmp_path)
+    monkeypatch.setattr(store, "host_vars_dir", host_vars_dir)
+
+    result = store.read_effective_vars("rpi")
+
+    assert result["group_only_var"] == "group_value"
+    assert result["host_only_var"] == "host_value"
+    assert result["shared_var"] == "from_host"

@@ -17,14 +17,15 @@ flowchart LR
       VP[.vault-password]
       R[registry.yml]
       PB[playbooks]
+      GVD[group_vars/devices/vars.yml]
   end
 
-  subgraph VARS [Generated State]
+  subgraph VARS [Generated / Operator State]
     subgraph INV [Inventory]
       H[hosts.yml]
       HV[host_vars/]
     end
-    VAR[vars.yml]
+    VAR[group_vars/all/vars.yml]
     V[vault.yml]
   end
 
@@ -50,9 +51,14 @@ ansible/
     tasks/main.yml       # Standardized 4-step task pattern
     playbook.yml         # Committed; import_playbook chain + pre_tasks
   roles/                 # Shared roles (service_adapter, rclone, podman)
-  group_vars/all/
-    vars.yml             # GENERATED/HAND-EDITABLE — shared non-secret vars (names, ports, etc.)
-    vault.yml            # GENERATED — Encrypted secrets (ansible-vault)
+  group_vars/
+    all/
+      vars.yml           # GENERATED (gitignored) — service names, ports, shared_vars from registry
+      vault.yml          # GENERATED — Encrypted secrets (ansible-vault)
+    devices/
+      vars.yml           # Hand-authored — project-wide defaults for all devices
+                         # (e.g. synapse_server_name, caddy_acme_email)
+                         # host_vars/ overrides these per-host
   inventory/             # GENERATED/HAND-EDITABLE — Managed via `make config-hosts-*`
 
 linux_hi/
@@ -89,7 +95,7 @@ All infrastructure roles live in `ansible/roles/`, run as root, and are provisio
 | `auto-updates` | `base` | Configures unattended package upgrades (distro-appropriate: apt, dnf, zypper, apk, pacman) |
 | `podman` | `podman` | Installs rootless Podman, the container runtime required by all app roles |
 | `rclone` | `base` | Installs rclone and deploys the vault-backed config; required by backup/restore workflows |
-| `caddy` | `caddy` | Native Caddy 2.x reverse proxy and ACME TLS terminator. Installed via apt, runs as the system `caddy` user on ports 80/443. Required before any app needs HTTPS. |
+| `caddy` | `caddy` | Native Caddy 2.x reverse proxy and ACME TLS terminator. Installed via apt, runs as the system `caddy` user on ports 80/443. Required before any app needs HTTPS. Routes are declared as a `caddy_routes` list in host_vars (each entry: `host` label, `external` domain, `internal` backend address). Duplicate external or internal addresses are rejected at runtime. |
 
 ### Ordering Contract
 
@@ -106,6 +112,8 @@ make <app>           # App layer: runs preflight, then app playbook
 
 When a user requests an app (`make <app>`), the Python layer guarantees all dependencies, host variables, and secrets are satisfied before Ansible is invoked.
 
+**Var resolution order (highest precedence last):** `group_vars/all/vars.yml` → `group_vars/devices/vars.yml` → `host_vars/<hostname>.yml`. The preflight checks this full effective set before prompting — a var already set in `group_vars/devices/` is never re-prompted and never written to `host_vars/`. When a var is missing from all three layers, the operator is prompted and the value is written to `host_vars/<hostname>.yml` only.
+
 ```mermaid
 graph
   subgraph Deps [Dependency Recursion]
@@ -113,7 +121,7 @@ graph
     Recurse([Recursive: Resolve dependencies])
   end
 
-  subgraph Vars [Host Vars]
+  subgraph Vars [Effective Vars: group_vars + host_vars]
     NextVar[Next host var]
     PromptVar([Prompt operator])
     VarProvided{Provided?}

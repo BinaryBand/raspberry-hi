@@ -48,7 +48,7 @@ ansible_become_password: "{{ (become_passwords | default({})).get(inventory_host
 
 # Paths on the host where app data is stored (used by minio/postgres roles).
 minio_data_path: /mnt/external/minio
-postgres_data_path: /postgres
+postgres_data_path: /mnt/external/postgres
 ```
 
 ### 2. Set up secrets
