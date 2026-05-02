@@ -15,10 +15,6 @@ apps:
         hint: persistent path for MinIO data
         default: /home/linux-hi/minio
         type: path
-      minio_server_url:
-        hint: "public S3 API URL when behind a reverse proxy (e.g. https://db.example.com)"
-        default: ~
-        type: text
       minio_console_url:
         hint: "public console URL when behind a reverse proxy (e.g. https://console.example.com)"
         default: ~

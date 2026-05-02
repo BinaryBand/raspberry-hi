@@ -2,10 +2,9 @@ ansible_connection: local
 ansible_user: owen
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 postgres_data_path: /home/linux-hi/postgres
-mautrix_whatsapp_data_path: /home/linux-hi/mautrix-whatsapp
-mautrix_whatsapp_homeserver_domain: chat.doreeto.com
-synapse_data_path: /home/linux-hi/synapse
-synapse_server_name: chat.doreeto.com
 caddy_data_path: /home/linux-hi/caddy
 caddy_acme_email: admin@doreeto.com
-caddy_server_name: chat.doreeto.com
+caddy_routes:
+  - host: synapse
+    external: chat.doreeto.com
+    internal: localhost:8008
