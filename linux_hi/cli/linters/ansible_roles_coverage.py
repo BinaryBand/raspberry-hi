@@ -1,4 +1,4 @@
-"""Check coverage of setup playbook roles by tests under tests/roles/."""
+"""Check coverage of infrastructure roles by tests under tests/roles/."""
 
 from __future__ import annotations
 
@@ -9,7 +9,11 @@ from pathlib import Path
 import yaml
 
 _CONFIG = Path("config/lint.toml")
-_SETUP_PLAYBOOK = Path("ansible/playbooks/setup.yml")
+_PLAYBOOKS = [
+    Path("ansible/playbooks/setup.yml"),
+    Path("ansible/playbooks/site.yml"),
+]
+_ROLES_DIR = Path("ansible/roles")
 _TESTS_DIR = Path("tests/roles")
 
 
@@ -19,27 +23,33 @@ def _expected_test_file(role_name: str) -> Path:
     return _TESTS_DIR / f"test_{sanitised}.py"
 
 
-def _setup_roles() -> list[str]:
-    """Extract role names from ansible/playbooks/setup.yml."""
-    loaded = yaml.safe_load(_SETUP_PLAYBOOK.read_text(encoding="utf-8"))
-    if not isinstance(loaded, list) or not loaded:
-        return []
-
-    roles = loaded[0].get("roles", [])
+def _infra_roles() -> list[str]:
+    """Extract role names from all playbooks, keeping only those in ansible/roles/."""
+    seen: set[str] = set()
     found: list[str] = []
-    for role_item in roles:
-        role_name = role_item.get("role") if isinstance(role_item, dict) else None
-        if isinstance(role_name, str) and role_name:
-            found.append(role_name)
+    for playbook in _PLAYBOOKS:
+        loaded = yaml.safe_load(playbook.read_text(encoding="utf-8"))
+        if not isinstance(loaded, list):
+            continue
+        for play in loaded:
+            for role_item in play.get("roles", []):
+                role_name = role_item.get("role") if isinstance(role_item, dict) else None
+                if not isinstance(role_name, str) or not role_name:
+                    continue
+                if role_name in seen:
+                    continue
+                if (_ROLES_DIR / role_name).is_dir():
+                    seen.add(role_name)
+                    found.append(role_name)
     return found
 
 
 def main() -> None:
-    """Report setup-role test coverage and enforce configured floor."""
+    """Report infrastructure-role test coverage and enforce configured floor."""
     cfg = tomllib.loads(_CONFIG.read_text(encoding="utf-8"))
     floor: int = cfg.get("ansible_roles_coverage", {}).get("floor", 0)
 
-    roles = sorted(_setup_roles())
+    roles = sorted(_infra_roles())
     covered = [r for r in roles if _expected_test_file(r).exists()]
     missing = [r for r in roles if r not in covered]
 

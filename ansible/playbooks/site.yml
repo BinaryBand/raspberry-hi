@@ -36,6 +36,4 @@
     - role: baikal
       tags: [apps, baikal]
 
-    # Caddy is a native system service (not containerised) — run `make caddy` to provision.
-    - role: caddy
-      tags: [caddy]
+    # Caddy is a native system service provisioned by make setup; run `make caddy` to re-provision.

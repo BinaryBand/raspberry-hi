@@ -18,3 +18,7 @@
 
     - role: rclone
       tags: [base]
+
+    - role: caddy
+      tags: [caddy]
+      become: true

@@ -74,6 +74,44 @@ tests/
   unit/                  # Fast unit + lint tests
 ```
 
+## Bootstrap / Terraform Roles
+
+Before any app can be provisioned, the target host must satisfy a set of base conditions. Infrastructure roles live in `ansible/roles/` and run as root. They are idempotent, run against a stock Linux install, and do not depend on any app registry entry.
+
+All infrastructure roles live in `ansible/roles/`, run as root, and are provisioned by `make setup` (`ansible/playbooks/setup.yml`). They are idempotent and have no dependency on any app registry entry.
+
+### Setup Roles (`make setup`)
+
+| Role | Tag | Purpose |
+| :--- | :--- | :--- |
+| `auto-updates` | `base` | Configures unattended package upgrades (distro-appropriate: apt, dnf, zypper, apk, pacman) |
+| `podman` | `podman` | Installs rootless Podman, the container runtime required by all app roles |
+| `rclone` | `base` | Installs rclone and deploys the vault-backed config; required by backup/restore workflows |
+| `caddy` | `caddy` | Native Caddy 2.x reverse proxy and ACME TLS terminator. Installed via apt, runs as the system `caddy` user on ports 80/443. Required before any app needs HTTPS. |
+
+`auto-updates`, `podman`, and `rclone` are multi-distro: each contains a `pkg_<manager>.yml` include gated by `ansible_facts['pkg_mgr']`. A role fails early with a clear message if the host's package manager is unsupported and `<role>_fail_on_unsupported` is true (default for `podman`; lenient for `auto-updates`).
+
+Caddy runs on the host network namespace (not containerised), so its `Caddyfile` can reach all containerised backends via `localhost`. It asserts `caddy_acme_email` and `caddy_server_name` are set in `host_vars` before proceeding. Run `make caddy` to re-provision just the Caddy role without running the full setup.
+
+### Ordering Contract
+
+```text
+make setup           # Infrastructure: auto-updates + podman + rclone + caddy  ← must run first
+make <app>           # App layer: runs preflight, then app playbook
+```
+
+App playbooks do not import or depend on `setup.yml`. The ordering is an operator convention, not a playbook DAG edge. This keeps app roles independently convergeable after initial bootstrap.
+
+### Idempotency
+
+`setup.yml` is safe to re-run at any time. On a correctly provisioned host, run 2 produces zero failures and near-zero changed tasks. The E2E test suite asserts this property (`tests/e2e/test_setup_idempotency.py`).
+
+### Coverage Gate
+
+`make lint-ansible-roles-coverage` enforces that every infrastructure role in `ansible/roles/` referenced by `setup.yml` or `site.yml` has a corresponding test file under `tests/roles/`. The floor is configured in `config/lint.toml → [ansible_roles_coverage]` and currently set to 100%.
+
+---
+
 ## Pre-Provisioning Logic
 
 When a user requests an app (`make <app>`), the Python layer guarantees all dependencies, host variables, and secrets are satisfied before Ansible is invoked.
@@ -145,19 +183,19 @@ All input types are strings, separated only by format. They need to be in order 
 
 ```mermaid
 erDiagram
-    RCLONE {
-      string host "r/^(?<host>):(?<path>)$/"
-      string path "named capture: path"
-    }
-    PATH {
-      string path "regex: r/^(?<path>)$/"
-    }
-    STRING {
-      string value "str"
-    }
+  RCLONE {
+    string host "r/^(?<host>):(?<path>)$/"
+    string path "named capture: path"
+  }
+  PATH {
+    string path "regex: r/^(?<path>)$/"
+  }
+  STRING {
+    string value "str"
+  }
 
-    RCLONE ||--|| PATH : "is a"
-    PATH ||--|| STRING : "is a"
+  RCLONE ||--|| PATH : "is a"
+  PATH ||--|| STRING : "is a"
 
 ```
 
@@ -202,6 +240,8 @@ Run `make lint` to run all of the following:
 | **Command** | Command | Config(s) |
 | --- | --- | --- |
 | `make lint-ansible` | `poetry run ansible-lint ansible` | `<root>/ansible/ansible.cfg` |
+| `make lint-ansible-coverage` | `poetry run python -m linux_hi.cli.linters.ansible_coverage` | `config/lint.toml → [ansible_coverage]` |
+| `make lint-ansible-roles-coverage` | `poetry run python -m linux_hi.cli.linters.ansible_roles_coverage` | `config/lint.toml → [ansible_roles_coverage]` |
 | `make lint-check` | `poetry run ruff check` | `<root>/pyproject.toml` |
 | `make lint-format` | `poetry run ruff format --check` | `<root>/pyproject.toml` |
 | `make lint-ty` | `poetry run ty check` | `<root>/pyproject.toml` |
@@ -209,8 +249,8 @@ Run `make lint` to run all of the following:
 | `make lint-cpd` | `npx jscpd --config config/jscpd.json .` | `config/jscpd.json` |
 | `make lint-repo-policy` | `poetry run python -m linux_hi.cli.repo_policy_check` | `-` |
 | `make lint-semgrep` | `poetry run semgrep scan --config rules/ --error` | `<root>/rules/**/*.yml` |
-| `make lint-lizard` | `poetry run python -m linux_hi.cli.lizard` | `<root>/config/lint.toml` |
-| `make lint-vulture` | `poetry run python -m linux_hi.cli.vulture` | `<root>/config/lint.toml` |
+| `make lint-lizard` | `poetry run python -m linux_hi.cli.linters.lizard` | `<root>/config/lint.toml` |
+| `make lint-vulture` | `poetry run python -m linux_hi.cli.linters.vulture` | `<root>/config/lint.toml` |
 
 ### SSH
 
