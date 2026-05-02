@@ -115,3 +115,16 @@ apps:
         label: "mautrix-whatsapp homeserver token (leave blank to auto-generate)"
         hidden: true
         generate: true
+
+  jellyfin:
+    service_type: containerized
+    service_name: jellyfin
+    image: docker.io/jellyfin/jellyfin:10.10.7
+    port: 8096
+    dependencies: []
+    preflight_vars:
+      jellyfin_media_remote:
+        hint: "rclone media library in remote:path format (read-only mount source)"
+        default: ~
+        type: rclone_remote
+    vault_secrets: []

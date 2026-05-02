@@ -1,6 +1,12 @@
 [Unit]
 Description={{ container_description }}
 After=network.target
+{% for dep in container_unit_after | default([]) %}
+After={{ dep }}
+{% endfor %}
+{% for dep in container_unit_requires | default([]) %}
+Requires={{ dep }}
+{% endfor %}
 
 [Container]
 Image={{ container_image }}

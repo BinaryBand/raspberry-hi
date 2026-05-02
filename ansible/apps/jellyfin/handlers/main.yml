@@ -1,0 +1,26 @@
+---
+- name: Restart jellyfin
+  listen: restart jellyfin
+  ansible.builtin.include_tasks: ../../../roles/service_adapter/tasks/restart.yml
+  vars:
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
+
+- name: Restart jellyfin media library
+  listen: restart jellyfin media library
+  ansible.builtin.command: "id -u {{ ansible_user }}"
+  register: _jellyfin_media_uid
+  changed_when: false
+
+- name: Restart jellyfin media library service
+  listen: restart jellyfin media library
+  ansible.builtin.systemd:
+    name: jellyfin-media-library
+    scope: user
+    state: restarted
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _jellyfin_media_uid.stdout | trim }}"
+  become: true
+  become_user: "{{ ansible_user }}"

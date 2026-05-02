@@ -1,0 +1,6 @@
+---
+jellyfin_config_path: /home/linux-hi/jellyfin/config
+jellyfin_cache_path: /home/linux-hi/jellyfin/cache
+jellyfin_media_mount_path: /home/linux-hi/jellyfin/media
+jellyfin_media_remote: ~  # required; set in host_vars/<hostname>.yml via preflight
+jellyfin_rclone_config_path: "{{ app_user_home }}/.config/rclone/rclone.conf"

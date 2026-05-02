@@ -1,0 +1,128 @@
+---
+# 0. Guard: fail fast if required variables are not explicitly configured.
+- name: Assert jellyfin_media_remote is set
+  ansible.builtin.assert:
+    that: jellyfin_media_remote is not none
+    fail_msg: >-
+      jellyfin_media_remote is not set for '{{ inventory_hostname }}'.
+      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+        jellyfin_media_remote: remote:path
+
+- name: Get UID of {{ ansible_user }}
+  ansible.builtin.command: "id -u {{ ansible_user }}"
+  register: _jellyfin_user_uid_out
+  changed_when: false
+
+- name: Set _jellyfin_user_uid fact
+  ansible.builtin.set_fact:
+    _jellyfin_user_uid: "{{ _jellyfin_user_uid_out.stdout | trim }}"
+
+# 1. App-specific directories.
+- name: Ensure Jellyfin config directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_config_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
+  become: true
+
+- name: Ensure Jellyfin cache directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_cache_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0750"
+  become: true
+
+- name: Ensure Jellyfin media mount directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_media_mount_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
+- name: Ensure user systemd directory exists
+  ansible.builtin.file:
+    path: "{{ app_user_home }}/.config/systemd/user"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
+# 2. Install and start read-only rclone media mount.
+- name: Install Jellyfin media library mount service
+  ansible.builtin.template:
+    src: jellyfin-media-library.service.j2
+    dest: "{{ app_user_home }}/.config/systemd/user/jellyfin-media-library.service"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  notify: restart jellyfin media library
+
+- name: Enable and start Jellyfin media library mount
+  ansible.builtin.systemd:
+    name: jellyfin-media-library
+    scope: user
+    state: started
+    enabled: true
+    daemon_reload: true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ _jellyfin_user_uid }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+
+# 3. Pre-pull image to reduce startup delays.
+- name: Pull Jellyfin container image
+  ansible.builtin.command:
+    argv:
+      - podman
+      - pull
+      - "{{ jellyfin_image }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _jellyfin_pull
+  changed_when: "'Copying' in _jellyfin_pull.stdout"
+
+# 4. Deploy container unit.
+- name: Prepare service adapter paths for Jellyfin
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: prepare
+  vars:
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"
+
+- name: Install Jellyfin Podman quadlet
+  ansible.builtin.include_role:
+    name: service_adapter
+    tasks_from: write_container
+  vars:
+    service_adapter_description: "Jellyfin Media Server"
+    service_adapter_image: "{{ jellyfin_image }}"
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_ports:
+      - "{{ jellyfin_port }}:8096"
+    service_adapter_volumes:
+      - "{{ jellyfin_config_path }}:/config:U"
+      - "{{ jellyfin_cache_path }}:/cache:U"
+      - "{{ jellyfin_media_mount_path }}:/media:ro"
+    service_adapter_unit_after:
+      - jellyfin-media-library.service
+    service_adapter_unit_requires:
+      - jellyfin-media-library.service
+
+# 5. Wire up service management — adapter handles init-system details.
+- name: Register Jellyfin with service_adapter
+  ansible.builtin.import_role:
+    name: service_adapter
+  vars:
+    service_adapter_name: "{{ jellyfin_service_name }}"
+    service_adapter_user: "{{ ansible_user }}"
+    service_adapter_run_script: "{{ app_user_home }}/bin/run-jellyfin.sh"

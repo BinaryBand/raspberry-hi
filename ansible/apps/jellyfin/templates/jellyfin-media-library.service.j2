@@ -1,0 +1,14 @@
+[Unit]
+Description=Jellyfin media library rclone mount
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rclone mount {{ jellyfin_media_remote }} {{ jellyfin_media_mount_path }} --config {{ jellyfin_rclone_config_path }} --read-only --dir-cache-time=30m --poll-interval=30s --vfs-cache-mode=off
+ExecStop=-/bin/fusermount -u {{ jellyfin_media_mount_path }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
