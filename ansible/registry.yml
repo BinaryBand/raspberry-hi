@@ -102,10 +102,6 @@ apps:
     dependencies:
       - synapse
     preflight_vars:
-      mautrix_whatsapp_homeserver_domain:
-        hint: "Matrix server domain (e.g. chat.example.com)"
-        default: ~
-        type: text
       mautrix_whatsapp_appservice_address:
         hint: "address where Synapse can reach the bridge"
         default: "http://localhost:29318"

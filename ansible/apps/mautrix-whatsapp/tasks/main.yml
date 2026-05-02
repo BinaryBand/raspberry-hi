@@ -8,14 +8,6 @@
       Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
         mautrix_whatsapp_homeserver_address: https://example.com
 
-- name: Assert mautrix_whatsapp_homeserver_domain is set
-  ansible.builtin.assert:
-    that: mautrix_whatsapp_homeserver_domain is not none
-    fail_msg: >-
-      mautrix_whatsapp_homeserver_domain is not set for '{{ inventory_hostname }}'.
-      Add it to ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
-        mautrix_whatsapp_homeserver_domain: example.com
-
 # 1. App-specific: data directory, config, and database.
 - name: Ensure mautrix-whatsapp data directory exists
   ansible.builtin.file:

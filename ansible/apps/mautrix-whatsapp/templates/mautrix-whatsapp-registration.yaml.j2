@@ -9,9 +9,9 @@ rate_limited: false
 namespaces:
   users:
     - exclusive: true
-      regex: '@whatsapp_.*:{{ mautrix_whatsapp_homeserver_domain }}'
+      regex: '@whatsapp_.*:{{ synapse_server_name }}'
     - exclusive: true
-      regex: '@whatsappbot:{{ mautrix_whatsapp_homeserver_domain }}'
+      regex: '@whatsappbot:{{ synapse_server_name }}'
   aliases: []
   rooms: []
 de.sorunome.msc2409.push_ephemeral: true

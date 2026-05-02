@@ -5,4 +5,3 @@
 ansible_python_interpreter: auto_silent
 caddy_acme_email: retouch-cork-chunk@duck.com
 synapse_server_name: chat.doreeto.com
-mautrix_whatsapp_homeserver_domain: chat.doreeto.com

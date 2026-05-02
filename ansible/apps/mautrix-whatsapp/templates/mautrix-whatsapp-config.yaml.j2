@@ -4,7 +4,7 @@
 # Matrix homeserver details.
 homeserver:
     address: {{ mautrix_whatsapp_homeserver_address }}
-    domain: {{ mautrix_whatsapp_homeserver_domain }}
+    domain: {{ synapse_server_name }}
     software: standard
     status_endpoint: ~
     message_send_checkpoint_endpoint: ~
@@ -43,7 +43,7 @@ matrix:
     delivery_receipts: false
     call_start_notices: true
     federate_rooms: true
-    server_name: {{ mautrix_whatsapp_homeserver_domain }}
+    server_name: {{ synapse_server_name }}
 
 # Bridge command and permission settings.
 bridge:
@@ -54,8 +54,8 @@ bridge:
         welcome_unconnected: "Use `login` to connect your WhatsApp account."
     permissions:
         "*": relay
-        "{{ mautrix_whatsapp_homeserver_domain }}": user
-        "@admin:{{ mautrix_whatsapp_homeserver_domain }}": admin
+        "{{ synapse_server_name }}": user
+        "@admin:{{ synapse_server_name }}": admin
     relay:
         enabled: false
     encryption:
