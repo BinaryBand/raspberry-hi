@@ -1,6 +1,10 @@
 ---
 caddy_data_path: /var/lib/caddy  # override to persist ACME certs at a custom path
 caddy_acme_email: ~              # required; email for Let's Encrypt notifications
-caddy_server_name: ~             # required; primary domain (e.g. chat.example.com)
-caddy_minio_server_name: ~       # optional; domain for MinIO
-caddy_jelly_server_name: ~       # optional; domain for Jellyfin
+
+# List of reverse-proxy routes. Each entry must have:
+#   host:     unique label identifying this route (e.g. synapse, minio)
+#   external: public domain Caddy serves (e.g. chat.example.com)
+#   internal: backend address Caddy proxies to (e.g. localhost:8008)
+# Duplicate host, external, or internal values are rejected at runtime.
+caddy_routes: []

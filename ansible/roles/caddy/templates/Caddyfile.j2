@@ -8,18 +8,8 @@
 {% endif %}
 }
 
-{{ caddy_server_name }} {
-	reverse_proxy localhost:{{ synapse_port }}
+{% for route in caddy_routes %}
+{{ route.external }} {
+	reverse_proxy {{ route.internal }}
 }
-
-{% if caddy_minio_server_name is not none %}
-{{ caddy_minio_server_name }} {
-	reverse_proxy localhost:{{ minio_port }}
-}
-{% endif %}
-
-{% if caddy_jelly_server_name is not none %}
-{{ caddy_jelly_server_name }} {
-	reverse_proxy localhost:8096
-}
-{% endif %}
+{% endfor %}

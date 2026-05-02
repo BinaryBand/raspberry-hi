@@ -4,11 +4,17 @@ ansible_port: 22
 ansible_ssh_private_key_file: config/.ed25519
 ansible_become_password: "{{ (become_passwords | default({})).get(inventory_hostname, '') }}"
 minio_data_path: /mnt/external/minio
+minio_server_url: https://db.doreeto.com
 postgres_data_path: /postgres
 baikal_config_path: /home/linux-hi/baikal/config
 baikal_data_path: /home/linux-hi/baikal/data
 caddy_acme_email: retouch-cork-chunk@duck.com
-caddy_server_name: chat.doreeto.com
-caddy_minio_server_name: db.doreeto.com
+caddy_routes:
+  - host: synapse
+    external: chat.doreeto.com
+    internal: localhost:8008
+  - host: minio
+    external: db.doreeto.com
+    internal: localhost:9000
 synapse_server_name: chat.doreeto.com
 mautrix_whatsapp_homeserver_domain: chat.doreeto.com
