@@ -10,3 +10,6 @@ paths = ["linux_hi", "tests"]
 
 [coverage]
 floor = 80
+
+[ansible_coverage]
+floor = 20
