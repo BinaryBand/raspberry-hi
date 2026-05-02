@@ -64,6 +64,12 @@
   when: _synapse_signing_key_check.rc != 0
   changed_when: true
 
+- name: Check whether mautrix-whatsapp registration file exists
+  ansible.builtin.stat:
+    path: "{{ synapse_data_path }}/mautrix-whatsapp-registration.yaml"
+  become: true
+  register: _synapse_mautrix_reg_file
+
 - name: Install Synapse homeserver.yaml
   ansible.builtin.template:
     src: homeserver.yaml.j2

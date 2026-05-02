@@ -3,7 +3,7 @@ synapse_data_path: /home/linux-hi/synapse
 
 # Matrix server name — appears in all user and room IDs (@user:server_name).
 # Must match the domain your Matrix clients connect to.
-synapse_server_name: ~  # required; e.g. chat.doreeto.com
+synapse_server_name: ~  # required; e.g. chat.example.com
 
 # Whether to report anonymous usage statistics to the Matrix.org team.
 synapse_report_stats: "no"
