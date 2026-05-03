@@ -59,10 +59,12 @@ bridge:
     relay:
         enabled: false
     encryption:
-        allow: false
-        default: false
+        allow: true
+        default: true
         require: false
-        appservice: false
+        appservice: true
+        allow_key_sharing: true
+        pickle_key: "{{ mautrix_whatsapp_pickle_key }}"
 
 # Logging — write to stdout only.
 logging:

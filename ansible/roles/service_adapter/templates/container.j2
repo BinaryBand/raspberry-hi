@@ -4,9 +4,14 @@ After=network.target
 {% for dep in container_unit_after | default([]) %}
 After={{ dep }}
 {% endfor %}
+{% for dep in container_unit_wants | default([]) %}
+Wants={{ dep }}
+{% endfor %}
 {% for dep in container_unit_requires | default([]) %}
 Requires={{ dep }}
 {% endfor %}
+StartLimitBurst=5
+StartLimitIntervalSec=60
 
 [Container]
 Image={{ container_image }}

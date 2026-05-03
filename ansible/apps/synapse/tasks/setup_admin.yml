@@ -1,0 +1,80 @@
+---
+# Idempotently seeds the Synapse admin account.
+# Skipped entirely if synapse_admin_user / synapse_admin_password are absent from vault.
+
+- name: Wait for Synapse TCP port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ synapse_port }}"
+    state: started
+    timeout: 60
+
+- name: Wait until Synapse health endpoint responds HTTP 200
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ synapse_port }}/_matrix/client/versions"
+    method: GET
+    status_code: 200
+    validate_certs: false
+  register: _synapse_health
+  retries: 12
+  delay: 5
+  until: _synapse_health.status == 200
+  failed_when: false
+
+- name: Fail if Synapse health endpoint never became ready
+  ansible.builtin.fail:
+    msg: >-
+      Synapse health endpoint did not return HTTP 200 after 12 retries.
+      Check service logs: make logs SVC=synapse
+  when: _synapse_health.status | default(0) != 200
+
+- name: Check whether Synapse admin user exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - run
+      - --rm
+      - --network
+      - host
+      - -e
+      - PGPASSWORD
+      - "{{ postgres_image }}"
+      - psql
+      - -tAc
+      - "SELECT 1 FROM users WHERE name='@{{ synapse_admin_user }}:{{ synapse_server_name }}'"
+      - -h
+      - "127.0.0.1"
+      - -p
+      - "{{ postgres_port | string }}"
+      - -U
+      - "{{ synapse_db_user }}"
+      - -d
+      - "{{ synapse_db_name }}"
+  environment:
+    PGPASSWORD: "{{ synapse_db_password }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _synapse_admin_check
+  changed_when: false
+  no_log: true
+
+- name: Register Synapse admin user
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - synapse
+      - register_new_matrix_user
+      - -u
+      - "{{ synapse_admin_user }}"
+      - -p
+      - "{{ synapse_admin_password }}"
+      - -a
+      - -c
+      - /data/homeserver.yaml
+      - "http://localhost:{{ synapse_port }}"
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: _synapse_admin_check.stdout | trim != '1'
+  changed_when: true
+  no_log: true

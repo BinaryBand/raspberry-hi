@@ -24,5 +24,6 @@
     container_env_file: "{{ service_adapter_env_file | default('') }}"
     container_pod: "{{ service_adapter_pod | default('') }}"
     container_unit_after: "{{ service_adapter_unit_after | default([]) }}"
+    container_unit_wants: "{{ service_adapter_unit_wants | default([]) }}"
     container_unit_requires: "{{ service_adapter_unit_requires | default([]) }}"
   notify: "restart {{ service_adapter_name }}"

@@ -79,8 +79,6 @@ tests/
 
 Before any app can be provisioned, the target host must satisfy a set of base conditions. Infrastructure roles live in `ansible/roles/` and run as root. They are idempotent, run against a stock Linux install, and do not depend on any app registry entry.
 
-All infrastructure roles live in `ansible/roles/`, run as root, and are provisioned by `make setup` (`ansible/playbooks/setup.yml`). They are idempotent and have no dependency on any app registry entry.
-
 ### Setup Roles (`make setup`)
 
 `auto-updates`, `podman`, `caddy`, and `rclone` are multi-distro: each contains a `pkg_<manager>.yml` include gated by `ansible_facts['pkg_mgr']`. A role fails early with a clear message if the host's package manager is unsupported and `<role>_fail_on_unsupported` is true (default for `podman`; lenient for `auto-updates`).
@@ -99,7 +97,7 @@ make setup           # Infrastructure: auto-updates + podman + rclone + caddy  â
 make <app>           # App layer: runs preflight, then app playbook
 ```
 
-`setup.yml` is safe to re-run at any time. On a correctly provisioned host, run 2 produces zero failures and near-zero changed tasks. The E2E test suite asserts this property (`tests/e2e/test_setup_idempotency.py`).
+> All infrastructure roles live in `ansible/roles/`, run as root, and are provisioned by `make setup` (`ansible/playbooks/setup.yml`). They are idempotent and have no dependency on any app registry entry.
 
 * * *
 

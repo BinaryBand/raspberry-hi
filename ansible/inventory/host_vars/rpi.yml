@@ -17,4 +17,4 @@ caddy_routes:
     external: db.doreeto.com
     internal: localhost:9000
 postgres_data_path: /home/linux-hi/postgres
-jellyfin_media_remote: pcloud:Media
+jellyfin_media_remote: "pcloud:Media Archive"

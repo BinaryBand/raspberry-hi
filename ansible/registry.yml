@@ -87,6 +87,12 @@ apps:
         label: "Synapse form secret (leave blank to auto-generate)"
         hidden: true
         generate: true
+      - key: synapse_admin_user
+        label: "Synapse admin username"
+        hidden: false
+      - key: synapse_admin_password
+        label: "Synapse admin password"
+        hidden: true
 
   mautrix-whatsapp:
     service_type: containerized
@@ -109,6 +115,10 @@ apps:
         generate: true
       - key: mautrix_whatsapp_hs_token
         label: "mautrix-whatsapp homeserver token (leave blank to auto-generate)"
+        hidden: true
+        generate: true
+      - key: mautrix_whatsapp_pickle_key
+        label: "mautrix-whatsapp E2EE pickle key (leave blank to auto-generate)"
         hidden: true
         generate: true
 

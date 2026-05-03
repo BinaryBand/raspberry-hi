@@ -198,3 +198,14 @@
     service_adapter_name: "{{ synapse_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
     service_adapter_run_script: "{{ app_user_home }}/bin/run-synapse.sh"
+
+# Flush so config changes (e.g. homeserver.yaml) cause a restart before the health check.
+- name: Flush handlers before admin seeding
+  ansible.builtin.meta: flush_handlers
+
+# 5. Seed admin account on first run (skipped if vault secrets are absent).
+- name: Seed Synapse admin account
+  ansible.builtin.include_tasks: setup_admin.yml
+  when:
+    - synapse_admin_user | default('') | length > 0
+    - synapse_admin_password | default('') | length > 0

@@ -21,9 +21,9 @@ def test_jellyfin_role_wires_read_only_media_mount() -> None:
 
 
 def test_jellyfin_container_depends_on_media_mount_unit() -> None:
-    """Jellyfin container quadlet should require and start after media mount service."""
+    """Jellyfin container quadlet should want and start after media mount service."""
     tasks = _read_text("ansible/apps/jellyfin/tasks/main.yml")
 
     assert "service_adapter_unit_after:" in tasks
-    assert "service_adapter_unit_requires:" in tasks
+    assert "service_adapter_unit_wants:" in tasks
     assert "jellyfin-media-library.service" in tasks

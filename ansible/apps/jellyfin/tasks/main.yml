@@ -115,7 +115,7 @@
       - "{{ jellyfin_media_mount_path }}:/media:ro"
     service_adapter_unit_after:
       - jellyfin-media-library.service
-    service_adapter_unit_requires:
+    service_adapter_unit_wants:
       - jellyfin-media-library.service
 
 # 5. Wire up service management — adapter handles init-system details.
