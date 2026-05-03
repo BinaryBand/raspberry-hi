@@ -155,6 +155,22 @@
   notify: restart synapse
   no_log: true
 
+# The Synapse container runs as synapse_runtime_uid inside the podman user
+# namespace. Writing the file as ansible_user above makes it unreadable to
+# Synapse (owner mismatch + mode 0600). Re-chown via podman unshare so the
+# UID mapping resolves correctly inside the container.
+- name: Fix registration file ownership for Synapse rootless podman
+  ansible.builtin.command:
+    argv:
+      - podman
+      - unshare
+      - chown
+      - "{{ synapse_runtime_uid }}:{{ synapse_runtime_gid }}"
+      - "{{ synapse_data_path }}/mautrix-whatsapp-registration.yaml"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+
 # 3. Deploy container unit.
 - name: Prepare service adapter paths for mautrix-whatsapp
   ansible.builtin.include_role:
@@ -175,7 +191,7 @@
     service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
     service_adapter_pod: matrix-pod
     service_adapter_volumes:
-      - "{{ mautrix_whatsapp_data_path }}:/data:U"
+      - "{{ mautrix_whatsapp_data_path }}:/data"
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register mautrix-whatsapp with service_adapter
@@ -185,3 +201,19 @@
     service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
     service_adapter_run_script: "{{ app_user_home }}/bin/run-mautrix-whatsapp.sh"
+
+# Flush so registration-file changes trigger a Synapse restart before the play ends.
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Synapse to be ready after any restart
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ synapse_port }}/_matrix/client/versions"
+    method: GET
+    status_code: 200
+    validate_certs: false
+  register: _synapse_ready
+  retries: 36
+  delay: 5
+  until: _synapse_ready.status == 200
+  failed_when: _synapse_ready.status | default(0) != 200

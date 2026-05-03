@@ -12,7 +12,7 @@
     name: "{{ service_adapter_name }}"
     scope: user
     state: restarted
-    daemon_reload: true
+    daemon_reload: false
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ _service_adapter_restart_uid.stdout | trim }}"
   become: true

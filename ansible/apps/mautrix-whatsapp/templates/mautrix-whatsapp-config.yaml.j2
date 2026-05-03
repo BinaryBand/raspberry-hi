@@ -58,13 +58,36 @@ bridge:
         "@admin:{{ synapse_server_name }}": admin
     relay:
         enabled: false
-    encryption:
-        allow: true
-        default: true
-        require: false
-        appservice: true
-        allow_key_sharing: true
-        pickle_key: "{{ mautrix_whatsapp_pickle_key }}"
+
+# E2EE configuration — must be a top-level key, not nested under bridge.
+encryption:
+    allow: true
+    default: true
+    require: false
+    appservice: false
+    msc4190: false
+    msc4392: false
+    self_sign: true
+    allow_key_sharing: true
+    pickle_key: "{{ mautrix_whatsapp_pickle_key }}"
+    delete_keys:
+        delete_outbound_on_ack: false
+        dont_store_outbound: false
+        ratchet_on_decrypt: false
+        delete_fully_used_on_decrypt: false
+        delete_prev_on_new_session: false
+        delete_on_device_delete: false
+        periodically_delete_expired: false
+        delete_outdated_inbound: false
+    verification_levels:
+        receive: unverified
+        send: unverified
+        share: cross-signed-tofu
+    rotation:
+        enable_custom: false
+        milliseconds: 604800000
+        messages: 100
+        disable_device_change_key_rotation: false
 
 # Logging — write to stdout only.
 logging:

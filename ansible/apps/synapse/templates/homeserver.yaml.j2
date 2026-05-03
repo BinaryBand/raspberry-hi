@@ -42,8 +42,11 @@ registration_shared_secret: {{ synapse_registration_shared_secret }}
 macaroon_secret_key: {{ synapse_macaroon_secret_key }}
 form_secret: {{ synapse_form_secret }}
 
+# msc3202_transaction_extensions: required for appservice-mode E2EE in mautrix bridges.
+# Still experimental in v1.151.0 — safe to set. Do NOT re-add
+# msc2409_to_device_messages_enabled (graduated/removed; crashes v1.151.0).
 experimental_features:
-  msc2409_to_device_messages_enabled: true
+  msc3202_transaction_extensions: true
 
 {% if _synapse_mautrix_reg_file.stat.exists | default(false) %}
 app_service_config_files:
