@@ -1,0 +1,6 @@
+---
+- name: Install caddy
+  community.general.zypper:
+    name: caddy
+    state: present
+  become: true

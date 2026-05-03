@@ -1,0 +1,6 @@
+---
+- name: Install rclone
+  ansible.builtin.package:
+    name: rclone
+    state: present
+  become: true

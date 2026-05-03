@@ -1,0 +1,2 @@
+---
+# Aggregator role: no tasks. Preflight resolves dependencies (caddy, rclone) before this runs.

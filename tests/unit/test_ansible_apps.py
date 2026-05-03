@@ -29,7 +29,7 @@ def test_registry_entries_have_known_service_type() -> None:
     """Each registry entry should expose a valid service type."""
     for app in ANSIBLE_DATA.all_apps():
         entry = ANSIBLE_DATA.get_app_entry(app)
-        assert entry.service_type == "containerized"
+        assert entry.service_type in {"containerized", "system"}
 
 
 def test_app_entry_data() -> None:
@@ -61,7 +61,7 @@ def test_app_restart_handlers_delegate_to_service_adapter() -> None:
 
 def test_playbooks_have_named_import_playbook_items() -> None:
     """Every import_playbook item must have a name: to satisfy ansible-lint name[play]."""
-    for app in ANSIBLE_DATA.all_apps():
+    for app in ANSIBLE_DATA.containerized_apps():
         lines = (ANSIBLE_DIR / "apps" / app / "playbook.yml").read_text().splitlines()
         for i, line in enumerate(lines):
             if "import_playbook:" in line:
@@ -73,7 +73,7 @@ def test_playbooks_have_named_import_playbook_items() -> None:
 
 def test_apps_with_dependencies_import_dependency_playbooks() -> None:
     """Apps that declare dependencies must import the dependency playbook."""
-    for app in ANSIBLE_DATA.all_apps():
+    for app in ANSIBLE_DATA.containerized_apps():
         entry = ANSIBLE_DATA.get_app_entry(app)
         if not entry.dependencies:
             continue

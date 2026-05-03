@@ -25,9 +25,9 @@ def test_ansible_dir_exists() -> None:
 
 
 def test_registered_apps_have_role_directories() -> None:
-    """Each registered app must resolve to a role directory under ansible/apps."""
+    """Each registered app must resolve to a role directory under ansible/apps or ansible/roles."""
     for app in ANSIBLE_DATA.all_apps():
-        assert (ANSIBLE_DATA.ansible_dir / "apps" / app).exists()
+        assert ANSIBLE_DATA.role_path(app).exists()
 
 
 def test_registry_entries_expose_preflight_fields() -> None:

@@ -21,5 +21,4 @@ def test_podman_defaults_define_supported_managers() -> None:
     content = (ROOT / "ansible/roles/podman/defaults/main.yml").read_text(encoding="utf-8")
 
     assert "podman_supported_managers:" in content
-    for mgr in ("apt", "dnf", "apk", "pacman", "zypper"):
-        assert f"- {mgr}" in content
+    assert "linux_hi_supported_managers" in content

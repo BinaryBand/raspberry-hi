@@ -1,2 +1,5 @@
 ---
+rclone_fail_on_unsupported: true
+rclone_supported_managers: "{{ linux_hi_supported_managers }}"
+
 rclone_config_path: "{{ app_user_home }}/.config/rclone/rclone.conf"

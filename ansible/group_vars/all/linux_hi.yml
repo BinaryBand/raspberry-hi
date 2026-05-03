@@ -1,0 +1,12 @@
+---
+# Static infrastructure variables — not generated; edit directly.
+
+# Canonical list of package managers supported by system roles (caddy, rclone, podman, …).
+# All roles with platform-specific install paths reference this list via their own
+# <role>_supported_managers default so there is a single source of truth.
+linux_hi_supported_managers:
+  - apt
+  - dnf
+  - apk
+  - pacman
+  - zypper

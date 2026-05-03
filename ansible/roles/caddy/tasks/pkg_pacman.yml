@@ -1,0 +1,6 @@
+---
+- name: Install caddy
+  community.general.pacman:
+    name: caddy
+    state: present
+  become: true

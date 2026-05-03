@@ -1,0 +1,6 @@
+---
+- name: Install caddy
+  ansible.builtin.dnf:
+    name: caddy
+    state: present
+  become: true

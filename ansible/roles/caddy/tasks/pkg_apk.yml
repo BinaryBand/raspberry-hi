@@ -1,0 +1,6 @@
+---
+- name: Install caddy
+  community.general.apk:
+    name: caddy
+    state: present
+  become: true

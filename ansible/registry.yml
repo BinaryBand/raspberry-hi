@@ -122,6 +122,24 @@ apps:
         hidden: true
         generate: true
 
+  caddy:
+    service_type: system
+    preflight_vars:
+      caddy_acme_email:
+        hint: "email address for Let's Encrypt ACME certificates"
+        type: text
+
+  rclone:
+    service_type: system
+    vault_secrets:
+      - key: rclone_config
+        label: "rclone config file contents"
+        hidden: false
+
+  setup:
+    service_type: system
+    dependencies: [caddy, rclone]
+
   jellyfin:
     service_type: containerized
     service_name: jellyfin

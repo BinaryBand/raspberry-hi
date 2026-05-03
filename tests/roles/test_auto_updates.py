@@ -21,5 +21,4 @@ def test_auto_updates_defaults_define_supported_managers() -> None:
     content = (ROOT / "ansible/roles/auto-updates/defaults/main.yml").read_text(encoding="utf-8")
 
     assert "auto_updates_supported_managers:" in content
-    for mgr in ("apt", "dnf", "zypper", "apk", "pacman"):
-        assert f"- {mgr}" in content
+    assert "linux_hi_supported_managers" in content

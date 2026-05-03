@@ -1,4 +1,7 @@
 ---
+caddy_fail_on_unsupported: true
+caddy_supported_managers: "{{ linux_hi_supported_managers }}"
+
 caddy_data_path: /var/lib/caddy  # override to persist ACME certs at a custom path
 caddy_acme_email: ~              # required; email for Let's Encrypt notifications
 

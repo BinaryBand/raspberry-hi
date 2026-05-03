@@ -8,7 +8,7 @@ rules:
     paths:
       include:
         - /ansible/inventory/host_vars/*.yml
-    pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|baikal_encryption_key|synapse_macaroon_secret_key|synapse_admin_user)\s*:'
+    pattern-regex: '(?im)^\s*(?!ansible_become_password\s*:)(?:[A-Za-z0-9_]*password|[A-Za-z0-9_]*secret|[A-Za-z0-9_]*token|[A-Za-z0-9_]*api_key|[A-Za-z0-9_]*private_key|minio_root_user|baikal_encryption_key|synapse_macaroon_secret_key|synapse_admin_user|rclone_config|mautrix_whatsapp_pickle_key)\s*:'
 
   - id: rclone-conf-not-tracked
     message: >-

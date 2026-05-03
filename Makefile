@@ -282,6 +282,7 @@ logs: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u $(SVC) -n 50 --no-pager"
 
 setup: _vault_check
+	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight setup
 	$(SETUP_PLAY)
 
 caddy: _vault_check

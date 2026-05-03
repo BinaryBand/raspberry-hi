@@ -2,12 +2,7 @@
 auto_updates_enabled: true
 auto_updates_fail_on_unsupported: false
 
-auto_updates_supported_managers:
-  - apt
-  - dnf
-  - zypper
-  - apk
-  - pacman
+auto_updates_supported_managers: "{{ linux_hi_supported_managers }}"
 
 auto_updates_reboot_enabled: true
 auto_updates_reboot_time: "03:00"

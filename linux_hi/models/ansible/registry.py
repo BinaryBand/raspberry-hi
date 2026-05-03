@@ -30,7 +30,7 @@ class VaultSecretSpec(BaseModel):
 
 
 class AppRegistryEntry(BaseModel):
-    service_type: Literal["containerized"]
+    service_type: Literal["containerized", "system"]
     service_name: str | None = None
     image: str | None = None
     port: int | None = None
