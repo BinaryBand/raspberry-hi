@@ -90,7 +90,7 @@ help:
 	@echo "  config-rclone Open interactive rclone config editor for ansible/config/rclone.conf"
 	@echo "  config-rclone-edit Open ansible/config/rclone.conf in nano"
 	@echo "  config-hosts  Hosts config entrypoint (defaults to list)"
-	@echo "  config-hosts-add Add a host (supports NAME ADDRESS/ADDR SECRET/KEY USER PORT)"
+	@echo "  config-hosts-add Add a host (supports NAME ADDRESS/ADDR SECRET/KEY SSH_USER PORT)"
 	@echo "  config-hosts-remove Remove a host (supports NAME)"
 	@echo "  config-hosts-list List configured hosts"
 	@echo "  config-hosts-edit Open ansible/inventory/hosts.yml in nano"
@@ -212,7 +212,7 @@ config-hosts-add:
 	if [ -n "$(NAME)" ]; then args="$$args --name $(NAME)"; fi; \
 		if [ -n "$(ADDRESS)" ]; then args="$$args --address $(ADDRESS)"; elif [ -n "$(ADDR)" ]; then args="$$args --address $(ADDR)"; fi; \
 			if [ -n "$(SECRET)" ]; then args="$$args --secret $(SECRET)"; elif [ -n "$(KEY)" ]; then args="$$args --secret $(KEY)"; fi; \
-				if [ -n "$(USER)" ]; then args="$$args --user $(USER)"; fi; \
+				if [ -n "$(SSH_USER)" ]; then args="$$args --user $(SSH_USER)"; fi; \
 					if [ -n "$(PORT)" ]; then args="$$args --port $(PORT)"; fi; \
 						$(POETRY) python -m linux_hi.cli.hosts add $$args
 

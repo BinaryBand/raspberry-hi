@@ -151,6 +151,13 @@ class AnsibleDataStore:
         """Add a host entry to the YAML inventory under the specified group."""
         ryaml = YAML()
         ryaml.preserve_quotes = True
+        if not self.inventory_file.exists():
+            self.inventory_file.parent.mkdir(parents=True, exist_ok=True)
+            (self.inventory_dir / "host_vars").mkdir(exist_ok=True)
+            self.inventory_file.write_text(
+                "all:\n  children:\n    devices:\n      hosts: {}\n",
+                encoding="utf-8",
+            )
         data = ryaml.load(self.inventory_file.read_text(encoding="utf-8"))
         try:
             hosts = data["all"]["children"][group]["hosts"]

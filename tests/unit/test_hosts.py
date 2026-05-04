@@ -144,9 +144,14 @@ def test_cmd_add_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
         def write_host_vars_raw(self, name: str, data: dict[str, object]) -> None:
             calls.append(("write_host_vars_raw", (name, data)))
 
-    answers = iter(["rpi", "192.168.1.10", "pi", "/home/me/.ssh/id_ed25519", "s3cr3t"])
+    answers = iter(["rpi", "192.168.1.10", "pi", "s3cr3t"])
 
     monkeypatch.setattr(hosts, "ANSIBLE_DATA", _Store())
+    monkeypatch.setattr(hosts, "_scan_ssh_hosts", lambda: [])
+    monkeypatch.setattr(hosts, "_port_open", lambda *_a, **_k: True)
+    monkeypatch.setattr(hosts, "_ensure_project_key", lambda: Path("ansible/config/.ed25519"))
+    monkeypatch.setattr(hosts, "_copy_public_key", lambda *_a, **_k: True)
+    monkeypatch.setattr(hosts, "_test_connection", lambda *_a, **_k: True)
     monkeypatch.setattr(
         hosts.questionary,
         "text",
@@ -163,7 +168,7 @@ def test_cmd_add_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda name, pwd: calls.append(("vault", (name, pwd))),
     )
 
-    args = argparse.Namespace(name=None, address=None, secret=None, user=None, port=22)
+    args = argparse.Namespace(name=None, address=None, user=None, port=22)
     hosts.cmd_add(args)
 
     assert any(c[0] == "add_inventory_host" for c in calls)

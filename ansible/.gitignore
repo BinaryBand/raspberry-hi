@@ -9,3 +9,6 @@ group_vars/all/vars.yml
 
 # Project-local configs (must never be committed)
 config/
+
+# Host inventory — machine-specific, not shared across forks
+inventory/
