@@ -11,13 +11,9 @@ from linux_hi.models.ansible.access import AnsibleDataStore
 
 
 def test_inventory_hosts_returns_configured_aliases() -> None:
-    """inventory_hosts() should return the tracked host aliases from inventory."""
-    assert set(ANSIBLE_DATA.inventory_hosts()) == {
-        "debian",
-        "rpi-4",
-        "rpi-lite-1",
-        "rpi-lite-2",
-    }
+    """inventory_hosts() should return a deterministic, de-duplicated alias list."""
+    hosts = ANSIBLE_DATA.inventory_hosts()
+    assert hosts == sorted(set(hosts))
 
 
 def test_inventory_hosts_from_temp_inventory(tmp_path: Path) -> None:

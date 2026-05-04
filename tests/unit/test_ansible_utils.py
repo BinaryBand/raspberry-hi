@@ -15,11 +15,16 @@ from linux_hi.models.ansible import connection as ansible_connection
 from tests.support.connections import RecordingConnectionFactory
 
 
-def _any_inventory_alias() -> str:
-    """Return a stable alias from the configured inventory for tests."""
-    hosts = ANSIBLE_DATA.inventory_hosts()
-    assert hosts, "Inventory must contain at least one host alias"
-    return hosts[0]
+def _temp_store_with_host(tmp_path: Path, alias: str = "alpha") -> ansible_access.AnsibleDataStore:
+    """Build an isolated AnsibleDataStore bound to a temporary inventory."""
+    inventory_dir = tmp_path / "inventory"
+    inventory_dir.mkdir(parents=True, exist_ok=True)
+    inventory_file = inventory_dir / "hosts.yml"
+    inventory_file.write_text(
+        f"all:\n  children:\n    devices:\n      hosts:\n        {alias}:\n",
+        encoding="utf-8",
+    )
+    return ansible_access.AnsibleDataStore.from_inventory_file(inventory_file)
 
 
 def _capture_connection_kwargs(
@@ -118,10 +123,11 @@ def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
     tmp_path: Path,
 ) -> None:
     """Missing host_vars should still produce a valid HostVars object."""
-    monkeypatch.setattr(ANSIBLE_DATA, "host_vars_dir", tmp_path)
-    alias = _any_inventory_alias()
+    alias = "alpha"
+    store = _temp_store_with_host(tmp_path, alias=alias)
+    monkeypatch.setattr(store, "host_vars_dir", tmp_path / "missing-host-vars")
 
-    host = ANSIBLE_DATA.host_vars(alias)
+    host = store.host_vars(alias)
 
     assert host.ansible_host == alias
 
@@ -145,12 +151,12 @@ def test_read_effective_vars_merges_group_vars_under_host_vars(
 
     host_vars_dir = tmp_path / "host_vars"
     host_vars_dir.mkdir()
-    alias = _any_inventory_alias()
+    alias = "alpha"
     (host_vars_dir / f"{alias}.yml").write_text(
         "shared_var: from_host\nhost_only_var: host_value\n", encoding="utf-8"
     )
 
-    store = ansible_access.AnsibleDataStore.from_inventory_file(ANSIBLE_DATA.inventory_file)
+    store = _temp_store_with_host(tmp_path, alias=alias)
     monkeypatch.setattr(store, "ansible_dir", tmp_path)
     monkeypatch.setattr(store, "host_vars_dir", host_vars_dir)
 
