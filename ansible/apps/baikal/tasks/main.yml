@@ -18,6 +18,15 @@
     mode: "0750"
   become: true
 
+- name: Assert required Baikal variables are set
+  ansible.builtin.assert:
+    that:
+      - baikal_admin_password is defined
+      - baikal_encryption_key is defined
+      - baikal_config_path is defined
+      - baikal_data_path is defined
+    fail_msg: "Baikal required variables missing: ensure admin password, encryption key, and config/data paths are set."
+
 - name: Install Baikal application config
   ansible.builtin.template:
     src: baikal.yaml.j2
@@ -100,8 +109,8 @@
     service_adapter_ports:
       - "{{ baikal_port }}:80"
     service_adapter_volumes:
-      - "{{ baikal_config_path }}:/var/www/baikal/config:U"
-      - "{{ baikal_data_path }}:/var/www/baikal/Specific:U"
+      - "{{ baikal_config_path }}:/var/www/baikal/config"
+      - "{{ baikal_data_path }}:/var/www/baikal/Specific"
 
 # 4. Wire up service management — adapter handles init-system details.
 - name: Register Baikal with service_adapter

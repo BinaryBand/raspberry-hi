@@ -26,7 +26,7 @@ apps:
   postgres:
     service_type: containerized
     service_name: postgres
-    image: docker.io/postgres:17.5-alpine
+    image: docker.io/postgres@sha256:6567bca8d7bc8c82c5922425a0baee57be8402df92bae5eacad5f01ae9544daa
     port: 5432
     runtime_uid: 70
     runtime_gid: 70
@@ -47,11 +47,20 @@ apps:
   baikal:
     service_type: containerized
     service_name: baikal
-    image: docker.io/ckulka/baikal:nginx
+    image: docker.io/ckulka/baikal@sha256:1a901125d121a3e414cda87c617bd322c57ae86b9d2aedbff7b3a7ac84bb23aa
     port: 8088
     runtime_uid: 101
     runtime_gid: 101
     dependencies: []
+    preflight_vars:
+      baikal_config_path:
+        hint: path for Baikal configuration files
+        default: /home/linux-hi/baikal/config
+        type: path
+      baikal_data_path:
+        hint: path for Baikal data storage
+        default: /home/linux-hi/baikal/data
+        type: path
     vault_secrets:
       - key: baikal_admin_password
         label: Baikal admin password
@@ -63,7 +72,7 @@ apps:
   synapse:
     service_type: containerized
     service_name: synapse
-    image: ghcr.io/element-hq/synapse:v1.151.0
+    image: ghcr.io/element-hq/synapse@sha256:184dc8757daef019b511e7f96fc6e5edfb880fd074d8cf702c7e3aa899d188c8
     port: 8008
     runtime_uid: 991
     runtime_gid: 991
@@ -97,7 +106,7 @@ apps:
   mautrix-whatsapp:
     service_type: containerized
     service_name: mautrix-whatsapp
-    image: dock.mau.dev/mautrix/whatsapp:v0.2604.0
+    image: dock.mau.dev/mautrix/whatsapp@sha256:224ed2a249800ff380562597b6d880a31a3286c379f797556b361474ea44fa75
     port: 29318
     runtime_uid: 1337
     runtime_gid: 1337
@@ -143,7 +152,7 @@ apps:
   jellyfin:
     service_type: containerized
     service_name: jellyfin
-    image: docker.io/jellyfin/jellyfin:10.10.7
+    image: docker.io/jellyfin/jellyfin@sha256:7ae36aab93ef9b6aaff02b37f8bb23df84bb2d7a3f6054ec8fc466072a648ce2
     port: 8096
     dependencies: []
     preflight_vars:

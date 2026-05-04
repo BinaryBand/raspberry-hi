@@ -22,6 +22,7 @@ KEY ?=
 PORT ?=
 APP ?=
 SVC ?=
+TAGS ?=
 
 # Single inventory call — emits "host user port key" on one line so Make can
 # split it into four variables with $(word N,...).

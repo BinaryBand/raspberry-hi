@@ -4,10 +4,10 @@
 
 This repository has two architecture authorities with different jobs.
 
-- [.semgrep.yml](../.semgrep.yml) is the enforceable authority. It defines the repository rules that must hold mechanically. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L5-L11); Semgrep rules: [.semgrep.yml](.semgrep.yml))
+- [rules/](rules/) is the enforceable authority. It defines the repository rules that must hold mechanically. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L5-L11); Semgrep rules: [rules/](rules/))
 - This document is the explanatory authority. It explains why the rules exist, how the seams are intended to work, and which patterns are architectural rather than incidental.
 
-When the two disagree, treat [.semgrep.yml](../.semgrep.yml) as the source of truth for what contributors may or may not do, then fix this document to match.
+When the two disagree, treat [rules/](rules/) as the source of truth for what contributors may or may not do, then fix this document to match.
 
 ---
 
@@ -95,7 +95,7 @@ Important boundaries:
 - `linux_hi/adapters/` contains protocols and adapter implementations for interactive workflows.
 - `linux_hi/storage/` contains storage discovery, classification, display, and rclone parsing helpers.
 
-Semgrep enforces these boundaries directly (see [.semgrep.yml](.semgrep.yml) for rules such as `python-no-direct-subprocess-import`, `python-no-direct-subprocess-call`, and `python-ruamel-yaml-only-in-ansible-access`).
+Semgrep enforces these boundaries directly (see [rules/](rules/) for rules such as `python-no-direct-subprocess-import`, `python-no-direct-subprocess-call`, and `python-ruamel-yaml-only-in-ansible-access`).
 
 ---
 

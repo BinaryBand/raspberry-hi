@@ -110,8 +110,8 @@
     service_adapter_ports:
       - "{{ jellyfin_port }}:8096"
     service_adapter_volumes:
-      - "{{ jellyfin_config_path }}:/config:U"
-      - "{{ jellyfin_cache_path }}:/cache:U"
+      - "{{ jellyfin_config_path }}:/config"
+      - "{{ jellyfin_cache_path }}:/cache"
       - "{{ jellyfin_media_mount_path }}:/media:ro"
     service_adapter_unit_after:
       - jellyfin-media-library.service

@@ -85,3 +85,15 @@ rules:
       include:
         - /ansible/**/*.j2
     pattern-regex: '\bansible_(?:default_ipv4|default_ipv6|distribution|hostname|os_family|architecture|fqdn|memtotal_mb|kernel|interfaces|all_ipv4_addresses|all_ipv6_addresses)\b'
+
+  - id: ansible-volume-no-U-flag
+    message: "Avoid using the Podman ':U' volume flag in container mounts; it can make mounts world-writable and bypass intended permissions. Use proper ownership and chown steps instead."
+    severity: ERROR
+    languages:
+      - generic
+    paths:
+      include:
+        - /ansible/apps/*/tasks/*.yml
+        - /ansible/apps/*/templates/*.j2
+        - /ansible/roles/**/tasks/*.yml
+    pattern-regex: ':U\b'

@@ -52,7 +52,7 @@
       - run
       - --rm
       - -v
-      - "{{ synapse_data_path }}:/data:U"
+      - "{{ synapse_data_path }}:/data"
       - -e
       - "SYNAPSE_SERVER_NAME={{ synapse_server_name }}"
       - -e
