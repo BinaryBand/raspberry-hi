@@ -15,10 +15,3 @@
     - role: podman
       tags: [podman]
       become: true
-
-    - role: rclone
-      tags: [base]
-
-    - role: caddy
-      tags: [caddy]
-      become: true

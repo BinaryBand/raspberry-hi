@@ -142,5 +142,5 @@ def test_policy_runner_passes_expected_paths(
 
     assert observed["root"] == tmp_path
     assert observed["ansible_dir"] == tmp_path / "ansible"
-    assert observed["apps_dir"] == tmp_path / "ansible" / "apps"
+    assert observed["apps_dir"] == tmp_path / "ansible" / "roles"
     assert observed["setup_playbook"] == tmp_path / "ansible" / "playbooks" / "setup.yml"

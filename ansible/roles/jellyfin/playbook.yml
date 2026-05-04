@@ -1,4 +1,10 @@
 ---
+- name: Import rclone playbook
+  import_playbook: ../rclone/playbook.yml
+
+- name: Import caddy playbook
+  import_playbook: ../caddy/playbook.yml
+
 - name: Provision jellyfin
   hosts: devices
   gather_facts: true

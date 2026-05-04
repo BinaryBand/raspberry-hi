@@ -8,8 +8,7 @@ synapse_data_path: /home/linux-hi/synapse
 mautrix_whatsapp_homeserver_address: "http://localhost:{{ synapse_port }}"
 mautrix_whatsapp_appservice_address: "http://localhost:29318"
 
-# PostgreSQL database (uses the shared postgres instance and user).
+# PostgreSQL database — provisioned by ensure_app_db during make mautrix-whatsapp.
 mautrix_whatsapp_db_name: mautrix_whatsapp
 mautrix_whatsapp_db_host: localhost
-mautrix_whatsapp_db_user: "{{ postgres_user }}"
-mautrix_whatsapp_db_password: "{{ postgres_password }}"
+mautrix_whatsapp_db_user: mautrix_whatsapp

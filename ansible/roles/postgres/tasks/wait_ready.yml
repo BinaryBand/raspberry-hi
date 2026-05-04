@@ -7,7 +7,7 @@
       - "{{ postgres_service_name }}"
       - pg_isready
       - -U
-      - "{{ postgres_user }}"
+      - postgres
   become: true
   become_user: "{{ ansible_user }}"
   register: _postgres_ready

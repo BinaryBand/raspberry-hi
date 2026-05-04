@@ -1,5 +1,4 @@
 ---
 postgres_data_path: ~  # required; set in host_vars/<hostname>.yml
-postgres_database: baikal
 postgres_hba_host_path: "{{ app_user_home }}/.config/postgres/pg_hba.conf"
 postgres_hba_container_path: /etc/postgresql/pg_hba.conf

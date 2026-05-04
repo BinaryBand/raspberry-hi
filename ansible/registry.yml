@@ -9,7 +9,8 @@ apps:
     service_name: minio
     image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     port: 9000
-    dependencies: []
+    dependencies:
+      - caddy
     preflight_vars:
       minio_data_path:
         hint: persistent path for MinIO data
@@ -30,9 +31,6 @@ apps:
     port: 5432
     runtime_uid: 70
     runtime_gid: 70
-    shared_vars:
-      postgres_user: baikal
-      postgres_database: baikal
     dependencies: []
     preflight_vars:
       postgres_data_path:
@@ -41,7 +39,7 @@ apps:
         type: path
     vault_secrets:
       - key: postgres_password
-        label: PostgreSQL password for the Baikal application user
+        label: PostgreSQL superuser password
         hidden: true
 
   baikal:
@@ -51,7 +49,9 @@ apps:
     port: 8088
     runtime_uid: 101
     runtime_gid: 101
-    dependencies: []
+    dependencies:
+      - postgres
+      - caddy
     preflight_vars:
       baikal_config_path:
         hint: path for Baikal configuration files
@@ -68,6 +68,9 @@ apps:
       - key: baikal_encryption_key
         label: Baikal encryption key (stable random string)
         hidden: true
+      - key: baikal_db_password
+        label: Baikal PostgreSQL user password
+        hidden: true
 
   synapse:
     service_type: containerized
@@ -78,6 +81,7 @@ apps:
     runtime_gid: 991
     dependencies:
       - postgres
+      - caddy
     preflight_vars:
       synapse_server_name:
         hint: "Matrix server name / domain (e.g. chat.example.com)"
@@ -101,6 +105,9 @@ apps:
         hidden: false
       - key: synapse_admin_password
         label: "Synapse admin password"
+        hidden: true
+      - key: synapse_db_password
+        label: "Synapse PostgreSQL user password"
         hidden: true
 
   mautrix-whatsapp:
@@ -130,6 +137,9 @@ apps:
         label: "mautrix-whatsapp E2EE pickle key (leave blank to auto-generate)"
         hidden: true
         generate: true
+      - key: mautrix_whatsapp_db_password
+        label: "mautrix-whatsapp PostgreSQL user password"
+        hidden: true
 
   caddy:
     service_type: system
@@ -154,7 +164,9 @@ apps:
     service_name: jellyfin
     image: docker.io/jellyfin/jellyfin@sha256:7ae36aab93ef9b6aaff02b37f8bb23df84bb2d7a3f6054ec8fc466072a648ce2
     port: 8096
-    dependencies: []
+    dependencies:
+      - rclone
+      - caddy
     preflight_vars:
       jellyfin_media_remote:
         hint: "rclone media library in remote:path format (read-only mount source)"

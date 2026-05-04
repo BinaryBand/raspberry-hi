@@ -1,4 +1,10 @@
 ---
+- name: Import postgres playbook
+  import_playbook: ../postgres/playbook.yml
+
+- name: Import caddy playbook
+  import_playbook: ../caddy/playbook.yml
+
 - name: Provision baikal
   hosts: devices
   gather_facts: true

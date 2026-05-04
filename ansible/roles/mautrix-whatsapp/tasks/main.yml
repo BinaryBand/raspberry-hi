@@ -72,62 +72,14 @@
   register: _mautrix_whatsapp_pull
   changed_when: "'Copying' in _mautrix_whatsapp_pull.stdout"
 
-- name: Check whether mautrix-whatsapp PostgreSQL database exists
-  ansible.builtin.command:
-    argv:
-      - podman
-      - run
-      - --rm
-      - --network
-      - host
-      - -e
-      - PGPASSWORD
-      - "{{ postgres_image }}"
-      - psql
-      - -tAc
-      - "SELECT 1 FROM pg_database WHERE datname='{{ mautrix_whatsapp_db_name }}'"
-      - -h
-      - "127.0.0.1"
-      - -p
-      - "{{ postgres_port | string }}"
-      - -U
-      - "{{ mautrix_whatsapp_db_user }}"
-      - -d
-      - postgres
-  environment:
-    PGPASSWORD: "{{ mautrix_whatsapp_db_password }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  register: _mautrix_whatsapp_database_check
-  changed_when: false
-  no_log: true
-
-- name: Create mautrix-whatsapp PostgreSQL database
-  ansible.builtin.command:
-    argv:
-      - podman
-      - run
-      - --rm
-      - --network
-      - host
-      - -e
-      - PGPASSWORD
-      - "{{ postgres_image }}"
-      - createdb
-      - -h
-      - "127.0.0.1"
-      - -p
-      - "{{ postgres_port | string }}"
-      - -U
-      - "{{ mautrix_whatsapp_db_user }}"
-      - "{{ mautrix_whatsapp_db_name }}"
-  environment:
-    PGPASSWORD: "{{ mautrix_whatsapp_db_password }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  when: _mautrix_whatsapp_database_check.stdout | trim != '1'
-  changed_when: true
-  no_log: true
+- name: Provision mautrix-whatsapp PostgreSQL database
+  ansible.builtin.include_role:
+    name: postgres
+    tasks_from: ensure_app_db
+  vars:
+    postgres_db_user: "{{ mautrix_whatsapp_db_user }}"
+    postgres_db_name: "{{ mautrix_whatsapp_db_name }}"
+    postgres_db_password: "{{ mautrix_whatsapp_db_password }}"
 
 # Template registration.yaml from the vault-stored tokens. This file must be
 # registered with the Matrix homeserver (copy it from mautrix_whatsapp_data_path).

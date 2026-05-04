@@ -12,5 +12,10 @@ baikal_auth_realm: BaikalDAV
 baikal_base_uri: ""
 baikal_invite_from: noreply@localhost
 
-baikal_db_backend: sqlite
-baikal_db_path: "{{ baikal_data_path }}/db/db.sqlite"
+baikal_db_backend: pgsql
+baikal_db_host: host.containers.internal
+baikal_db_name: baikal
+baikal_db_user: baikal
+
+# SQLite fallback — override baikal_db_backend to 'sqlite' in host_vars to use this
+baikal_db_sqlite_path: "{{ baikal_data_path }}/db/db.sqlite"

@@ -272,7 +272,7 @@ _generate_check:
 # Generic app provisioning — each app in APPS gets: make <app> → preflight → per-app playbook.
 # Dependency preflight chaining is handled by linux_hi.cli.preflight via registry.yml.
 $(APPS): %: _generate_check _%_preflight
-	$(_ANSIBLE_FLAGS) ansible/apps/$@/playbook.yml
+	$(_ANSIBLE_FLAGS) ansible/roles/$@/playbook.yml
 
 status: _inv_check
 	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make status SVC=minio"; exit 1; }
@@ -287,7 +287,7 @@ setup: _vault_check
 	$(SETUP_PLAY)
 
 caddy: _vault_check
-	$(_ANSIBLE_FLAGS) ansible/playbooks/site.yml --tags caddy
+	$(_ANSIBLE_FLAGS) ansible/roles/caddy/playbook.yml
 
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1

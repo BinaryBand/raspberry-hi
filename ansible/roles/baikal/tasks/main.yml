@@ -27,6 +27,23 @@
       - baikal_data_path is defined
     fail_msg: "Baikal required variables missing: ensure admin password, encryption key, and config/data paths are set."
 
+- name: Assert PostgreSQL credentials are set for pgsql backend
+  ansible.builtin.assert:
+    that:
+      - baikal_db_password is defined and baikal_db_password | length > 0
+    fail_msg: "baikal_db_backend is 'pgsql' but baikal_db_password is not set in vault."
+  when: baikal_db_backend == 'pgsql'
+
+- name: Provision Baikal PostgreSQL database
+  ansible.builtin.include_role:
+    name: postgres
+    tasks_from: ensure_app_db
+  vars:
+    postgres_db_user: "{{ baikal_db_user }}"
+    postgres_db_name: "{{ baikal_db_name }}"
+    postgres_db_password: "{{ baikal_db_password }}"
+  when: baikal_db_backend == 'pgsql'
+
 - name: Install Baikal application config
   ansible.builtin.template:
     src: baikal.yaml.j2

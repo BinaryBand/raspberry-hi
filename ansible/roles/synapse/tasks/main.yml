@@ -108,65 +108,17 @@
   changed_when: true
   notify: restart synapse
 
-- name: Check whether Synapse PostgreSQL database exists
-  ansible.builtin.command:
-    argv:
-      - podman
-      - run
-      - --rm
-      - --network
-      - host
-      - -e
-      - PGPASSWORD
-      - "{{ postgres_image }}"
-      - psql
-      - -tAc
-      - "SELECT 1 FROM pg_database WHERE datname='{{ synapse_db_name }}'"
-      - -h
-      - "127.0.0.1"
-      - -p
-      - "{{ postgres_port | string }}"
-      - -U
-      - "{{ synapse_db_user }}"
-      - -d
-      - postgres
-  environment:
-    PGPASSWORD: "{{ synapse_db_password }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  register: _synapse_database_check
-  changed_when: false
-  no_log: true
-
-- name: Create Synapse PostgreSQL database
-  ansible.builtin.command:
-    argv:
-      - podman
-      - run
-      - --rm
-      - --network
-      - host
-      - -e
-      - PGPASSWORD
-      - "{{ postgres_image }}"
-      - createdb
-      - -h
-      - "127.0.0.1"
-      - -p
-      - "{{ postgres_port | string }}"
-      - -U
-      - "{{ synapse_db_user }}"
-      - --encoding=UTF8
-      - --locale=C
-      - --template=template0
-      - "{{ synapse_db_name }}"
-  environment:
-    PGPASSWORD: "{{ synapse_db_password }}"
-  become: true
-  become_user: "{{ ansible_user }}"
-  when: _synapse_database_check.stdout | trim != '1'
-  changed_when: true
-  no_log: true
+- name: Provision Synapse PostgreSQL database
+  ansible.builtin.include_role:
+    name: postgres
+    tasks_from: ensure_app_db
+  vars:
+    postgres_db_user: "{{ synapse_db_user }}"
+    postgres_db_name: "{{ synapse_db_name }}"
+    postgres_db_password: "{{ synapse_db_password }}"
+    postgres_db_lc_collate: C
+    postgres_db_lc_ctype: C
+    postgres_db_template: template0
 
 # 3. Deploy container unit.
 - name: Prepare service adapter paths for Synapse

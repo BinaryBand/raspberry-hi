@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from linux_hi.models import ANSIBLE_DATA
+
 from ._loader import Failures, _load_registry, _load_yaml
 
 
-def get_app_roles(apps_dir: Path) -> list[str]:
-    """Return a list of application roles in the specified directory."""
-    return [p.name for p in apps_dir.iterdir() if p.is_dir()]
+def get_app_roles(roles_dir: Path) -> list[str]:
+    """Return containerized app roles from the registry that exist in roles_dir."""
+    registered = set(ANSIBLE_DATA.containerized_apps())
+    return sorted(p.name for p in roles_dir.iterdir() if p.is_dir() and p.name in registered)
 
 
 def check_registry_entries(app_roles: list[str], registry_path: Path, failures: Failures) -> None:

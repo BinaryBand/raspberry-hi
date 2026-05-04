@@ -1,11 +1,12 @@
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
+# TYPE  DATABASE           USER               ADDRESS   METHOD
 
-# Local socket connections within the container (pg_ctl, psql, etc.)
-local   all             all                                     trust
+# Local socket — for container-internal administration and Ansible provisioning via podman exec
+local   all                all                          trust
 
-# Loopback — for Ansible provisioning tasks that connect via --network host
-host    all             all             127.0.0.1/32            scram-sha-256
-host    all             all             ::1/128                 scram-sha-256
-host    all             all             {{ ansible_facts['default_ipv4']['address'] }}/32    scram-sha-256
+# Application users — each can only authenticate against their own database
+host    baikal             baikal             all       scram-sha-256
+host    synapse            synapse            all       scram-sha-256
+host    mautrix_whatsapp   mautrix_whatsapp   all       scram-sha-256
 
-# Pod-internal traffic routes via loopback (same network namespace as postgres)
+# Reject everything else
+host    all                all                all       reject

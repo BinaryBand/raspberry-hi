@@ -1,0 +1,86 @@
+# EditorConfig helps maintain consistent coding styles across editors
+# http://editorconfig.org
+
+root = true
+
+[*.{py,pyi}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 88
+
+[*.{yml,yaml}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.j2]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+# Keep trailing whitespace in templates where intentional (e.g. YAML line continuation)
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+end_of_line = lf
+insert_final_newline = true
+# Makefile targets may require trailing spaces/indents; don't trim here
+trim_trailing_whitespace = false
+
+[*.{md,markdown}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+# Preserve trailing whitespace in Markdown (used intentionally for line breaks)
+trim_trailing_whitespace = false
+
+[*.{json,xml,html,css,svg,sql,toml,ini,cfg}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{sh,bash}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[Dockerfile]
+charset = utf-8
+end_of_line = lf
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.yml.ank | roles/**/tasks/*.yml]
+# Ensure consistent YAML settings for Ansible role/task files
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{ps1}]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true

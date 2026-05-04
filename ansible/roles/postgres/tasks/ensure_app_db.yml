@@ -1,0 +1,57 @@
+---
+# Idempotently provision a Postgres user and database for an application.
+#
+# Required vars:
+#   postgres_db_user: postgres role name (e.g. baikal)
+#   postgres_db_name: database name (e.g. baikal)
+#   postgres_db_password: role password
+#
+# Optional vars (Synapse requires C locale and template0):
+#   postgres_db_lc_collate: default en_US.utf8
+#   postgres_db_lc_ctype: default en_US.utf8
+#   postgres_db_template: default template1
+
+- name: "Wait for PostgreSQL to be ready before provisioning {{ postgres_db_name }}"
+  ansible.builtin.include_tasks:
+    file: wait_ready.yml
+
+- name: "Ensure PostgreSQL role exists for {{ postgres_db_user }}"
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - psql
+      - -U
+      - postgres
+      - -c
+      - "CREATE USER {{ postgres_db_user }} WITH PASSWORD '{{ postgres_db_password }}'"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _ensure_db_user
+  changed_when: "'CREATE ROLE' in _ensure_db_user.stdout"
+  failed_when: _ensure_db_user.rc != 0 and 'already exists' not in _ensure_db_user.stderr
+  no_log: true
+
+- name: "Ensure PostgreSQL database exists for {{ postgres_db_name }}"
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - psql
+      - -U
+      - postgres
+      - -c
+      - >-
+        CREATE DATABASE {{ postgres_db_name }}
+          OWNER {{ postgres_db_user }}
+          ENCODING 'UTF8'
+          LC_COLLATE '{{ postgres_db_lc_collate | default("en_US.utf8") }}'
+          LC_CTYPE '{{ postgres_db_lc_ctype | default("en_US.utf8") }}'
+          TEMPLATE {{ postgres_db_template | default("template1") }}
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _ensure_db_create
+  changed_when: "'CREATE DATABASE' in _ensure_db_create.stdout"
+  failed_when: _ensure_db_create.rc != 0 and 'already exists' not in _ensure_db_create.stderr

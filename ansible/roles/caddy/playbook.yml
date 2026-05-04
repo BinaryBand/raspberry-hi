@@ -1,8 +1,5 @@
 ---
-- name: Import caddy playbook
-  import_playbook: ../caddy/playbook.yml
-
-- name: Provision minio
+- name: Provision caddy
   hosts: devices
   gather_facts: true
 
@@ -11,4 +8,5 @@
       ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
 
   roles:
-    - role: minio
+    - role: caddy
+      become: true

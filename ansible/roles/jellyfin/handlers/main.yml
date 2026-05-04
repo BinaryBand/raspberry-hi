@@ -1,7 +1,7 @@
 ---
 - name: Restart jellyfin
   listen: restart jellyfin
-  ansible.builtin.include_tasks: ../../../roles/service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../service_adapter/tasks/restart.yml
   vars:
     service_adapter_name: "{{ jellyfin_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
