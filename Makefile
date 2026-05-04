@@ -41,7 +41,7 @@ REMOTE_KEY := $(word 4,$(_INV))
 # Shared Ansible flags — avoids repeating paths across targets.
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
 INV := ansible/inventory/hosts.yml
-_ANSIBLE_FLAGS := ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST)
+_ANSIBLE_FLAGS := ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST) $(if $(TAGS),--tags $(TAGS),)
 SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
 
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
@@ -108,6 +108,7 @@ help:
 	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
 	@echo "  HOST defaults to first SSH-capable inventory alias; override with: HOST=myserver make site"
+	@echo "  TAGS filters Ansible tasks by tag; e.g. TAGS=auto-updates make setup"
 
 check:
 	$(POETRY) python -m linux_hi.cli.check
