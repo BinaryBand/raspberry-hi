@@ -153,7 +153,7 @@ def _port_open(addr: str, port: int, timeout: float = 1.0) -> bool:
         return False
 
 
-_PROJECT_KEY = Path("ansible/config/.ed25519")
+_PROJECT_KEY = ANSIBLE_DATA.ansible_dir / "config" / ".ed25519"
 
 
 def _ensure_project_key() -> Path:
@@ -430,7 +430,6 @@ def main(argv: list[str] | None = None) -> None:
     add_p = sub.add_parser("add", help="Add a host to inventory")
     add_p.add_argument("--name")
     add_p.add_argument("--address")
-    add_p.add_argument("--secret")
     add_p.add_argument("--user")
     add_p.add_argument("--port", type=int)
     add_p.set_defaults(func=cmd_add)

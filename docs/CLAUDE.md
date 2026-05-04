@@ -51,7 +51,7 @@ ansible/
 
 linux_hi/cli/          operator-facing entry points (check, preflight, generate_apps, etc.)
 linux_hi/policy/       structural repo checks (run as part of make test via TestRepoPolicy)
-models/ansible/        typed access to registry and host_vars (ANSIBLE_DATA singleton)
+linux_hi/models/ansible/  typed access to registry and host_vars (ANSIBLE_DATA singleton)
 tests/                 fast unit + lint tests; e2e/ requires a live host
 ```
 
@@ -83,15 +83,15 @@ tests/                 fast unit + lint tests; e2e/ requires a live host
 ### YAML libraries
 
 - `pyyaml` (`import yaml`) is for all read-only YAML parsing throughout the codebase
-- `ruamel.yaml` is restricted to `models/ansible/access.py` only — for round-trip writes to inventory files that preserve formatting
+- `ruamel.yaml` is restricted to `linux_hi/models/ansible/access.py` only — for round-trip writes to inventory files that preserve formatting
 - This split is intentional and enforced by the `python-ruamel-yaml-only-in-ansible-access` Semgrep rule. Do not add `from ruamel.yaml import` elsewhere.
 
 ### Semgrep boundaries (treat violations as architecture failures)
 
 - Python must not call `ansible-playbook` directly
-- `ansible-vault` CLI is only called from `linux_hi/vault/service.py`
-- Writes to `host_vars/` and `group_vars/` are only allowed in `models/ansible/access.py`, `linux_hi/vault/service.py`, and `linux_hi/cli/generate_apps.py`
-- `ruamel.yaml` imports are only allowed in `models/ansible/access.py`
+- `ansible-vault` CLI is only called from `linux_hi/services/vault.py`
+- Writes to `host_vars/` and `group_vars/` are only allowed in `linux_hi/models/ansible/access.py`, `linux_hi/services/vault.py`, and `linux_hi/cli/generate_apps.py`
+- `ruamel.yaml` imports are only allowed in `linux_hi/models/ansible/access.py`
 
 ---
 
@@ -115,7 +115,7 @@ See [ADDING_AN_APP.md](ADDING_AN_APP.md) for the full guide. The checklist:
 2. Create `ansible/apps/<app>/` with tasks, defaults, templates, handlers
 3. Write `ansible/apps/<app>/playbook.yml` (see existing apps for the pattern)
 4. `make generate-apps` — regenerates `group_vars/all/vars.yml`
-5. Update `tests/test_ansible_apps.py` expected app lists
+5. Update `tests/unit/test_ansible_apps.py` expected app lists
 6. `make test` — all tests must pass including `TestRepoPolicy`
 
 **Note:** `ADDING_AN_APP.md` uses `service_name_var` in its example — that field was replaced by `service_name` (the value directly). Use `service_name: myapp` in the registry.
@@ -127,8 +127,8 @@ See [ADDING_AN_APP.md](ADDING_AN_APP.md) for the full guide. The checklist:
 ```bash
 make test                        # full suite: unit + lint + policy (fast, no infra)
 make test-e2e HOST=debian        # live host tests (requires reachable host)
-poetry run pytest tests/test_ansible_apps.py -v   # just the registry contract tests
-poetry run pytest tests/test_lint.py::TestRepoPolicy -v  # just the policy check
+poetry run pytest tests/unit/test_ansible_apps.py -v   # just the registry contract tests
+poetry run pytest tests/unit/test_lint.py::TestRepoPolicy -v  # just the policy check
 ```
 
 Tests are in two tiers: fast local tests in `tests/` and live host tests in `tests/e2e/` (excluded from `make test` by default). The `tests/support/` directory contains fakes and builders — prefer these over mocking when testing interactive flows.

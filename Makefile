@@ -6,7 +6,6 @@ POETRY := poetry run
 PY_DIRS := linux_hi/ tests/
 
 ANSIBLE_DIR := ansible
-ROLES := service_adapter rclone
 COVERAGE_FLOOR ?= 55
 APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.containerized_apps()))")
 
