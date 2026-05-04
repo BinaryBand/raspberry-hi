@@ -149,6 +149,39 @@ This pattern is for repo-owned service relationships, not hidden external prereq
 
 ---
 
+## Adding a New App
+
+Follow this checklist when adding a new application role to the repository:
+
+1. Add an entry to `ansible/registry.yml` with:
+
+- `service_type`, `service_name`, `image`, `port` (for containerized services)
+- `preflight_vars` for any required filesystem paths (type: `path`)
+- `vault_secrets` for credentials and secrets
+
+1. Create an app role under `ansible/apps/<app>/` with the following structure:
+
+- `defaults/main.yml` for role defaults
+- `tasks/main.yml` implementing: ensure directories, templates, pull image, prepare `service_adapter`, and write container/unit files
+- `templates/` and `files/` as needed for configuration
+
+1. Rootless Podman safety:
+
+- Do NOT use the Podman `:U` volume flag. Instead, ensure files are created with correct ownership and include a `podman unshare chown -R` step where necessary.
+
+1. Tests:
+
+- Add a unit test under `tests/apps/` validating role defaults and registry integration.
+
+1. Checks to run locally:
+
+```bash
+poetry run semgrep scan --config rules/ --error
+poetry run pytest tests/unit -q
+```
+
+This checklist replaces `docs/ADDING_AN_APP.md`; the same guidance now lives here alongside repository architecture notes.
+
 ## Service Adapter Policy
 
 App roles are decoupled from init-system specifics through `ansible/roles/service_adapter/`.
