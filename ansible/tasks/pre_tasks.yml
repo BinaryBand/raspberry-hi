@@ -6,7 +6,7 @@
 
 - name: Load static infrastructure variables
   ansible.builtin.include_vars:
-    file: "{{ inventory_dir }}/../group_vars/all/linux_hi.yml"
+    file: "{{ inventory_dir }}/../group_vars/all/static.yml"
   tags: [always]
 
 - name: Load shared vault variables

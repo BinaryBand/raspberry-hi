@@ -14,3 +14,4 @@ caddy_routes:
     internal: localhost:8008
 postgres_data_path: /home/linux-hi/postgres
 synapse_server_name: chat.doreeto.com
+minio_data_path: /mnt/external/minio

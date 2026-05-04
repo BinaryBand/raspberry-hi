@@ -8,7 +8,7 @@ PY_DIRS := linux_hi/ tests/
 ANSIBLE_DIR := ansible
 ROLES := service_adapter rclone
 COVERAGE_FLOOR ?= 55
-APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.all_apps()))")
+APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.containerized_apps()))")
 
 # Default host alias — set to the first host in ansible/inventory/hosts.yml.
 # Override per-run: HOST=myserver make site
@@ -87,8 +87,8 @@ help:
 	@echo "                Apps: $(APPS)"
 	@echo "  mount         Interactive: pick and mount external storage"
 	@echo "  rclone        Configure project rclone remotes and vault the config"
-	@echo "  config-rclone Open interactive rclone config editor for config/rclone.conf"
-	@echo "  config-rclone-edit Open config/rclone.conf in nano"
+	@echo "  config-rclone Open interactive rclone config editor for ansible/config/rclone.conf"
+	@echo "  config-rclone-edit Open ansible/config/rclone.conf in nano"
 	@echo "  config-hosts  Hosts config entrypoint (defaults to list)"
 	@echo "  config-hosts-add Add a host (supports NAME ADDRESS/ADDR SECRET/KEY USER PORT)"
 	@echo "  config-hosts-remove Remove a host (supports NAME)"
@@ -193,10 +193,10 @@ ssh: _inv_check
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT)
 
 config-rclone:
-	rclone config --config config/rclone.conf
+	rclone config --config ansible/config/rclone.conf
 
 config-rclone-edit:
-	nano config/rclone.conf
+	nano ansible/config/rclone.conf
 
 config-hosts:
 	$(POETRY) python -m linux_hi.cli.hosts

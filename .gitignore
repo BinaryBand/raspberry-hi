@@ -215,16 +215,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Ansible secrets
-ansible/.vault-password
-ansible/.bw-session
-ansible/group_vars/all/vault.yml
+# Private project files
 config/**/.*
 docs/**/.*
-
-# Ansible generated files — produced by 'make generate-apps'; do not commit
-ansible/apps/*/defaults/generated.yml
-ansible/group_vars/all/vars.yml
-
-# Project-local rclone config (contains OAuth tokens — must never be committed)
-config/rclone.conf

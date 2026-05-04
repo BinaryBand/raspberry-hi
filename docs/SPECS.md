@@ -4,8 +4,6 @@
 TODO: Formalize these points:
 
 	- Ansible is the main, stand-alone project. It's strictly declarative. Python exists solely to modify the declaration files.
-	- Lean app agnostic for testing.
-	- Define terraform logic and states.
 	- Reference enforcers for every statement in the doc.
 -->
 
@@ -49,10 +47,11 @@ ansible/
     defaults/main.yml    # Hand-authored defaults (nulls for required vars ONLY)
     tasks/main.yml       # Standardized 4-step task pattern
     playbook.yml         # Committed; import_playbook chain + pre_tasks
-  roles/                 # Shared roles (service_adapter, rclone, podman)
+  roles/                 # System roles (service_adapter, podman, rclone, caddy, auto-updates, setup)
   group_vars/
     all/
       vars.yml           # GENERATED (gitignored) — service names, ports, shared_vars from registry
+      static.yml         # STATIC — infrastructure constants (linux_hi_supported_managers, etc.)
       vault.yml          # GENERATED — Encrypted secrets (ansible-vault)
   inventory/             # GENERATED/HAND-EDITABLE — Managed via `make config-hosts-*`
 
@@ -82,6 +81,17 @@ Before any app can be provisioned, the target host must satisfy a set of base co
 ### Setup Roles (`make setup`)
 
 `auto-updates`, `podman`, `caddy`, and `rclone` are multi-distro: each contains a `pkg_<manager>.yml` include gated by `ansible_facts['pkg_mgr']`. A role fails early with a clear message if the host's package manager is unsupported and `<role>_fail_on_unsupported` is true (default for `podman`; lenient for `auto-updates`).
+
+### 4-Step Role Protocol (`ansible/roles/<role>/tasks/main.yml`)
+
+Every role that installs packages follows this numbered structure:
+
+0. **Guard** — assert required variables are set and the platform is supported. Roles with `<role>_fail_on_unsupported: true` fail fast here; lenient roles call `meta: end_play` instead. Roles without platform variation skip the platform guard entirely.
+1. **Install** — delegate to `pkg_{{ ansible_facts['pkg_mgr'] }}.yml`. Every role provides one file per manager in `linux_hi_supported_managers` (apt, dnf, apk, pacman, zypper), even when the install command is identical across all — this makes gaps visible and keeps platform-specific changes local.
+2. **Configure** — create directories, deploy templates, set ownership.
+3. **Service** — enable and start the system service via `ansible.builtin.systemd`. Roles with no daemon (e.g. `rclone`) omit this step.
+
+The shared list of supported managers lives in `ansible/group_vars/all/static.yml` as `linux_hi_supported_managers`. Each role's defaults reference it via `<role>_supported_managers: "{{ linux_hi_supported_managers }}"` — adding a new platform means updating one place.
 
 | Role | Tag | Purpose |
 | :--- | :--- | :--- |
@@ -202,7 +212,7 @@ erDiagram
 
 | Target | Variables | Command |
 | :--- | :---: | ---: |
-| `make config-rclone` | `-` | `rclone config --config config/rclone.conf` |
+| `make config-rclone` | `-` | `rclone config --config ansible/config/rclone.conf` |
 | `make config-hosts-add` | `<name:str> <address:str> <secret:path>` | `poetry run python -m linux_hi.cli.hosts add --name <name> --address <address> --secret <secret>` |
 | `make config-hosts-remove` | `<name:str>` | `poetry run python -m linux_hi.cli.hosts remove --name <name>` |
 | `make config-hosts-list` | `-` | `poetry run python -m linux_hi.cli.hosts list` |

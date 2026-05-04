@@ -13,7 +13,7 @@ from linux_hi.services.vault import VAULT_FILE, decrypt_vault_raw, encrypt_vault
 from linux_hi.storage.rclone import list_remotes, parse_rclone_ini
 from linux_hi.utils.exec import run_resolved
 
-RCLONE_CONF = Path("config") / "rclone.conf"
+RCLONE_CONF = Path("ansible") / "config/rclone.conf"
 
 
 def main() -> None:
