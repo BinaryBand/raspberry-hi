@@ -162,24 +162,74 @@ def _ensure_project_key() -> Path:
     _PROJECT_KEY.parent.mkdir(parents=True, exist_ok=True)
 
     if not _PROJECT_KEY.exists():
-        _console.print(
-            f"  [INFO]  Generating project SSH key at {_PROJECT_KEY}…", style="dim"
-        )
+        _console.print(f"  [INFO]  Generating project SSH key at {_PROJECT_KEY}…", style="dim")
         run_resolved(
             ["ssh-keygen", "-t", "ed25519", "-f", str(_PROJECT_KEY), "-N", ""],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         )
     elif not pub.exists():
-        _console.print(
-            f"  [INFO]  Deriving missing public key from {_PROJECT_KEY}…", style="dim"
-        )
+        _console.print(f"  [INFO]  Deriving missing public key from {_PROJECT_KEY}…", style="dim")
         result = run_resolved(
             ["ssh-keygen", "-y", "-f", str(_PROJECT_KEY)],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         pub.write_text(result.stdout)
 
     return _PROJECT_KEY
+
+
+def _copy_public_key_with_password_auth(pub: Path, user: str, addr: str, port: int) -> bool:
+    """Try installing the project key using ssh-copy-id and password auth."""
+    try:
+        result = run_resolved(
+            [
+                "ssh-copy-id",
+                "-i",
+                str(pub),
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-o",
+                "PreferredAuthentications=keyboard-interactive,password",
+                "-p",
+                str(port),
+                f"{user}@{addr}",
+            ],
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _copy_public_key_with_bootstrap_key(
+    pub_content: str, bootstrap: str, user: str, addr: str, port: int
+) -> bool:
+    """Install the project key using an existing trusted bootstrap key."""
+    try:
+        result = run_resolved(
+            [
+                "ssh",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-o",
+                "BatchMode=yes",
+                "-i",
+                bootstrap,
+                "-p",
+                str(port),
+                f"{user}@{addr}",
+                f"mkdir -p ~/.ssh && chmod 700 ~/.ssh"
+                f" && grep -qxF {pub_content!r} ~/.ssh/authorized_keys 2>/dev/null"
+                f" || echo {pub_content!r} >> ~/.ssh/authorized_keys"
+                f" && chmod 600 ~/.ssh/authorized_keys",
+            ],
+            capture_output=True,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 def _copy_public_key(key: Path, user: str, addr: str, port: int) -> bool:
@@ -193,19 +243,8 @@ def _copy_public_key(key: Path, user: str, addr: str, port: int) -> bool:
     if not pub.exists():
         return False
 
-    try:
-        result = run_resolved(
-            [
-                "ssh-copy-id", "-i", str(pub),
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-o", "PreferredAuthentications=keyboard-interactive,password",
-                "-p", str(port), f"{user}@{addr}",
-            ],
-        )
-        if result.returncode == 0:
-            return True
-    except Exception:
-        return False
+    if _copy_public_key_with_password_auth(pub, user, addr, port):
+        return True
 
     # Password auth not available — device requires an existing trusted key.
     _console.print(
@@ -217,25 +256,7 @@ def _copy_public_key(key: Path, user: str, addr: str, port: int) -> bool:
         return False
 
     pub_content = pub.read_text().strip()
-    try:
-        result = run_resolved(
-            [
-                "ssh",
-                "-o", "StrictHostKeyChecking=accept-new",
-                "-o", "BatchMode=yes",
-                "-i", bootstrap,
-                "-p", str(port),
-                f"{user}@{addr}",
-                f"mkdir -p ~/.ssh && chmod 700 ~/.ssh"
-                f" && grep -qxF {pub_content!r} ~/.ssh/authorized_keys 2>/dev/null"
-                f" || echo {pub_content!r} >> ~/.ssh/authorized_keys"
-                f" && chmod 600 ~/.ssh/authorized_keys",
-            ],
-            capture_output=True,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
+    return _copy_public_key_with_bootstrap_key(pub_content, bootstrap, user, addr, port)
 
 
 def _test_connection(addr: str, user: str, port: int, key: str | None) -> bool:
@@ -281,57 +302,33 @@ def cmd_list(args: argparse.Namespace) -> None:
     _console.print(table)
 
 
-def cmd_add(args: argparse.Namespace) -> None:
-    """Interactively add a host to inventory, host_vars, and vault."""
-    from typing import cast
+def _resolve_add_host_alias(args: argparse.Namespace) -> str | None:
+    """Resolve host alias from CLI/env or prompt."""
+    return _prompt_if_missing(_pick(args.name, os.environ.get("NAME")), "Host alias:")
 
-    name = _prompt_if_missing(_pick(args.name, os.environ.get("NAME")), "Host alias:")
 
+def _resolve_add_host_address(args: argparse.Namespace) -> str | None:
+    """Resolve host address from CLI/env, scan selection, or manual prompt."""
     addr_arg = _pick(args.address, os.environ.get("ADDRESS"), os.environ.get("ADDR"))
     if addr_arg:
-        addr = addr_arg
-    else:
-        discovered = _scan_ssh_hosts()
-        if discovered:
-            choices = [*discovered, "Enter manually"]
-            selection = questionary.select("Select a host:", choices=choices).ask()
-            if not selection:
-                sys.exit("Aborted.")
-            addr = (
-                questionary.text("Address (IP, mDNS, or hostname):").ask()
-                if selection == "Enter manually"
-                else selection
-            )
-        else:
-            addr = questionary.text("Address (IP, mDNS, or hostname):").ask()
+        return addr_arg
 
-    user = _prompt_if_missing(_pick(args.user), "SSH user:", default="pi")
-    port = _resolve_port(args.port)
+    discovered = _scan_ssh_hosts()
+    if not discovered:
+        return questionary.text("Address (IP, mDNS, or hostname):").ask()
 
-    if not all([name, addr, user]):
-        sys.exit("Aborted.")
+    choices = [*discovered, "Enter manually"]
+    selection = questionary.select("Select a host:", choices=choices).ask()
+    if not selection:
+        return None
+    if selection != "Enter manually":
+        return selection
+    return questionary.text("Address (IP, mDNS, or hostname):").ask()
 
-    _console.print(f"  [INFO]  Checking {addr}:{port} is reachable…", style="dim")
-    if not _port_open(cast(str, addr), port, timeout=5.0):
-        sys.exit(f"  [FAIL]  {addr}:{port} is not reachable. Check address and port.")
 
-    key = _ensure_project_key()
-    _console.print(
-        f"  [INFO]  Copying {key}.pub to {user}@{addr} — authenticate when prompted.",
-        style="dim",
-    )
-    if not _copy_public_key(key, cast(str, user), cast(str, addr), port):
-        sys.exit(f"  [FAIL]  Could not copy SSH key to {user}@{addr}:{port}.")
-
-    _console.print("  [INFO]  Verifying SSH key auth…", style="dim")
-    if not _test_connection(cast(str, addr), cast(str, user), port, str(key)):
-        sys.exit(f"  [FAIL]  SSH key auth failed for {user}@{addr}:{port} after copy.")
-
-    password = questionary.password(f"Become (sudo) password for '{name}':").ask()
-    if not password:
-        sys.exit("Aborted.")
-
-    host_vars_data: dict[str, object] = {
+def _build_host_vars_data(addr: str, user: str, port: int, key: Path) -> dict[str, object]:
+    """Build host_vars payload for a newly added host."""
+    return {
         "ansible_host": addr,
         "ansible_user": user,
         "ansible_port": port,
@@ -341,13 +338,59 @@ def cmd_add(args: argparse.Namespace) -> None:
         ),
     }
 
+
+def _verify_host_reachable(addr: str, port: int) -> None:
+    """Exit with an actionable error if SSH port is unreachable."""
+    _console.print(f"  [INFO]  Checking {addr}:{port} is reachable…", style="dim")
+    if not _port_open(addr, port, timeout=5.0):
+        sys.exit(f"  [FAIL]  {addr}:{port} is not reachable. Check address and port.")
+
+
+def _install_and_verify_key_auth(key: Path, user: str, addr: str, port: int) -> None:
+    """Copy project key to target and verify key-based auth works."""
+    _console.print(
+        f"  [INFO]  Copying {key}.pub to {user}@{addr} — authenticate when prompted.",
+        style="dim",
+    )
+    if not _copy_public_key(key, user, addr, port):
+        sys.exit(f"  [FAIL]  Could not copy SSH key to {user}@{addr}:{port}.")
+
+    _console.print("  [INFO]  Verifying SSH key auth…", style="dim")
+    if not _test_connection(addr, user, port, str(key)):
+        sys.exit(f"  [FAIL]  SSH key auth failed for {user}@{addr}:{port} after copy.")
+
+
+def _persist_host(name: str, host_vars_data: dict[str, object], password: str) -> None:
+    """Persist inventory, host_vars, and vault entries for the host."""
     try:
-        ANSIBLE_DATA.add_inventory_host(cast(str, name))
-        ANSIBLE_DATA.write_host_vars_raw(cast(str, name), host_vars_data)
-        write_become_password(cast(str, name), cast(str, password))
+        ANSIBLE_DATA.add_inventory_host(name)
+        ANSIBLE_DATA.write_host_vars_raw(name, host_vars_data)
+        write_become_password(name, password)
     except Exception as exc:
         sys.exit(f"  [FAIL]  {exc}")
 
+
+def cmd_add(args: argparse.Namespace) -> None:
+    """Interactively add a host to inventory, host_vars, and vault."""
+    name = _resolve_add_host_alias(args)
+    addr = _resolve_add_host_address(args)
+    user = _prompt_if_missing(_pick(args.user), "SSH user:", default="pi")
+    port = _resolve_port(args.port)
+
+    if not name or not addr or not user:
+        sys.exit("Aborted.")
+
+    _verify_host_reachable(addr, port)
+
+    key = _ensure_project_key()
+    _install_and_verify_key_auth(key, user, addr, port)
+
+    password = questionary.password(f"Become (sudo) password for '{name}':").ask()
+    if not password:
+        sys.exit("Aborted.")
+
+    host_vars_data = _build_host_vars_data(addr, user, port, key)
+    _persist_host(name, host_vars_data, password)
     print(f"  [OK  ]  Host '{name}' added to inventory, host_vars, and vault.")
 
 

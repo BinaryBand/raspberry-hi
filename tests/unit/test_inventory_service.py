@@ -12,7 +12,12 @@ from linux_hi.models.ansible.access import AnsibleDataStore
 
 def test_inventory_hosts_returns_configured_aliases() -> None:
     """inventory_hosts() should return the tracked host aliases from inventory."""
-    assert ANSIBLE_DATA.inventory_hosts() == ["debian", "rpi", "rpi2"]
+    assert set(ANSIBLE_DATA.inventory_hosts()) == {
+        "debian",
+        "rpi-4",
+        "rpi-lite-1",
+        "rpi-lite-2",
+    }
 
 
 def test_inventory_hosts_from_temp_inventory(tmp_path: Path) -> None:

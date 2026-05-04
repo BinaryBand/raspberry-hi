@@ -15,6 +15,13 @@ from linux_hi.models.ansible import connection as ansible_connection
 from tests.support.connections import RecordingConnectionFactory
 
 
+def _any_inventory_alias() -> str:
+    """Return a stable alias from the configured inventory for tests."""
+    hosts = ANSIBLE_DATA.inventory_hosts()
+    assert hosts, "Inventory must contain at least one host alias"
+    return hosts[0]
+
+
 def _capture_connection_kwargs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> dict[str, Any]:
@@ -112,10 +119,11 @@ def test_inventory_host_vars_falls_back_to_hostname_for_missing_file(
 ) -> None:
     """Missing host_vars should still produce a valid HostVars object."""
     monkeypatch.setattr(ANSIBLE_DATA, "host_vars_dir", tmp_path)
+    alias = _any_inventory_alias()
 
-    host = ANSIBLE_DATA.host_vars("rpi")
+    host = ANSIBLE_DATA.host_vars(alias)
 
-    assert host.ansible_host == "rpi"
+    assert host.ansible_host == alias
 
 
 def test_inventory_host_vars_rejects_unknown_inventory_alias() -> None:
@@ -137,7 +145,8 @@ def test_read_effective_vars_merges_group_vars_under_host_vars(
 
     host_vars_dir = tmp_path / "host_vars"
     host_vars_dir.mkdir()
-    (host_vars_dir / "rpi.yml").write_text(
+    alias = _any_inventory_alias()
+    (host_vars_dir / f"{alias}.yml").write_text(
         "shared_var: from_host\nhost_only_var: host_value\n", encoding="utf-8"
     )
 
@@ -145,7 +154,7 @@ def test_read_effective_vars_merges_group_vars_under_host_vars(
     monkeypatch.setattr(store, "ansible_dir", tmp_path)
     monkeypatch.setattr(store, "host_vars_dir", host_vars_dir)
 
-    result = store.read_effective_vars("rpi")
+    result = store.read_effective_vars(alias)
 
     assert result["group_only_var"] == "group_value"
     assert result["host_only_var"] == "host_value"
