@@ -10,9 +10,9 @@ ROLES := service_adapter rclone
 COVERAGE_FLOOR ?= 55
 APPS := $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; print(' '.join(ANSIBLE_DATA.containerized_apps()))")
 
-# Default host alias — set to the first host in ansible/inventory/hosts.yml.
+# Default host alias — prefer first SSH-capable inventory host.
 # Override per-run: HOST=myserver make site
-HOST ?= rpi
+HOST ?= $(shell $(POETRY) python -c "from linux_hi.models import ANSIBLE_DATA; hs=ANSIBLE_DATA.inventory_hosts(); print(next((h for h in hs if str(ANSIBLE_DATA.read_host_vars_raw(h).get('ansible_connection','')).lower()!='local' and str(ANSIBLE_DATA.read_host_vars_raw(h).get('ansible_host', h)) not in ('localhost','127.0.0.1','::1')), hs[0] if hs else ''))")
 
 # Optional operator inputs used by config and maintenance targets.
 NAME ?=
@@ -79,8 +79,8 @@ help:
 	@echo "  ruff-fix           Auto-fix Ruff lint violations"
 	@echo "  ruff-format        Reformat Python files with Ruff"
 	@echo "  test          Run unit + stub tests (no infra needed)"
-	@echo "  test-e2e      Run live host tests (requires host reachable, HOST=rpi)"
-	@echo "  setup         Provision base dependencies on a host (HOST=rpi|rpi2|debian)"
+	@echo "  test-e2e      Run live host tests (requires host reachable; HOST defaults to first SSH-capable inventory alias)"
+	@echo "  setup         Provision base dependencies on a host (HOST defaults to first SSH-capable inventory alias)"
 	@echo "  caddy         Provision Caddy reverse proxy (native system service)"
 	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
@@ -107,7 +107,7 @@ help:
 	@echo "  status        Show service status on the host (SVC=<service>)"
 	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
-	@echo "  HOST defaults to 'rpi'; override with: HOST=myserver make site"
+	@echo "  HOST defaults to first SSH-capable inventory alias; override with: HOST=myserver make site"
 
 check:
 	$(POETRY) python -m linux_hi.cli.check

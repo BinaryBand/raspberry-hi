@@ -18,7 +18,7 @@ def check_makefile_host_selector(makefile_path: Path, failures: Failures) -> Non
     if "HOST ?=" not in text:
         failures.append("Makefile must define a default HOST selector using 'HOST ?='")
 
-    if "HOST defaults to 'rpi'" not in text:
+    if "HOST defaults to" not in text:
         failures.append("Makefile help must document the default HOST selector")
 
 
