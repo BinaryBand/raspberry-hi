@@ -1,0 +1,114 @@
+---
+# Initialize Baikal's PostgreSQL schema from the image-bundled SQL.
+# This image flavor does not ship a migration CLI entrypoint; it ships
+# Core/Resources/Db/PgSQL/db.sql. Because baikal.yaml is pre-configured
+# (configured_version is already set), Baikal skips the web installer,
+# so we must bootstrap the schema ourselves on first deploy.
+
+- name: Wait for Baikal container to be running
+  ansible.builtin.command:
+    argv:
+      - podman
+      - ps
+      - --filter
+      - "name={{ baikal_service_name }}"
+      - --filter
+      - status=running
+      - --noheading
+      - --quiet
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_container_ready
+  retries: 30
+  delay: 5
+  until: _baikal_container_ready.stdout | trim | length > 0
+  changed_when: false
+  failed_when: false
+
+- name: Fail if Baikal container never became ready
+  ansible.builtin.fail:
+    msg: >-
+      Baikal container '{{ baikal_service_name }}' did not reach running state.
+      Check 'podman logs {{ baikal_service_name }}' on the host for details.
+  when: _baikal_container_ready.stdout | trim | length == 0
+
+- name: Check whether Baikal users table exists
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - psql
+      - -U
+      - postgres
+      - -d
+      - "{{ baikal_db_name }}"
+      - -tAc
+      - "SELECT to_regclass('public.users') IS NOT NULL"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_users_table_exists
+  changed_when: false
+  when: baikal_db_backend == 'pgsql'
+
+- name: Bootstrap Baikal PostgreSQL schema from bundled db.sql
+  ansible.builtin.shell: |
+    set -o pipefail
+    podman exec "{{ baikal_service_name }}" cat /var/www/baikal/Core/Resources/Db/PgSQL/db.sql \
+      | podman exec -i "{{ postgres_service_name }}" psql -v ON_ERROR_STOP=1 -U postgres -d "{{ baikal_db_name }}"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  when:
+    - baikal_db_backend == 'pgsql'
+    - _baikal_users_table_exists.stdout | trim != 't'
+
+- name: Verify Baikal users table exists after bootstrap
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - psql
+      - -U
+      - postgres
+      - -d
+      - "{{ baikal_db_name }}"
+      - -tAc
+      - "SELECT to_regclass('public.users') IS NOT NULL"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: _baikal_users_table_verify
+  changed_when: false
+  failed_when: _baikal_users_table_verify.stdout | trim != 't'
+  when: baikal_db_backend == 'pgsql'
+
+- name: Ensure Baikal database privileges are granted to application user
+  ansible.builtin.command:
+    argv:
+      - podman
+      - exec
+      - "{{ postgres_service_name }}"
+      - psql
+      - -v
+      - ON_ERROR_STOP=1
+      - -U
+      - postgres
+      - -d
+      - "{{ baikal_db_name }}"
+      - -c
+      - "GRANT USAGE ON SCHEMA public TO {{ baikal_db_user }};"
+      - -c
+      - "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {{ baikal_db_user }};"
+      - -c
+      - "GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {{ baikal_db_user }};"
+      - -c
+      - "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {{ baikal_db_user }};"
+      - -c
+      - "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {{ baikal_db_user }};"
+  become: true
+  become_user: "{{ ansible_user }}"
+  changed_when: false
+  when: baikal_db_backend == 'pgsql'

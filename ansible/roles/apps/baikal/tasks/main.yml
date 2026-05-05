@@ -137,3 +137,9 @@
     service_adapter_name: "{{ baikal_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
     service_adapter_run_script: "{{ app_user_home }}/bin/run-baikal.sh"
+
+# 5. Initialize database schema.
+#    Required because baikal.yaml is pre-configured (configured_version is set),
+#    so Baikal skips its web install wizard and never creates the schema itself.
+- name: Initialize Baikal database schema
+  ansible.builtin.include_tasks: migrate.yml
