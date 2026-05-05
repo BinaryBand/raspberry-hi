@@ -8,7 +8,7 @@
     host: 127.0.0.1
     port: "{{ minio_port }}"
     state: started
-    timeout: "{{ (mc_wait_retries | int) * (mc_wait_delay | int) }}"
+    timeout: "{{ (minio_mc_wait_retries | int) * (minio_mc_wait_delay | int) }}"
 
 - name: Wait until MinIO health endpoint responds HTTP 200
   ansible.builtin.uri:
@@ -17,20 +17,20 @@
     status_code: 200
     validate_certs: false
   register: minio_health
-  retries: "{{ mc_wait_retries }}"
-  delay: "{{ mc_wait_delay }}"
+  retries: "{{ minio_mc_wait_retries }}"
+  delay: "{{ minio_mc_wait_delay }}"
   until: minio_health.status == 200
   failed_when: false
 
 - name: Fail if MinIO health endpoint never became ready
   ansible.builtin.fail:
     msg: >-
-      MinIO health endpoint did not return HTTP 200 after {{ mc_wait_retries }} retries.
+      MinIO health endpoint did not return HTTP 200 after {{ minio_mc_wait_retries }} retries.
       Last observed status: {{ minio_health.status | default('unreachable') }}.
       Check the MinIO service logs and configuration before retrying bucket setup.
   when: minio_health.status | default(0) != 200
 
-- name: "Check whether MinIO bucket exists: {{ mc_alias + '/' + mc_bucket }}"
+- name: "Check whether MinIO bucket exists: {{ minio_mc_alias + '/' + minio_mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman
@@ -39,17 +39,17 @@
       - --network=host
       - --env-file
       - "{{ app_user_home }}/.config/minio/minio.env"
-      - "{{ mc_image }}"
+      - "{{ minio_mc_image }}"
       - ls
-      - "{{ mc_alias }}/{{ mc_bucket }}"
+      - "{{ minio_mc_alias }}/{{ minio_mc_bucket }}"
   become: true
   become_user: "{{ ansible_user }}"
-  register: mc_bucket_check
+  register: minio_bucket_check
   failed_when: false
   changed_when: false
   no_log: true
 
-- name: "Create bucket if missing: {{ mc_bucket }}"
+- name: "Create bucket if missing: {{ minio_mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman
@@ -58,18 +58,18 @@
       - --network=host
       - --env-file
       - "{{ app_user_home }}/.config/minio/minio.env"
-      - "{{ mc_image }}"
+      - "{{ minio_mc_image }}"
       - mb
-      - "{{ mc_alias }}/{{ mc_bucket }}"
+      - "{{ minio_mc_alias }}/{{ minio_mc_bucket }}"
   become: true
   become_user: "{{ ansible_user }}"
-  register: mc_bucket_mb
-  failed_when: mc_bucket_mb.rc != 0
-  changed_when: mc_bucket_mb.rc == 0
-  when: mc_bucket_check.rc != 0
+  register: minio_bucket_mb
+  failed_when: minio_bucket_mb.rc != 0
+  changed_when: minio_bucket_mb.rc == 0
+  when: minio_bucket_check.rc != 0
   no_log: true
 
-- name: "Set anonymous policy on MinIO bucket: {{ mc_alias + '/' + mc_bucket }}"
+- name: "Set anonymous policy on MinIO bucket: {{ minio_mc_alias + '/' + minio_mc_bucket }}"
   ansible.builtin.command:
     argv:
       - podman
@@ -78,14 +78,14 @@
       - --network=host
       - --env-file
       - "{{ app_user_home }}/.config/minio/minio.env"
-      - "{{ mc_image }}"
+      - "{{ minio_mc_image }}"
       - anonymous
       - set
-      - "{{ mc_policy }}"
-      - "{{ mc_alias }}/{{ mc_bucket }}"
+      - "{{ minio_mc_policy }}"
+      - "{{ minio_mc_alias }}/{{ minio_mc_bucket }}"
   become: true
   become_user: "{{ ansible_user }}"
-  register: mc_policy_set
-  failed_when: mc_policy_set.rc != 0
-  changed_when: mc_policy_set.rc == 0
+  register: minio_policy_set
+  failed_when: minio_policy_set.rc != 0
+  changed_when: minio_policy_set.rc == 0
   no_log: true

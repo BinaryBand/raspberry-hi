@@ -157,7 +157,7 @@ apps:
 
   setup:
     service_type: system
-    dependencies: [caddy, rclone]
+    dependencies: []
 
   jellyfin:
     service_type: containerized

@@ -67,7 +67,7 @@ def test_playbooks_have_named_import_playbook_items() -> None:
             if "import_playbook:" in line:
                 preceding = lines[i - 1].strip().lstrip("- ") if i > 0 else ""
                 assert preceding.startswith("name:"), (
-                    f"ansible/roles/{app}/playbook.yml: import_playbook at line {i + 1} has no name:"
+                    f"ansible/roles/{app}/playbook.yml: import_playbook at {i + 1} has no name:"
                 )
 
 

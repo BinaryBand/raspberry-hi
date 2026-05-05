@@ -1,15 +1,13 @@
 ---
 minio_data_path: ~  # required; set in host_vars/<hostname>.yml
 minio_console_port: 9001
-
-# MinIO client — run via Podman, no binary installation required.
-# Pin to a matching release tag for consistency with minio_image.
-# Browse tags at: https://hub.docker.com/r/minio/mc/tags
-mc_image: docker.io/minio/mc:RELEASE.2025-04-03T17-07-56Z
-mc_alias: myminio
-mc_bucket: media
-mc_url: "http://127.0.0.1:{{ minio_port }}"
-mc_wait_retries: 30
-mc_wait_delay: 5
-mc_policy: download
+# MinIO client (mc) — run via Podman, no binary installation required.
+# Variables are namespaced to avoid colliding with other minio_* vars.
+minio_mc_image: docker.io/minio/mc:RELEASE.2025-04-03T17-07-56Z
+minio_mc_alias: myminio
+minio_mc_bucket: media
+minio_mc_url: "http://127.0.0.1:{{ minio_port }}"
+minio_mc_wait_retries: 30
+minio_mc_wait_delay: 5
+minio_mc_policy: download
 minio_skip_bucket_setup: false

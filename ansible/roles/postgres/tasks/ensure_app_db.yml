@@ -28,9 +28,9 @@
       - "CREATE USER {{ postgres_db_user }} WITH PASSWORD '{{ postgres_db_password }}'"
   become: true
   become_user: "{{ ansible_user }}"
-  register: _ensure_db_user
-  changed_when: "'CREATE ROLE' in _ensure_db_user.stdout"
-  failed_when: _ensure_db_user.rc != 0 and 'already exists' not in _ensure_db_user.stderr
+  register: postgres_ensure_db_user
+  changed_when: "'CREATE ROLE' in postgres_ensure_db_user.stdout"
+  failed_when: postgres_ensure_db_user.rc != 0 and 'already exists' not in postgres_ensure_db_user.stderr
   no_log: true
 
 - name: "Ensure PostgreSQL database exists for {{ postgres_db_name }}"
@@ -52,6 +52,6 @@
           TEMPLATE {{ postgres_db_template | default("template1") }}
   become: true
   become_user: "{{ ansible_user }}"
-  register: _ensure_db_create
-  changed_when: "'CREATE DATABASE' in _ensure_db_create.stdout"
-  failed_when: _ensure_db_create.rc != 0 and 'already exists' not in _ensure_db_create.stderr
+  register: postgres_ensure_db_create
+  changed_when: "'CREATE DATABASE' in postgres_ensure_db_create.stdout"
+  failed_when: postgres_ensure_db_create.rc != 0 and 'already exists' not in postgres_ensure_db_create.stderr

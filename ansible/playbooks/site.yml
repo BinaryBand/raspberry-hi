@@ -1,39 +1,23 @@
 ---
-- name: Provision devices
-  hosts: devices
-  gather_facts: true
+# Full-system convergence: import all app playbooks in dependency order.
+# Each playbook handles its own system role prerequisites (caddy, rclone, postgres).
+- name: Provision baseline (auto-updates + podman)
+  import_playbook: setup.yml
 
-  pre_tasks:
-    - name: Import shared pre_tasks
-      ansible.builtin.import_tasks: ../tasks/pre_tasks.yml
-      tags: [always]
+- name: Provision postgres
+  import_playbook: ../roles/postgres/playbook.yml
 
-  roles:
-    - role: auto-updates
-      tags: [base]
-      become: true
+- name: Provision minio
+  import_playbook: ../roles/minio/playbook.yml
 
-    - role: podman
-      tags: [podman]
-      become: true
+- name: Provision baikal
+  import_playbook: ../roles/baikal/playbook.yml
 
-    - role: rclone
-      tags: [base]
+- name: Provision synapse
+  import_playbook: ../roles/synapse/playbook.yml
 
-    # App roles live under ansible/apps/ and are excluded from `make site` by default.
-    # They are tagged with both [apps] and their own name so they can be run individually.
+- name: Provision mautrix-whatsapp
+  import_playbook: ../roles/mautrix-whatsapp/playbook.yml
 
-    # Run `make minio` to provision or re-provision MinIO independently.
-    - role: minio
-      tags: [apps, minio]
-
-    # Run `make postgres` to provision PostgreSQL independently.
-    # It is also tagged with baikal because Baikal depends on it.
-    - role: postgres
-      tags: [apps, postgres, baikal]
-
-    # Run `make baikal` to provision or re-provision Baikal independently.
-    - role: baikal
-      tags: [apps, baikal]
-
-    # Caddy is a native system service provisioned by make setup; run `make caddy` to re-provision.
+- name: Provision jellyfin
+  import_playbook: ../roles/jellyfin/playbook.yml
