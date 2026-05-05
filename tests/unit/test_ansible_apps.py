@@ -51,24 +51,25 @@ def test_app_entry_data() -> None:
 def test_app_restart_handlers_delegate_to_service_adapter() -> None:
     """App restart handlers should call the shared service_adapter restart task."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = (ROOT / f"ansible/roles/{app}/handlers/main.yml").read_text()
+        content = (ROOT / f"ansible/roles/apps/{app}/handlers/main.yml").read_text()
         assert (
             "ansible.builtin.include_tasks:" in content
             or "ansible.builtin.import_tasks:" in content
         )
-        assert "../../service_adapter/tasks/restart.yml" in content
+        assert "../../../system/service_adapter/tasks/restart.yml" in content
 
 
 def test_playbooks_have_named_import_playbook_items() -> None:
     """Every import_playbook item must have a name: to satisfy ansible-lint name[play]."""
     for app in ANSIBLE_DATA.containerized_apps():
-        lines = (ANSIBLE_DIR / "roles" / app / "playbook.yml").read_text().splitlines()
+        playbook_path = ANSIBLE_DIR / "roles" / "apps" / app / "playbook.yml"
+
+        lines = playbook_path.read_text().splitlines()
         for i, line in enumerate(lines):
             if "import_playbook:" in line:
                 preceding = lines[i - 1].strip().lstrip("- ") if i > 0 else ""
-                assert preceding.startswith("name:"), (
-                    f"ansible/roles/{app}/playbook.yml: import_playbook at {i + 1} has no name:"
-                )
+                msg = f"{playbook_path}: import_playbook at {i + 1} has no name:"
+                assert preceding.startswith("name:"), msg
 
 
 def test_apps_with_dependencies_import_dependency_playbooks() -> None:
@@ -77,16 +78,16 @@ def test_apps_with_dependencies_import_dependency_playbooks() -> None:
         entry = ANSIBLE_DATA.get_app_entry(app)
         if not entry.dependencies:
             continue
-        content = (ANSIBLE_DIR / "roles" / app / "playbook.yml").read_text()
+        content = (ANSIBLE_DIR / "roles" / "apps" / app / "playbook.yml").read_text()
         for dep in entry.dependencies:
-            assert f"import_playbook: ../{dep}/playbook.yml" in content, (
-                f"ansible/roles/{app}/playbook.yml is missing import for dependency '{dep}'"
+            assert f"{dep}/playbook.yml" in content, (
+                f"ansible/roles/apps/{app}/playbook.yml is missing import for dependency '{dep}'"
             )
 
 
 def test_containerized_apps_use_service_adapter_prepare_for_quadlet_path() -> None:
     """Container apps should delegate quadlet directory creation to service_adapter."""
     for app in ANSIBLE_DATA.containerized_apps():
-        content = (ROOT / f"ansible/roles/{app}/tasks/main.yml").read_text()
+        content = (ROOT / f"ansible/roles/apps/{app}/tasks/main.yml").read_text()
         assert "tasks_from: prepare" in content
         assert "Ensure Podman quadlet directory exists" not in content

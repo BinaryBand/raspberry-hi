@@ -140,12 +140,12 @@ class AnsibleDataStore:
         return HostVars.from_inventory(hostname, self.read_host_vars_raw(hostname))
 
     def role_path(self, app: str) -> Path:
-        """Return the repo role path for *app* across apps/ and roles/."""
-        for base in ("apps", "roles"):
-            path = self.ansible_dir / base / app
+        """Return the repo role path for *app* across roles/apps/ and roles/system/."""
+        for subdir in ("apps", "system"):
+            path = self.ansible_dir / "roles" / subdir / app
             if path.exists():
                 return path
-        raise KeyError(f"No role found for '{app}' under ansible/apps/ or ansible/roles/")
+        raise KeyError(f"No role found for '{app}' under ansible/roles/")
 
     def add_inventory_host(self, name: str, group: str = "devices") -> None:
         """Add a host entry to the YAML inventory under the specified group."""

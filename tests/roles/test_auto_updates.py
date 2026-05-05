@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_auto_updates_role_has_manager_branches_for_supported_distros() -> None:
     """Role should gate on pkg_mgr and include one task file per supported manager."""
-    content = (ROOT / "ansible/roles/auto-updates/tasks/main.yml").read_text(encoding="utf-8")
+    content = (ROOT / "ansible/roles/system/auto-updates/tasks/main.yml").read_text(
+        encoding="utf-8"
+    )
 
     for mgr in ("apt", "dnf", "zypper", "apk", "pacman"):
         assert f"Configure auto-updates ({mgr})" in content
@@ -18,7 +20,9 @@ def test_auto_updates_role_has_manager_branches_for_supported_distros() -> None:
 
 def test_auto_updates_defaults_define_supported_managers() -> None:
     """Defaults must declare supported package managers for blank-host provisioning."""
-    content = (ROOT / "ansible/roles/auto-updates/defaults/main.yml").read_text(encoding="utf-8")
+    content = (ROOT / "ansible/roles/system/auto-updates/defaults/main.yml").read_text(
+        encoding="utf-8"
+    )
 
     assert "auto_updates_supported_managers:" in content
     assert "linux_hi_supported_managers" in content

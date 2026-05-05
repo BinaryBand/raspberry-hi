@@ -18,6 +18,6 @@ def _read_text(relative_path: str) -> str:
 
 def test_minio_bucket_setup_fails_when_health_poll_never_succeeds() -> None:
     """MinIO bucket setup must stop before mc commands if readiness polling never succeeds."""
-    content = _read_text("ansible/roles/minio/tasks/setup_mc_bucket.yml")
+    content = _read_text("ansible/roles/apps/minio/tasks/setup_mc_bucket.yml")
     assert "Wait until MinIO health endpoint responds HTTP 200" in content
     assert "Fail if MinIO health endpoint never became ready" in content

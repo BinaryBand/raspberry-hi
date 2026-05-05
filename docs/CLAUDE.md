@@ -37,11 +37,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architectural contract and r
 ```text
 ansible/
   registry.yml         single source of truth for all app metadata
-  roles/<app>/         Ansible role per app (apps and system roles colocated)
+  roles/apps/<app>/    containerized app role (4-step task pattern)
     defaults/main.yml  hand-authored defaults (nulls for required vars, app-specific values)
     tasks/main.yml     4-step pattern: guards → config/dirs → image → quadlet → service_adapter
     playbook.yml       committed; import_playbook chain + pre_tasks
-  roles/               also contains system roles (service_adapter, caddy, rclone, podman, auto-updates)
+  roles/system/        system roles: service_adapter, caddy, rclone, podman, auto-updates
   group_vars/all/
     vars.yml           GENERATED — shared non-secret vars (service names, ports, shared_vars)
     vault.yml          encrypted secrets (ansible-vault)
@@ -59,7 +59,7 @@ tests/                 fast unit + lint tests; e2e/ requires a live host
 
 ## Key Conventions
 
-### 4-step task pattern (ansible/roles/\<app\>/tasks/main.yml)
+### 4-step task pattern (ansible/roles/apps/\<app\>/tasks/main.yml)
 
 1. **Guards** — `assert` that required vars are set (`var is not none`)
 2. **Config and directories** — create data dirs, write config templates, chown for rootless UID
@@ -112,8 +112,8 @@ tests/                 fast unit + lint tests; e2e/ requires a live host
 See [ADDING_AN_APP.md](ADDING_AN_APP.md) for the full guide. The checklist:
 
 1. Add entry to `ansible/registry.yml` (service_type, image, port, runtime_uid/gid if needed, preflight_vars, vault_secrets)
-2. Create `ansible/roles/<app>/` with tasks, defaults, templates, handlers
-3. Write `ansible/roles/<app>/playbook.yml` (see existing apps for the pattern)
+2. Create `ansible/roles/apps/<app>/` with tasks, defaults, templates, handlers
+3. Write `ansible/roles/apps/<app>/playbook.yml` (see existing apps for the pattern)
 4. `make generate-apps` — regenerates `group_vars/all/vars.yml`
 5. Update `tests/unit/test_ansible_apps.py` expected app lists
 6. `make test` — all tests must pass including `TestRepoPolicy`

@@ -19,7 +19,7 @@ class PolicyRunner:
         """Run all checks and return a list of failure messages."""
         root = self._root
         ansible_dir = root / "ansible"
-        apps_dir = ansible_dir / "roles"
+        apps_dir = ansible_dir / "roles" / "apps"
         registry = ansible_dir / "registry.yml"
         policy_contract = root / "docs" / "POLICY_CONTRACT.yml"
         makefile = root / "Makefile"

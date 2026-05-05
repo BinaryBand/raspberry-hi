@@ -5,19 +5,19 @@
   import_playbook: setup.yml
 
 - name: Provision postgres
-  import_playbook: ../roles/postgres/playbook.yml
+  import_playbook: ../roles/apps/postgres/playbook.yml
 
 - name: Provision minio
-  import_playbook: ../roles/minio/playbook.yml
+  import_playbook: ../roles/apps/minio/playbook.yml
 
 - name: Provision baikal
-  import_playbook: ../roles/baikal/playbook.yml
+  import_playbook: ../roles/apps/baikal/playbook.yml
 
 - name: Provision synapse
-  import_playbook: ../roles/synapse/playbook.yml
+  import_playbook: ../roles/apps/synapse/playbook.yml
 
 - name: Provision mautrix-whatsapp
-  import_playbook: ../roles/mautrix-whatsapp/playbook.yml
+  import_playbook: ../roles/apps/mautrix-whatsapp/playbook.yml
 
 - name: Provision jellyfin
-  import_playbook: ../roles/jellyfin/playbook.yml
+  import_playbook: ../roles/apps/jellyfin/playbook.yml

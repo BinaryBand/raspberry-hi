@@ -1,5 +1,5 @@
 ---
-reverse-proxies:
+reverse_proxies:
   - service: baikal
     host: "rpi-lite-2"
     domain: "baikal.doreeto.com"
