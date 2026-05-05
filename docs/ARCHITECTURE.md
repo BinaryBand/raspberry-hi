@@ -119,7 +119,6 @@ All Makefile changes must satisfy this contract: (Enforcement: [docs/POLICY_CONT
 - Shared command fragments and reusable values live in variables to avoid repeating long command lines.
 - Targets that require runtime inputs fail fast with explicit guard checks and actionable error messages.
 - Operator-facing workflows must keep `HOST=<alias>` support and default to the repo standard host selector. (Enforcement: [docs/POLICY_CONTRACT.yml](docs/POLICY_CONTRACT.yml#L31-L37))
-- Makefile style is machine-checked with `mbake` (`make lint-checkmake`) and included in CI quality gates.
 
 ---
 

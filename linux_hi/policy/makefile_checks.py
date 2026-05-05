@@ -62,7 +62,9 @@ def _check_phony_target(
         failures.append(f"Public target '{target}' should use lowercase kebab-case")
     if target in app_roles and any(re.search(r"<app", ln) for ln in help_lines):
         return
-    if not any(re.search(rf"\b{re.escape(target)}\b", ln) for ln in help_lines):
+    # Ensure the public target is documented in the help output.
+    appears_in_help = any(re.search(rf"\b{re.escape(target)}\b", ln) for ln in help_lines)
+    if not appears_in_help:
         failures.append(f"Public target '{target}' must appear in make help output")
 
 

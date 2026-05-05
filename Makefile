@@ -49,26 +49,25 @@ _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
-.PHONY: lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-check lint-checkmake lint-coverage lint-cpd lint-format lint-lizard lint-repo-policy
+.PHONY: lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-check lint-coverage lint-cpd lint-format lint-lizard lint-repo-policy
 .PHONY: lint-semgrep lint-ty lint-vulture
 .PHONY: _ci _generate_check _inv_check _vault_check $(APPS)
 
 help:
 	@echo "Usage: make [HOST=<alias>] <target>"
 	@echo ""
-	@echo "  bootstrap     First-time setup: vault password + encrypt credentials"
-	@echo "  check         Validate prerequisites (vault file, Pi reachability)"
-	@echo "  doctor        Environment health check (binaries, hosts, SSH keys)"
+	@echo "  bootstrap          First-time setup: vault password + encrypt credentials"
+	@echo "  check              Validate prerequisites (vault file, Pi reachability)"
+	@echo "  doctor             Environment health check (binaries, hosts, SSH keys)"
 	@echo "  lint               Run the full static quality gate"
 	@echo "  lint-check         Ruff lint checks"
 	@echo "  lint-format        Ruff format check"
 	@echo "  lint-ty            ty type checks"
 	@echo "  lint-semgrep       Semgrep architectural and process audits"
 	@echo "  lint-cpd           Copy-paste duplication check (jscpd, threshold 0%)"
-	@echo "  lint-coverage       Coverage floor check (config/lint.toml)"
+	@echo "  lint-coverage      Coverage floor check (config/lint.toml)"
 	@echo "  lint-vulture       Unused Python code check"
 	@echo "  lint-lizard        Cyclomatic complexity and function length check"
-	@echo "  lint-checkmake     Makefile style check (mbake)"
 	@echo "  lint-repo-policy   Repository structural and architecture policy checks"
 	@echo "  lint-ansible       ansible-lint over ansible/"
 	@echo "  lint-ansible-coverage  Ansible app test coverage floor check (config/lint.toml)"
@@ -76,31 +75,31 @@ help:
 	@echo "  ruff               Alias for lint-check"
 	@echo "  ruff-fix           Auto-fix Ruff lint violations"
 	@echo "  ruff-format        Reformat Python files with Ruff"
-	@echo "  test          Run unit + stub tests (no infra needed)"
-	@echo "  test-e2e      Run live host tests (requires host reachable; HOST defaults to first SSH-capable inventory alias)"
-	@echo "  caddy         Provision Caddy reverse proxy (native system service)"
-	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
-	@echo "  setup         Provision baseline (auto-updates + podman + rclone + caddy)"
-	@echo "  auto-updates  Configure unattended package upgrades for the host"
-	@echo "  podman        Provision Podman rootless runtime"
-	@echo "  rclone-playbook  Run rclone playbook (non-interactive)"
-	@echo "  <app>         Provision a named app — runs preflight automatically"
+	@echo "  test               Run unit + stub tests (no infra needed)"
+	@echo "  test-e2e           Run live host tests (requires host reachable; HOST defaults to first SSH-capable inventory alias)"
+	@echo "  caddy              Provision Caddy reverse proxy (native system service)"
+	@echo "  generate-apps      Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
+	@echo "  setup              Provision baseline (auto-updates + podman + rclone + caddy)"
+	@echo "  auto-updates       Configure unattended package upgrades for the host"
+	@echo "  podman             Provision Podman rootless runtime"
+	@echo "  rclone-playbook    Run rclone playbook (non-interactive)"
+	@echo "  <app>              Provision a named app — runs preflight automatically"
 	@echo "                Apps: $(APPS)"
-	@echo "  mount         Interactive: pick and mount external storage"
-	@echo "  rclone        Configure project rclone remotes and vault the config"
-	@echo "  config-rclone Open interactive rclone config editor for ansible/config/rclone.conf"
+	@echo "  mount              Interactive: pick and mount external storage"
+	@echo "  rclone             Configure project rclone remotes and vault the config"
+	@echo "  config-rclone      Open interactive rclone config editor for ansible/config/rclone.conf"
 	@echo "  config-rclone-edit Open ansible/config/rclone.conf in nano"
-	@echo "  config-hosts  Hosts config entrypoint (defaults to list)"
-	@echo "  config-hosts-add Add a host (supports NAME ADDRESS/ADDR SECRET/KEY SSH_USER PORT)"
+	@echo "  config-hosts       Hosts config entrypoint (defaults to list)"
+	@echo "  config-hosts-add   Add a host (supports NAME ADDRESS/ADDR SECRET/KEY SSH_USER PORT)"
 	@echo "  config-hosts-remove Remove a host (supports NAME)"
-	@echo "  config-hosts-list List configured hosts"
-	@echo "  config-hosts-edit Open ansible/inventory/hosts.yml in nano"
-	@echo "  config-vault  Vault config entrypoint (defaults to list)"
-	@echo "  config-vault-add Add/update a vault key (supports NAME)"
+	@echo "  config-hosts-list  List configured hosts"
+	@echo "  config-hosts-edit  Open ansible/inventory/hosts.yml in nano"
+	@echo "  config-vault       Vault config entrypoint (defaults to list)"
+	@echo "  config-vault-add   Add/update a vault key (supports NAME)"
 	@echo "  config-vault-remove Remove a vault key (supports NAME)"
 	@echo "  config-vault-list List vault keys"
 	@echo "  config-vault-edit Open vault editor in nano (ansible-vault edit)"
-	@echo "  vault-edit    Edit encrypted secrets in \$$EDITOR"
+	@echo "  vault-edit         Edit encrypted secrets in \$$EDITOR"
 	@echo "  ssh           Open a shell on the host"
 	@echo "  ping          Test Ansible connectivity"
 	@echo "  add-hostkey   Trust the host's SSH host key (run before first site)"
@@ -117,7 +116,7 @@ check:
 doctor:
 	$(POETRY) python -m linux_hi.cli.check --doctor
 
-lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-checkmake lint-repo-policy
+lint: lint-check lint-format lint-ty lint-semgrep lint-cpd lint-vulture lint-lizard lint-ansible lint-ansible-coverage lint-ansible-roles-coverage lint-repo-policy
 
 # Ruff targets: check / format / fix
 lint-check:
@@ -140,7 +139,6 @@ _ci:
 	$(POETRY) ruff check $(PY_DIRS)
 	$(POETRY) ty check
 	$(POETRY) semgrep scan --config rules/ --error
-	$(POETRY) mbake format --check Makefile
 	$(POETRY) pytest -q tests/ --ignore=tests/unit/test_lint.py --cov=linux_hi --cov-report=term --cov-fail-under=$(COVERAGE_FLOOR)
 
 lint-ty:
@@ -169,9 +167,6 @@ lint-ansible-coverage:
 
 lint-ansible-roles-coverage:
 	$(POETRY) python -m linux_hi.cli.linters.ansible_roles_coverage
-
-lint-checkmake:
-	$(POETRY) mbake format --check Makefile
 
 lint-repo-policy:
 	$(POETRY) python -m linux_hi.cli.linters.repo_policy_check

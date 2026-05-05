@@ -24,7 +24,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ruff (>=0.15.10,<0.16.0)",
-    "mbake (>=1.0.0,<2.0.0)",
     "semgrep (>=1.122.0,<2.0.0)",
     "vulture (>=2.14,<3.0)",
     "ansible-lint (>=26.4.0,<27.0.0)",

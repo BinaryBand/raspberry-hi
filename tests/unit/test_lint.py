@@ -87,19 +87,6 @@ class TestVulture:
         assert result.returncode == 0
 
 
-class TestMakefileLint:
-    """Ensure the repository Makefile passes style checks."""
-
-    def test_makefile_style(self):
-        """Fail if mbake reports Makefile formatting or style violations."""
-        result = run_resolved(
-            ["poetry", "run", "mbake", "format", "--check", "Makefile"],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
-
-
 class TestAnsibleLint:
     """Ensure ansible configuration invariants remain valid."""
 

@@ -15,7 +15,7 @@ Ansible + Python tooling for provisioning rootless Podman containers on personal
 ```bash
 make test              # run full test suite (includes lint + policy checks)
 make generate-apps     # regenerate group_vars/all/vars.yml from registry.yml (fast, idempotent)
-make lint              # full static quality gate (ruff, ty, semgrep, cpd, vulture, lizard, ansible-lint, mbake, policy)
+make lint              # full static quality gate (ruff, ty, semgrep, cpd, vulture, lizard, ansible-lint, policy)
 make check             # validate prerequisites (vault password, inventory)
 HOST=debian make <app> # provision an app (runs preflight + self-bootstraps auto-updates/podman)
 ```

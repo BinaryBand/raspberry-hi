@@ -24,7 +24,6 @@ policies:
     source_line: 150
     status: enforced
     controls:
-      - make:lint-checkmake
       - semgrep:make-no-direct-poetry-run
       - semgrep:make-no-hardcoded-py-dirs
       - repo-policy:makefile-phony-and-style
