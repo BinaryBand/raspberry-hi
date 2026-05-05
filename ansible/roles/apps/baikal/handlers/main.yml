@@ -1,7 +1,7 @@
 ---
 - name: Restart baikal
   listen: restart baikal
-  ansible.builtin.include_tasks: ../../service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../../system/service_adapter/tasks/restart.yml
   vars:
     service_adapter_name: "{{ baikal_service_name }}"
     service_adapter_user: "{{ ansible_user }}"

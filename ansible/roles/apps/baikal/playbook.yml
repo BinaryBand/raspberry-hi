@@ -3,7 +3,7 @@
   import_playbook: ../postgres/playbook.yml
 
 - name: Import caddy playbook
-  import_playbook: ../caddy/playbook.yml
+  import_playbook: ../../system/caddy/playbook.yml
 
 - name: Provision baikal
   hosts: devices
@@ -11,7 +11,7 @@
 
   pre_tasks:
     - name: Load common pre-tasks
-      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+      ansible.builtin.import_tasks: ../../../tasks/pre_tasks.yml
 
   roles:
     - role: baikal

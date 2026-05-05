@@ -1,7 +1,14 @@
 ---
-- name: Install Podman (apt)
+- name: Install Podman and rootless runtime dependencies (apt)
   ansible.builtin.apt:
-    name: podman
+    name:
+      - podman
+      - uidmap       # provides newgidmap/newuidmap for rootless user namespaces
+      - libselinux1  # runtime dep of newgidmap; missing breaks podman unshare
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+- name: Refresh shared library cache
+  ansible.builtin.command: ldconfig
+  changed_when: false

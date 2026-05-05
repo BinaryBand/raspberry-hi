@@ -1,7 +1,7 @@
 ---
 - name: Restart postgres
   listen: restart postgres
-  ansible.builtin.include_tasks: ../../service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../../system/service_adapter/tasks/restart.yml
   vars:
     service_adapter_name: "{{ postgres_service_name }}"
     service_adapter_user: "{{ ansible_user }}"

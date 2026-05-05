@@ -1,7 +1,7 @@
 ---
 - name: Restart mautrix-whatsapp
   listen: restart mautrix-whatsapp
-  ansible.builtin.include_tasks: ../../service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../../system/service_adapter/tasks/restart.yml
   vars:
     service_adapter_name: "{{ mautrix_whatsapp_service_name }}"
     service_adapter_user: "{{ ansible_user }}"
@@ -9,7 +9,7 @@
 
 - name: Restart synapse
   listen: restart synapse
-  ansible.builtin.include_tasks: ../../service_adapter/tasks/restart.yml
+  ansible.builtin.include_tasks: ../../../system/service_adapter/tasks/restart.yml
   vars:
     service_adapter_name: "{{ synapse_service_name }}"
     service_adapter_user: "{{ ansible_user }}"

@@ -1,11 +1,14 @@
 ---
+- name: Import base playbook
+  import_playbook: ../../../playbooks/setup.yml
+
 - name: Provision rclone
   hosts: devices
   gather_facts: true
 
   pre_tasks:
     - name: Load common pre-tasks
-      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+      ansible.builtin.import_tasks: ../../../tasks/pre_tasks.yml
 
   roles:
     - role: rclone

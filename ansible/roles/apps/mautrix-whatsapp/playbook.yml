@@ -8,7 +8,7 @@
 
   pre_tasks:
     - name: Load common pre-tasks
-      ansible.builtin.import_tasks: ../../tasks/pre_tasks.yml
+      ansible.builtin.import_tasks: ../../../tasks/pre_tasks.yml
 
   roles:
     - role: mautrix-whatsapp
