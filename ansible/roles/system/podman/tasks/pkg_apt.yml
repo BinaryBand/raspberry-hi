@@ -11,4 +11,5 @@
 
 - name: Refresh shared library cache
   ansible.builtin.command: ldconfig
+  become: true
   changed_when: false

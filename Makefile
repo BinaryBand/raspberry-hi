@@ -282,5 +282,19 @@ logs: _inv_check
 caddy: _vault_check
 	$(_ANSIBLE_FLAGS) ansible/roles/system/caddy/playbook.yml
 
+.PHONY: setup auto-updates podman rclone-playbook
+
+setup: _vault_check
+	$(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
+
+auto-updates: _vault_check
+	$(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml --tags base
+
+podman: _vault_check
+	$(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml --tags podman
+
+rclone-playbook: _vault_check
+	$(_ANSIBLE_FLAGS) ansible/roles/system/rclone/playbook.yml
+
 %:
 	@echo "Unknown target '$@'. Run 'make help' for available targets." && exit 1
