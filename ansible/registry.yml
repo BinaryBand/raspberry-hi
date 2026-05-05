@@ -9,8 +9,7 @@ apps:
     service_name: minio
     image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     port: 9000
-    dependencies:
-      - caddy
+    dependencies: []
     preflight_vars:
       minio_data_path:
         hint: persistent path for MinIO data
@@ -51,7 +50,6 @@ apps:
     runtime_gid: 101
     dependencies:
       - postgres
-      - caddy
     preflight_vars:
       baikal_config_path:
         hint: path for Baikal configuration files
@@ -81,7 +79,6 @@ apps:
     runtime_gid: 991
     dependencies:
       - postgres
-      - caddy
     preflight_vars:
       synapse_server_name:
         hint: "Matrix server name / domain (e.g. chat.example.com)"
@@ -155,10 +152,6 @@ apps:
         label: "rclone config file contents"
         hidden: false
 
-  setup:
-    service_type: system
-    dependencies: []
-
   jellyfin:
     service_type: containerized
     service_name: jellyfin
@@ -166,7 +159,6 @@ apps:
     port: 8096
     dependencies:
       - rclone
-      - caddy
     preflight_vars:
       jellyfin_media_remote:
         hint: "rclone media library in remote:path format (read-only mount source)"

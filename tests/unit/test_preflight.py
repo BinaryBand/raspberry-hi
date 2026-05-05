@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from linux_hi.models import ANSIBLE_DATA
@@ -9,6 +11,7 @@ from linux_hi.models.ansible.registry import AppRegistryEntry, VaultSecretSpec
 from linux_hi.services.preflight import (
     PreflightError,
     PreflightOrchestrator,
+    _host_has_forwards,
     load_preflight_spec,
 )
 from tests.support.preflight_fakes import FakeHostVarsStore, FakePromptRegistry, FakeVaultStore
@@ -249,3 +252,51 @@ def test_cycle_detection_prevents_infinite_loop() -> None:
             orch.run("minio", HOST)
         except PreflightError:
             pass  # role_path lookup will fail - that's fine; cycle guard ran
+
+
+def test_caddy_preflight_injected_when_host_has_forwards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caddy preflight should run automatically when forwards.yml has an entry for the host."""
+    from linux_hi.services import preflight as pf_module
+
+    visited: list[str] = []
+    original_run_for = PreflightOrchestrator._run_for
+
+    def _tracking_run_for(self: PreflightOrchestrator, app: str, hostname: str, seen: set) -> None:
+        visited.append(app)
+        original_run_for(self, app, hostname, seen)
+
+    monkeypatch.setattr(pf_module, "_host_has_forwards", lambda _hostname: True)
+    monkeypatch.setattr(PreflightOrchestrator, "_run_for", _tracking_run_for)
+
+    orch, _, _ = _orchestrator()
+    try:
+        orch.run("minio", HOST)
+    except (PreflightError, KeyError):
+        pass
+
+    assert "caddy" in visited
+
+
+def test_host_has_forwards_returns_false_when_file_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_host_has_forwards should return False when forwards.yml does not exist."""
+    monkeypatch.setattr(ANSIBLE_DATA, "ansible_dir", tmp_path / "ansible")
+    assert not _host_has_forwards("rpi")
+
+
+def test_host_has_forwards_returns_true_for_matching_host(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_host_has_forwards should return True when the hostname appears in reverse_proxies."""
+    ansible_dir = tmp_path / "ansible" / "group_vars" / "all"
+    ansible_dir.mkdir(parents=True)
+    (ansible_dir / "forwards.yml").write_text(
+        "reverse_proxies:\n  - service: minio\n    host: rpi\n    domain: minio.example.com\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(ANSIBLE_DATA, "ansible_dir", tmp_path / "ansible")
+    assert _host_has_forwards("rpi")
+    assert not _host_has_forwards("other-host")

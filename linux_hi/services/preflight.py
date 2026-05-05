@@ -6,6 +6,8 @@ import secrets
 from pathlib import Path
 from typing import Protocol
 
+import yaml
+
 from linux_hi.adapters.prompt_handlers import PromptRegistryPort
 from linux_hi.models import ANSIBLE_DATA, AppRegistryEntry, PreflightVarSpec, VaultSecretSpec
 from linux_hi.models.ansible.role_vars import role_required_vars
@@ -64,6 +66,16 @@ class AnsibleVaultStore:
     def write(self, data: dict[str, object]) -> None:
         """Encrypt and write *data* to the vault file."""
         encrypt_vault(data)
+
+
+def _host_has_forwards(hostname: str) -> bool:
+    """Return True if forwards.yml declares any reverse-proxy entry for *hostname*."""
+    forwards_path = ANSIBLE_DATA.ansible_dir / "group_vars" / "all" / "forwards.yml"
+    if not forwards_path.exists():
+        return False
+    data = yaml.safe_load(forwards_path.read_text(encoding="utf-8")) or {}
+    entries = data.get("reverse_proxies", [])
+    return any(e.get("host") == hostname for e in entries)
 
 
 def _resolve_role_path(app: str) -> Path:
@@ -131,6 +143,8 @@ class PreflightOrchestrator:
         entry = ANSIBLE_DATA.get_app_entry(app)
         for dep in entry.dependencies:
             self._run_for(dep, hostname, seen)
+        if "caddy" not in seen and _host_has_forwards(hostname):
+            self._run_for("caddy", hostname, seen)
         role_path = _resolve_role_path(app)
         vars_spec, secrets_spec = load_preflight_spec(app, role_path)
         host_updates, secret_updates = self._collect(hostname, vars_spec, secrets_spec)

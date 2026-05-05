@@ -17,7 +17,7 @@ make test              # run full test suite (includes lint + policy checks)
 make generate-apps     # regenerate group_vars/all/vars.yml from registry.yml (fast, idempotent)
 make lint              # full static quality gate (ruff, ty, semgrep, cpd, vulture, lizard, ansible-lint, mbake, policy)
 make check             # validate prerequisites (vault password, inventory)
-HOST=debian make <app> # provision an app (runs preflight automatically)
+HOST=debian make <app> # provision an app (runs preflight + self-bootstraps auto-updates/podman)
 ```
 
 **After any change to `ansible/registry.yml`:** run `make generate-apps` before running tests or provisioning.
@@ -113,10 +113,11 @@ See [ADDING_AN_APP.md](ADDING_AN_APP.md) for the full guide. The checklist:
 
 1. Add entry to `ansible/registry.yml` (service_type, image, port, runtime_uid/gid if needed, preflight_vars, vault_secrets)
 2. Create `ansible/roles/apps/<app>/` with tasks, defaults, templates, handlers
-3. Write `ansible/roles/apps/<app>/playbook.yml` (see existing apps for the pattern)
-4. `make generate-apps` — regenerates `group_vars/all/vars.yml`
-5. Update `tests/unit/test_ansible_apps.py` expected app lists
-6. `make test` — all tests must pass including `TestRepoPolicy`
+3. Write `ansible/roles/apps/<app>/playbook.yml` (see existing apps for the pattern); import caddy playbook if the app is reverse-proxied
+4. If the app needs a reverse proxy, add an entry to `ansible/group_vars/all/forwards.yml`
+5. `make generate-apps` — regenerates `group_vars/all/vars.yml`
+6. Update `tests/unit/test_ansible_apps.py` expected app lists
+7. `make test` — all tests must pass including `TestRepoPolicy`
 
 **Note:** `ADDING_AN_APP.md` uses `service_name_var` in its example — that field was replaced by `service_name` (the value directly). Use `service_name: myapp` in the registry.
 

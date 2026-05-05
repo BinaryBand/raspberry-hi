@@ -42,12 +42,10 @@ REMOTE_KEY := $(word 4,$(_INV))
 VAULT_PASS := $(CURDIR)/ansible/.vault-password
 INV := ansible/inventory/hosts.yml
 _ANSIBLE_FLAGS := ansible-playbook -i $(INV) --vault-password-file $(VAULT_PASS) --limit $(HOST) $(if $(TAGS),--tags $(TAGS),)
-SETUP_PLAY := $(_ANSIBLE_FLAGS) ansible/playbooks/setup.yml
-
 _APP_PREFLIGHTS := $(addprefix _,$(addsuffix _preflight,$(APPS)))
 
 .PHONY: add-hostkey baikal bootstrap caddy check doctor generate-apps help lint logs mount ping
-.PHONY: format rclone ruff ruff-fix ruff-format setup ssh status
+.PHONY: format rclone ruff ruff-fix ruff-format ssh status
 .PHONY: test test-e2e vault-edit
 .PHONY: config-rclone config-rclone-edit config-hosts config-hosts-add config-hosts-remove config-hosts-list config-hosts-edit
 .PHONY: config-vault config-vault-add config-vault-remove config-vault-list config-vault-edit
@@ -80,7 +78,6 @@ help:
 	@echo "  ruff-format        Reformat Python files with Ruff"
 	@echo "  test          Run unit + stub tests (no infra needed)"
 	@echo "  test-e2e      Run live host tests (requires host reachable; HOST defaults to first SSH-capable inventory alias)"
-	@echo "  setup         Provision base dependencies on a host (HOST defaults to first SSH-capable inventory alias)"
 	@echo "  caddy         Provision Caddy reverse proxy (native system service)"
 	@echo "  generate-apps Regenerate ansible/group_vars/all/vars.yml from ansible/registry.yml"
 	@echo "  <app>         Provision a named app — runs preflight automatically"
@@ -108,7 +105,7 @@ help:
 	@echo "  logs          Tail service logs from the host (SVC=<service>)"
 	@echo ""
 	@echo "  HOST defaults to first SSH-capable inventory alias; override with: HOST=myserver make site"
-	@echo "  TAGS filters Ansible tasks by tag; e.g. TAGS=auto-updates make setup"
+	@echo "  TAGS filters Ansible tasks by tag; e.g. TAGS=auto-updates make caddy"
 
 check:
 	$(POETRY) python -m linux_hi.cli.check
@@ -281,10 +278,6 @@ status: _inv_check
 logs: _inv_check
 	@test -n "$(SVC)" || { echo "Error: SVC is required — e.g. make logs SVC=minio"; exit 1; }
 	ssh -i $(REMOTE_KEY) $(REMOTE_USER)@$(REMOTE_HOST) -p $(REMOTE_PORT) "journalctl --user -u $(SVC) -n 50 --no-pager"
-
-setup: _vault_check
-	HOST=$(HOST) $(POETRY) python -m linux_hi.cli.preflight setup
-	$(SETUP_PLAY)
 
 caddy: _vault_check
 	$(_ANSIBLE_FLAGS) ansible/roles/system/caddy/playbook.yml

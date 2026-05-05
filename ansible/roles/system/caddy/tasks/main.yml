@@ -1,5 +1,35 @@
 ---
-# 0. Guard: fail fast if required variables are not configured.
+# 0a. Declarative routing: build caddy_routes from forwards.yml for this host.
+- name: Collect forwards for this host from forwards.yml
+  ansible.builtin.set_fact:
+    _caddy_host_forwards: >-
+      {{
+        (reverse_proxies | default([]))
+        | selectattr('host', 'equalto', inventory_hostname)
+        | list
+      }}
+
+- name: Skip caddy — no forwards declared for this host
+  ansible.builtin.meta: end_play
+  when: _caddy_host_forwards | length == 0
+
+- name: Build caddy_routes from host forwards and app port vars
+  vars:
+    _routes: >-
+      {%- set routes = [] -%}
+      {%- for fwd in _caddy_host_forwards -%}
+        {%- set port_key = fwd.service | replace('-', '_') ~ '_port' -%}
+        {%- set _ = routes.append({
+          'host': fwd.service,
+          'external': fwd.domain,
+          'internal': 'localhost:' ~ vars[port_key]
+        }) -%}
+      {%- endfor -%}
+      {{ routes }}
+  ansible.builtin.set_fact:
+    caddy_routes: "{{ _routes }}"
+
+# 0b. Guard: fail fast if required variables are not configured.
 - name: Assert caddy_acme_email is set
   ansible.builtin.assert:
     that: caddy_acme_email is not none
