@@ -6,9 +6,23 @@ import sys
 import tomllib
 from pathlib import Path
 
-_CONFIG = Path("config/lint.toml")
-_APPS_DIR = Path("ansible/apps")
-_TESTS_DIR = Path("tests/apps")
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_CONFIG = _REPO_ROOT / "config" / "lint.toml"
+_TESTS_DIR = _REPO_ROOT / "tests" / "apps"
+_APPS_DIR_CANDIDATES = (
+    _REPO_ROOT / "ansible" / "roles" / "apps",
+    _REPO_ROOT / "ansible" / "apps",
+)
+
+
+def _resolve_apps_dir() -> Path:
+    """Return the first existing app directory path used by this repository."""
+    for candidate in _APPS_DIR_CANDIDATES:
+        if candidate.is_dir():
+            return candidate
+
+    searched = ", ".join(str(path) for path in _APPS_DIR_CANDIDATES)
+    raise FileNotFoundError(f"Could not find Ansible apps directory. Searched: {searched}")
 
 
 def _expected_test_file(app_name: str) -> Path:
@@ -22,7 +36,8 @@ def main() -> None:
     cfg = tomllib.loads(_CONFIG.read_text(encoding="utf-8"))
     floor: int = cfg.get("ansible_coverage", {}).get("floor", 0)
 
-    apps = sorted(p.name for p in _APPS_DIR.iterdir() if p.is_dir())
+    apps_dir = _resolve_apps_dir()
+    apps = sorted(p.name for p in apps_dir.iterdir() if p.is_dir())
     covered = [a for a in apps if _expected_test_file(a).exists()]
     missing = [a for a in apps if a not in covered]
 
